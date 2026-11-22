@@ -1,0 +1,607 @@
+<title>대장간 강화소 패치노트</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&family=Nanum+Gothic+Coding:wght@700&display=swap">
+<style>
+/* 레이아웃: 게임과 같은 밤의 대장간. 위에 현재 버전 요약, 아래로 업데이트 기록(최신순)과 현재 규칙표 */
+:root {
+  --bg: #16130f;
+  --panel: #221d17;
+  --line: #3a3128;
+  --fg: #efe6d8;
+  --muted: #a6998a;
+  --ember: #ff8a3d;
+  --new: #7fd18b;
+  --bal: #f0c35a;
+  --fix: #ff8a9a;
+  --art: #9fb8ff;
+  --display: "Black Han Sans", "Malgun Gothic", sans-serif;
+  --body: "Gowun Dodum", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --mono: "Nanum Gothic Coding", ui-monospace, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(ellipse at 50% 0%, #2c2117 0%, var(--bg) 55%) fixed, var(--bg);
+  color: var(--fg);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px;
+}
+main { max-width: 760px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--display); font-weight: 400; margin: 0; text-wrap: balance; letter-spacing: 0.01em; }
+h1 { font-size: clamp(28px, 6vw, 40px); line-height: 1.15; }
+h2 { font-size: 24px; }
+h3 { font-size: 18px; }
+p { margin: 0; }
+a { color: var(--ember); }
+a:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--mono); font-size: 13px; color: var(--ember); letter-spacing: 0.08em; }
+.lede { color: var(--muted); max-width: 62ch; }
+.jump { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.jump a {
+  text-decoration: none; color: var(--fg); border: 1px solid var(--line); border-radius: 999px;
+  padding: 6px 14px; font-size: 14px; background: var(--panel);
+}
+.jump a:hover { border-color: var(--ember); }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; color: var(--muted); }
+.chip {
+  display: inline-block; font-size: 12px; line-height: 1; padding: 4px 8px; border-radius: 6px;
+  border: 1px solid currentColor; font-family: var(--body); white-space: nowrap;
+}
+.chip.new { color: var(--new); } .chip.bal { color: var(--bal); } .chip.fix { color: var(--fix); } .chip.art { color: var(--art); }
+
+/* 업데이트 기록 */
+.history { display: grid; gap: 0; }
+.ver {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 16px;
+  padding-block: 16px; border-top: 1px solid var(--line);
+}
+.ver:first-child { border-top: 0; }
+.vnum { font-family: var(--mono); color: var(--ember); font-size: 15px; padding-top: 2px; }
+.vbody { display: grid; gap: 6px; min-width: 0; }
+.vhead { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px; }
+.vbody ul { margin: 0; padding-left: 1.1em; display: grid; gap: 3px; color: var(--fg); }
+.vbody li::marker { color: var(--muted); }
+.vbody li { padding-left: 2px; }
+.latest .vnum::after { content: "최신"; display: block; font-family: var(--body); font-size: 11px; color: var(--new); }
+
+/* 현재 규칙 */
+.rules { display: grid; gap: 22px; }
+.rule { display: grid; gap: 10px; }
+.rule > p { color: var(--muted); max-width: 66ch; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 520px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 400; color: var(--muted); font-size: 13px; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vars { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.var { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--panel); display: grid; gap: 2px; min-width: 0; }
+.var code { font-family: var(--mono); font-size: 13px; color: var(--ember); overflow-wrap: anywhere; }
+.var span { font-size: 13px; color: var(--muted); }
+footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); padding-top: 16px; }
+
+@media (max-width: 480px) {
+  .ver { grid-template-columns: 1fr; }
+  .latest .vnum::after { display: inline; margin-left: 8px; }
+}
+</style>
+
+<main>
+  <header>
+    <div class="eyebrow">대장간 강화소 · 현재 버전 v42</div>
+    <h1>대장간 강화소 패치노트</h1>
+    <p class="lede">검 하나를 강화하는 게임에서 시작해 광산, 상점, 사냥터 다섯 곳, 캐릭터와 스킬, 보스 9마리의 던전까지 커진 과정을 버전별로 정리했어요. 버전 번호는 게임 링크에 올라간 순서예요.</p>
+    <nav class="jump" aria-label="바로 가기">
+      <a href="#history">업데이트 기록</a>
+      <a href="#rules">현재 규칙과 수치</a>
+      <a href="#vars">조정용 변수</a>
+    </nav>
+  </header>
+
+  <section id="history" class="rule" aria-labelledby="h-history">
+    <h2 id="h-history">업데이트 기록</h2>
+    <div class="legend">
+      <span><span class="chip new">신규</span> 새 기능</span>
+      <span><span class="chip bal">밸런스</span> 수치 조정</span>
+      <span><span class="chip fix">수정</span> 버그·불편 해결</span>
+      <span><span class="chip art">연출</span> 그림·소리·화면</span>
+    </div>
+    <div class="history">
+
+      <article class="ver latest"><div class="vnum">v42</div><div class="vbody">
+        <div class="vhead"><h3>보스마다 사냥터 4곳 추가</h3><span class="chip new">신규</span><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>망자의 묘지(+55): 해골 병사, 원혼 / 보스 암흑사신 → 사신의 영혼석</li>
+          <li>뇌운 봉우리(+62): 폭풍 매, 번개 정령 / 보스 번개 드래곤 → 뇌룡의 뿔</li>
+          <li>지옥 불구덩이(+68): 지옥 졸개, 불꽃 임프 / 보스 지옥 도깨비 → 도깨비 뿔</li>
+          <li>용의 둥지(+74): 용인 전사, 새끼 용 / 보스 킹 드래곤 → 용왕의 심장</li>
+          <li>새 보스 재료로 검 +80 용왕검까지 (명계의 검, 뇌신검, 업화검, 용왕검)</li>
+          <li>보스 던전을 +75 기준 최종 콘텐츠로 상향, 보상도 증가</li>
+          <li>여정 목표 14개 → 19개 (새 사냥터 보스와 검 +65)</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v41</div><div class="vbody">
+        <div class="vhead"><h3>여정, 장인 등급, 입체 그래픽</h3><span class="chip new">신규</span><span class="chip art">연출</span></div>
+        <ul>
+          <li>게임의 목표: 보스 던전의 킹 드래곤을 쓰러뜨려 전설의 대장장이가 되기. 14단계 목표가 차례로 주어지고 달성하면 보상</li>
+          <li>최종 목표를 달성하면 엔딩 화면. 이후에도 계속 플레이 가능</li>
+          <li>새 시스템 장인 등급: 강화·채굴·사냥이 모두 경험치. 등급마다 특성 포인트 1개</li>
+          <li>특성 4종: 완력(공격력 +4%), 강인함(체력 +5%), 손재주(강화 성공 +0.5%p), 수완(골드 +5%)</li>
+          <li>사냥터 입체감: 빛을 받는 몹과 캐릭터, 어깨와 손이 생긴 캐릭터, 솟아 보이는 바위, 가장자리의 나무·바위·수정·얼음·기둥이 캐릭터 위로 겹침</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v40</div><div class="vbody">
+        <div class="vhead"><h3>그래픽 향상과 화면 정리</h3><span class="chip art">연출</span><span class="chip fix">수정</span></div>
+        <ul>
+          <li>대장간: 단계마다 모양이 달라지는 검과 곡괭이(넓어지는 칼날, 날개 가드, 보석, 문양, 반짝임), 모루와 불티, 강화 결과에 따라 튀는 조각</li>
+          <li>광산: 캘 수 있는 보석이 박힌 돌, 캘 때 튀는 돌 조각</li>
+          <li>사냥터: 그림자, 타격·처치 조각, 사냥터별 떠다니는 효과(반딧불, 불티, 눈 등), 피격·위험 시 붉은 가장자리, 둥근 체력바</li>
+          <li>가진 재료가 모든 탭 위쪽에 보임. 큰 금액은 만·억 단위로 표시</li>
+          <li>소리 설정과 새로 시작을 설정 창으로 통합, 탭에 아이콘 추가</li>
+          <li>강화 버튼에 골드 부족·재료 부족 표시, 필요한 재료와 보유량을 따로 표기, 확률에 색 구분</li>
+          <li>최근 기록이 대장간·광산·상점에서 모두 보임</li>
+          <li>친구 탭과 재료 줄이 화면 옆으로 넘치던 문제 수정</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v39</div><div class="vbody">
+        <div class="vhead"><h3>킹 드래곤 브레스 도중 꼬리 치기</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>3중 브레스 준비 시간 1.4초 → 1.15초</li>
+          <li>3연 브레스 도중에도 가까이 붙으면 꼬리 치기(기절). 꼬리 뒤에는 남은 브레스를 이어 간다</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v38</div><div class="vbody">
+        <div class="vhead"><h3>킹 드래곤 패턴 추가</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>체력 10% 미만 비행은 확정, 그 전에도 패턴마다 8% 확률로 비행</li>
+          <li>고드름·낙뢰 떨구기에 파이어볼 3개 추가</li>
+          <li>3연 브레스 뒤 가장 먼 가장자리로 날아가 화염·번개·냉기를 동시에 뿜는 3중 브레스 (사거리 1.2배)</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v37</div><div class="vbody">
+        <div class="vhead"><h3>지옥 도깨비 분노 강화</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>분노 상태에서 사슬이 세 갈래(±20°)로 날아온다</li>
+          <li>분노 상태의 내려찍기 자리에 5초 동안 불길</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v36</div><div class="vbody">
+        <div class="vhead"><h3>도깨비 내려찍기·파이어볼</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>3연속 내려찍기 빈도 14% → 25%</li>
+          <li>분노 상태 파이어볼 3개(0.35초 간격) → 5개(0.2초 간격)</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v35</div><div class="vbody">
+        <div class="vhead"><h3>도깨비 사슬과 3연속 내려찍기</h3><span class="chip new">신규</span><span class="chip fix">수정</span></div>
+        <ul>
+          <li>사슬: 방향을 점선으로 보여 주고 0.2초 멈춘 뒤 더 빠르게(420 → 680) 발사</li>
+          <li>새 패턴: 골렘처럼 뛰어올라 내리찍기 3회. 분노 상태에서 더 빠르다</li>
+          <li>패턴이 끊겨도 보스가 공중에 떠 있지 않게 수정</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v34</div><div class="vbody">
+        <div class="vhead"><h3>보스 접촉 피해 완화</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>모든 보스: 몸에 부딪혔을 때 피해 50%, 부딪히는 범위 75%</li>
+          <li>도깨비가 달려든 뒤 휘두르기까지 0.35초 → 0.5초</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v33</div><div class="vbody">
+        <div class="vhead"><h3>효과음과 배경음악</h3><span class="chip art">연출</span><span class="chip fix">수정</span></div>
+        <ul>
+          <li>효과음 30종(강화, 광산, 사냥, 스킬, 보스 공격, 상태 이상)</li>
+          <li>배경음악 3곡: 대장간, 사냥터, 보스전. 장면에 따라 자동 전환</li>
+          <li>소리 설정 창: 켜기·끄기, 효과음·음악 음량 따로 조절</li>
+          <li>소리 설정 때문에 게임이 시작되지 않던 문제 수정</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v32</div><div class="vbody">
+        <div class="vhead"><h3>칼 휘두르기 모션</h3><span class="chip art">연출</span></div>
+        <ul><li>칼이 사거리 끝까지 뻗으며 좌우 번갈아 베고, 칼 색 잔상이 남는다</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v31</div><div class="vbody">
+        <div class="vhead"><h3>사신·도깨비·번개 드래곤 조정</h3><span class="chip bal">밸런스</span><span class="chip art">연출</span></div>
+        <ul>
+          <li>사신 순간이동 자리를 하늘색으로 표시, 사라지는 시간 0.35초 → 0.6초, 자리 옮기기 4~6초마다</li>
+          <li>사신 영혼 흡수 회복량 1/5 (0.5초마다 0.5%)</li>
+          <li>도깨비 방망이 빈도 증가</li>
+          <li>번개 드래곤 돌진 빈도 감소, 낙뢰는 0.4초마다 그 순간 플레이어 자리에</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v30</div><div class="vbody">
+        <div class="vhead"><h3>보스 연습</h3><span class="chip new">신규</span></div>
+        <ul><li>사냥터에 보스 연습 탭. 던전 보스 9마리를 하나씩 바로 상대 (보상·기록 없음)</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v29</div><div class="vbody">
+        <div class="vhead"><h3>사신 속박 후 공격</h3><span class="chip fix">수정</span></div>
+        <ul><li>속박(0.5초)이 풀린 뒤에야 순간이동 베기가 시작돼 피할 수 있게 됨</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v28</div><div class="vbody">
+        <div class="vhead"><h3>보스 던전</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>검 +50 기준, 슬라임 킹부터 킹 드래곤까지 보스 9마리 연전. 보스마다 체력 30% 회복</li>
+          <li>새 보스 4마리: 암흑사신, 번개 드래곤, 지옥 도깨비, 킹 드래곤</li>
+          <li>슬라임 킹이 쓰러지면 작은 두 마리로 분열</li>
+          <li>새 상태 이상: 기절, 속박, 화상, 바닥 불길</li>
+          <li>던전부터 들어가면 입장이 안 되던 문제 수정</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v27</div><div class="vbody">
+        <div class="vhead"><h3>범위 스킬 보스 피해</h3><span class="chip bal">밸런스</span></div>
+        <ul><li>폭탄·낙뢰는 보스에게 피해의 30%만</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v26</div><div class="vbody">
+        <div class="vhead"><h3>낙뢰 스킬</h3><span class="chip new">신규</span></div>
+        <ul><li>적이 가장 많은 곳에 낙뢰. 공격력 ×12, 반경 55, 재사용 20초. 방패 무시</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v25</div><div class="vbody">
+        <div class="vhead"><h3>얼음 드래곤 꼬리</h3><span class="chip bal">밸런스</span></div>
+        <ul><li>꼬리 치기 예고 0.45초 → 0.55초</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v24</div><div class="vbody">
+        <div class="vhead"><h3>얼어붙은 빙원</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>사냥터(권장 +50): 얼음 골렘(고드름, 죽을 때 눈보라), 얼음 폭탄(자폭해서 빙결)</li>
+          <li>보스 얼음 드래곤: 냉기 브레스(0.6초 맞으면 2초 빙결), 고드름 낙하, 꼬리로 날려 보내기</li>
+          <li>새 보스 재료 빙룡의 결정, 검 +60 빙룡검</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v23</div><div class="vbody">
+        <div class="vhead"><h3>캐릭터·바닥·스킬 아이콘</h3><span class="chip art">연출</span></div>
+        <ul>
+          <li>캐릭터 8종마다 고유 장식(모자, 망토, 날개, 뿔 등)과 눈</li>
+          <li>사냥터마다 고유 바닥(풀숲, 동굴, 용암, 숲, 빙원)</li>
+          <li>스킬 글자 아이콘을 그림 아이콘으로</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v22</div><div class="vbody">
+        <div class="vhead"><h3>피해·보상 글자 분리</h3><span class="chip fix">수정</span></div>
+        <ul><li>피해 숫자는 몹 위, 골드·재료는 몹 아래에 한 줄씩. 모든 글자에 테두리</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v21</div><div class="vbody">
+        <div class="vhead"><h3>사냥터에서 캐릭터 선택</h3><span class="chip new">신규</span></div>
+        <ul><li>사냥터 준비 화면에서 영입한 캐릭터를 바로 고를 수 있음</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v20</div><div class="vbody">
+        <div class="vhead"><h3>강화 비용 완화</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>검 강화 비용 증가율: +20부터 1.2배, +35부터 1.1배 (+54 강화 1.42억 → 179만)</li>
+          <li>판매가 = 강화 비용 × (2 + 0.1 × 단계)</li>
+          <li>곡괭이도 +15부터 1.2배</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v19</div><div class="vbody">
+        <div class="vhead"><h3>광산 골드 상향</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>돌 하나당 골드가 곡괭이 단계마다 1.2배 (+35에서 80 G → 5,907 G)</li>
+          <li>광부 골드는 직접 캘 때의 절반</li>
+          <li>방패기사 가로 베기 간격 0.45초로 넓힘</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v18</div><div class="vbody">
+        <div class="vhead"><h3>광산 확장</h3><span class="chip new">신규</span><span class="chip fix">수정</span></div>
+        <ul>
+          <li>곡괭이 +35까지, +20부터 보석 재료 필요</li>
+          <li>광산에서 룬석 채굴(+20부터), 황금 광맥(1%, 골드 20배)</li>
+          <li>광부 고용: 최대 10명, 5초마다 자동 채굴, 닫아 둔 동안 최대 2시간</li>
+          <li>탭을 오래 재워 둔 뒤 광부 보상이 한도 없이 들어오던 문제 수정</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v17</div><div class="vbody">
+        <div class="vhead"><h3>숲의 궁수, 몹 등장</h3><span class="chip bal">밸런스</span><span class="chip fix">수정</span></div>
+        <ul>
+          <li>숲의 궁수 이동 속도 70 → 50, 사격 거리 340 → 260</li>
+          <li>몹을 쓸어 버린 뒤 한꺼번에 몰려오던 문제 수정</li>
+          <li>보스전 중 일반 몹 최대 3마리, 2.5초 간격</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v16</div><div class="vbody">
+        <div class="vhead"><h3>사냥꾼 버프</h3><span class="chip bal">밸런스</span></div>
+        <ul><li>보스 피해 +100%, 보스 12마리마다 등장, 보스 재료 +1</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v15</div><div class="vbody">
+        <div class="vhead"><h3>보석 드롭과 합성</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>모든 사냥터에서 루비·다이아·별의 파편이 나옴 (높은 사냥터일수록 확률 높음)</li>
+          <li>광산 보석 합성: 루비 10개 또는 다이아 4개 → 별의 파편 1개</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v14</div><div class="vbody">
+        <div class="vhead"><h3>강화 밸런스 개편</h3><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>전 구간 성공 확률 상향 (최저 2% → 8%), 파괴 최대 30% → 20%</li>
+          <li>재료를 얻을 수 있는 순서대로 다시 배치 (슬라임 왕관이 +10부터)</li>
+          <li>판매가 증가율 1.55배 → 1.35배</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v13</div><div class="vbody">
+        <div class="vhead"><h3>검은가시 숲</h3><span class="chip new">신규</span><span class="chip bal">밸런스</span></div>
+        <ul>
+          <li>사냥터: 숲의 궁수, 숲의 기사. 보스 거대 방패기사(방패, 돌진 베기, 연속 돌진, 3연 가로 베기)</li>
+          <li>검 판매에 확인 단계 (3초 안에 한 번 더)</li>
+          <li>기존 보스 이동·패턴 간격 빨라짐, 맵 460×600으로 확장</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v12</div><div class="vbody">
+        <div class="vhead"><h3>사냥터 전체 화면</h3><span class="chip fix">수정</span></div>
+        <ul><li>사냥 중 화면이 위아래로 밀리던 문제 수정. 화면 높이에 맞춰 크기 조절, 여백에서도 조이스틱</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v11</div><div class="vbody">
+        <div class="vhead"><h3>첫 밸런스 패치</h3><span class="chip bal">밸런스</span></div>
+        <ul><li>뱀파이어 회복 0.3% → 1%, 서리 기운 범위 85, 폭탄 범위·재사용 너프, 광폭화 지속 너프</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v10</div><div class="vbody">
+        <div class="vhead"><h3>캐릭터</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>상점 캐릭터 7종: 도박꾼, 뱀파이어, 아처, 사냥꾼, 악마, 천사, 사기꾼</li>
+          <li>사냥터를 사냥터·스킬 화면으로 나눔</li>
+          <li>골렘 점프 내려찍기, 드래곤 브레스 패턴</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v9</div><div class="vbody">
+        <div class="vhead"><h3>스킬과 룬석</h3><span class="chip new">신규</span><span class="chip art">연출</span></div>
+        <ul>
+          <li>스킬 10종(액티브·패시브), 룬석으로 배우고 강화, 장착 2칸</li>
+          <li>몹마다 다른 모습 (박쥐, 골렘, 도마뱀, 드래곤)</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v8</div><div class="vbody">
+        <div class="vhead"><h3>사냥터</h3><span class="chip new">신규</span></div>
+        <ul>
+          <li>조이스틱으로 움직이며 자동 공격. 초원·동굴·화산, 20마리마다 보스</li>
+          <li>보스 재료로 검 +50까지</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v7</div><div class="vbody">
+        <div class="vhead"><h3>보석 재료</h3><span class="chip new">신규</span></div>
+        <ul><li>곡괭이 단계에 따라 광산에서 루비·다이아·별의 파편. 검 +35까지</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v6</div><div class="vbody">
+        <div class="vhead"><h3>친구와 닉네임</h3><span class="chip new">신규</span></div>
+        <ul><li>닉네임을 정하면 같은 링크의 다른 플레이어 진행 상황을 보고 친구로 추가</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v5</div><div class="vbody">
+        <div class="vhead"><h3>상점</h3><span class="chip new">신규</span></div>
+        <ul><li>파괴방지권, 하락방지권, 행운의 숫돌, 곡괭이 기름</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v4</div><div class="vbody">
+        <div class="vhead"><h3>자동 저장</h3><span class="chip new">신규</span></div>
+        <ul><li>브라우저와 계정에 진행 상황 자동 저장, 새로 시작 버튼</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v3</div><div class="vbody">
+        <div class="vhead"><h3>곡괭이 강화</h3><span class="chip new">신규</span></div>
+        <ul><li>대장간을 검·곡괭이로 나눔. 곡괭이 단계마다 돌 골드 증가, 판매 없음, 파괴 없음</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v2</div><div class="vbody">
+        <div class="vhead"><h3>광산</h3><span class="chip new">신규</span></div>
+        <ul><li>대장간·광산 탭. 돌을 누를 때마다 골드</li></ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v1</div><div class="vbody">
+        <div class="vhead"><h3>첫 버전</h3><span class="chip new">신규</span></div>
+        <ul><li>검 강화(성공·유지·하락·파괴), 골드, 결과 메시지, 판매</li></ul>
+      </div></article>
+
+    </div>
+  </section>
+
+  <section id="rules" class="rules" aria-labelledby="h-rules">
+    <h2 id="h-rules">현재 규칙과 수치 (v42 기준)</h2>
+
+    <div class="rule">
+      <h3>검 강화</h3>
+      <p>강화 비용은 +20까지 단계마다 1.3배, +20~34는 1.2배, +35부터 1.1배로 오른다. 재료는 성공·실패와 상관없이 매번 소모된다. 판매가는 그 단계 강화 비용 × (2 + 0.1 × 단계). 최고 단계는 +80 용왕검.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>지금 단계</th><th>이름</th><th>성공 / 유지 / 하락 / 파괴 (%)</th><th>1회 재료</th></tr></thead>
+        <tbody>
+          <tr><td class="num">+0~4</td><td>나무 검</td><td class="num">95 / 5 / 0 / 0</td><td>없음</td></tr>
+          <tr><td class="num">+5~9</td><td>철 검</td><td class="num">70 / 25 / 5 / 0</td><td>없음</td></tr>
+          <tr><td class="num">+10~14</td><td>미스릴 검</td><td class="num">50 / 35 / 10 / 5</td><td>슬라임 왕관 1</td></tr>
+          <tr><td class="num">+15~19</td><td>마검</td><td class="num">35 / 40 / 15 / 10</td><td>루비 2</td></tr>
+          <tr><td class="num">+20~24</td><td>전설의 검</td><td class="num">30 / 40 / 15 / 15</td><td>골렘의 심장 1</td></tr>
+          <tr><td class="num">+25~29</td><td>다이아몬드 검</td><td class="num">25 / 40 / 20 / 15</td><td>다이아몬드 2</td></tr>
+          <tr><td class="num">+30~34</td><td>별빛 검</td><td class="num">20 / 40 / 20 / 20</td><td>용의 비늘 1</td></tr>
+          <tr><td class="num">+35~39</td><td>신화의 검</td><td class="num">16 / 42 / 22 / 20</td><td>별의 파편 1</td></tr>
+          <tr><td class="num">+40~44</td><td>천공의 검</td><td class="num">13 / 42 / 25 / 20</td><td>기사의 문장 1</td></tr>
+          <tr><td class="num">+45~49</td><td>용살검</td><td class="num">10 / 45 / 25 / 20</td><td>용의 비늘 1 + 별의 파편 1</td></tr>
+          <tr><td class="num">+50~54</td><td>창세의 검</td><td class="num">8 / 45 / 27 / 20</td><td>기사의 문장 2 + 별의 파편 1</td></tr>
+          <tr><td class="num">+55~59</td><td>기사왕의 검</td><td class="num">6 / 46 / 28 / 20</td><td>빙룡의 결정 1 + 기사의 문장 1 + 별의 파편 1</td></tr>
+          <tr><td class="num">+60~64</td><td>빙룡검</td><td class="num">5 / 46 / 29 / 20</td><td>사신의 영혼석 1 + 빙룡의 결정 1</td></tr>
+          <tr><td class="num">+65~69</td><td>명계의 검</td><td class="num">4 / 46 / 30 / 20</td><td>뇌룡의 뿔 1 + 사신의 영혼석 1</td></tr>
+          <tr><td class="num">+70~74</td><td>뇌신검</td><td class="num">3 / 47 / 30 / 20</td><td>도깨비 뿔 1 + 뇌룡의 뿔 1</td></tr>
+          <tr><td class="num">+75~79</td><td>업화검</td><td class="num">2.5 / 47.5 / 30 / 20</td><td>용왕의 심장 1 + 도깨비 뿔 1</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="rule">
+      <h3>곡괭이와 광산</h3>
+      <p>곡괭이는 +35 심연의 곡괭이까지, 파괴 없음. 강화 비용은 +15까지 1.4배, 그 뒤 1.2배. 돌 하나당 골드는 10 × 1.2<sup>단계</sup>, 1% 확률로 황금 광맥(20배). 광부는 최대 10명, 5초마다 한 명당 돌 하나(골드 절반, 보석·룬석 확률 1/3), 게임을 닫아도 최대 2시간.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>곡괭이 단계</th><th>성공 / 유지 / 하락 (%)</th><th>1회 재료</th><th>광산에서 열리는 것</th></tr></thead>
+        <tbody>
+          <tr><td class="num">+0~4</td><td class="num">80 / 20 / 0</td><td>없음</td><td>골드</td></tr>
+          <tr><td class="num">+5~9</td><td class="num">55 / 40 / 5</td><td>없음</td><td>루비 3% (+0.2%p/단계)</td></tr>
+          <tr><td class="num">+10~14</td><td class="num">35 / 50 / 15</td><td>없음</td><td>다이아몬드 1.5% (+0.1%p/단계)</td></tr>
+          <tr><td class="num">+15~19</td><td class="num">20 / 55 / 25</td><td>없음</td><td>별의 파편 0.5% (+0.05%p/단계)</td></tr>
+          <tr><td class="num">+20~24</td><td class="num">15 / 55 / 30</td><td>루비 5</td><td>룬석 0.5% (+0.1%p/단계)</td></tr>
+          <tr><td class="num">+25~29</td><td class="num">12 / 55 / 33</td><td>다이아몬드 3</td><td></td></tr>
+          <tr><td class="num">+30~34</td><td class="num">10 / 55 / 35</td><td>별의 파편 2</td><td></td></tr>
+        </tbody>
+      </table></div>
+      <p>보석 합성: 루비 10개 또는 다이아몬드 4개 → 별의 파편 1개.</p>
+    </div>
+
+    <div class="rule">
+      <h3>사냥터</h3>
+      <p>공격력 = 8 × 1.17<sup>검 단계</sup>, 체력 = 100 + 6 × 검 단계. 몹 20마리마다 보스(사냥꾼은 12마리). 보스전 중 일반 몹은 최대 3마리. 보스 몸에 부딪히면 피해 50%, 부딪히는 범위는 몸 크기의 75%.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>사냥터</th><th>권장</th><th>일반 몹</th><th>보스 → 재료</th><th>몹 드롭 (루비·다이아·별·룬석 %)</th></tr></thead>
+        <tbody>
+          <tr><td>초원</td><td class="num">+0</td><td>슬라임</td><td>슬라임 킹(분열) → 슬라임 왕관</td><td class="num">1 · 0.4 · 0.15 · 4</td></tr>
+          <tr><td>어둠의 동굴</td><td class="num">+15</td><td>박쥐</td><td>바위 골렘 → 골렘의 심장</td><td class="num">3 · 1.2 · 0.4 · 6</td></tr>
+          <tr><td>화산 지대</td><td class="num">+30</td><td>불도마뱀</td><td>화염 드래곤 → 용의 비늘</td><td class="num">5 · 2.5 · 1 · 8</td></tr>
+          <tr><td>검은가시 숲</td><td class="num">+40</td><td>숲의 기사, 숲의 궁수</td><td>거대 방패기사 → 기사의 문장</td><td class="num">7 · 4 · 2 · 10</td></tr>
+          <tr><td>얼어붙은 빙원</td><td class="num">+50</td><td>얼음 골렘, 얼음 폭탄</td><td>얼음 드래곤 → 빙룡의 결정</td><td class="num">9 · 5.5 · 3 · 12</td></tr>
+          <tr><td>망자의 묘지</td><td class="num">+55</td><td>해골 병사, 원혼</td><td>암흑사신 → 사신의 영혼석</td><td class="num">10 · 6.5 · 3.5 · 13</td></tr>
+          <tr><td>뇌운 봉우리</td><td class="num">+62</td><td>폭풍 매, 번개 정령</td><td>번개 드래곤 → 뇌룡의 뿔</td><td class="num">11 · 7.5 · 4 · 14</td></tr>
+          <tr><td>지옥 불구덩이</td><td class="num">+68</td><td>지옥 졸개, 불꽃 임프</td><td>지옥 도깨비 → 도깨비 뿔</td><td class="num">12 · 8.5 · 4.5 · 15</td></tr>
+          <tr><td>용의 둥지</td><td class="num">+74</td><td>용인 전사, 새끼 용</td><td>킹 드래곤 → 용왕의 심장</td><td class="num">13 · 9.5 · 5 · 16</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="rule">
+      <h3>보스 던전 (권장 +75)</h3>
+      <p>보스 9마리 연전, 보스를 잡을 때마다 체력 30% 회복. n번째 보스 보상은 골드 200만 × n, 그 보스 재료 2개, 룬석 3 + n. 클리어 보너스는 룬석 30, 별의 파편 5, 빙룡의 결정 2. 보스 연습 탭에서는 보상 없이 하나씩 상대할 수 있다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>순서</th><th>보스</th><th>체력</th><th>공격력</th><th>주요 패턴</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td>슬라임 킹</td><td class="num">800만</td><td class="num">150</td><td>돌진, 죽으면 둘로 분열</td></tr>
+          <tr><td class="num">2</td><td>바위 골렘</td><td class="num">1,200만</td><td class="num">165</td><td>돌진, 점프 내려찍기</td></tr>
+          <tr><td class="num">3</td><td>화염 드래곤</td><td class="num">1,600만</td><td class="num">180</td><td>돌진, 화염 브레스</td></tr>
+          <tr><td class="num">4</td><td>거대 방패기사</td><td class="num">2,200만</td><td class="num">195</td><td>방패(뒤만 공격 가능), 돌진 베기, 3연 돌진, 3연 가로 베기</td></tr>
+          <tr><td class="num">5</td><td>얼음 드래곤</td><td class="num">2,800만</td><td class="num">210</td><td>냉기 브레스(빙결), 고드름, 꼬리(날려 보냄)</td></tr>
+          <tr><td class="num">6</td><td>암흑사신</td><td class="num">3,500만</td><td class="num">220</td><td>순간이동, 4연 베기, 순간이동 베기, 영혼 흡수, 확정 속박</td></tr>
+          <tr><td class="num">7</td><td>번개 드래곤</td><td class="num">4,500만</td><td class="num">235</td><td>3연 돌진, 번개 브레스(기절), 추적 낙뢰, 앞발, 꼬리</td></tr>
+          <tr><td class="num">8</td><td>지옥 도깨비</td><td class="num">5,500만</td><td class="num">250</td><td>방망이(화상), 사슬(속박), 파이어볼, 3연 내려찍기, 50% 미만 분노</td></tr>
+          <tr><td class="num">9</td><td>킹 드래곤</td><td class="num">9,000만</td><td class="num">270</td><td>3연 브레스 → 가장자리 3중 브레스, 4연 돌진, 하늘 공격, 꼬리, 10% 미만 비행</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="rule">
+      <h3>캐릭터</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>캐릭터</th><th>가격</th><th>능력</th></tr></thead>
+        <tbody>
+          <tr><td>모험가</td><td>기본</td><td>능력 없음</td></tr>
+          <tr><td>도박꾼</td><td class="num">3만 G + 루비 3</td><td>처치 시 25% 확률로 골드 2배(그중 30%는 3배)</td></tr>
+          <tr><td>뱀파이어</td><td class="num">5만 G + 루비 5</td><td>벨 때마다 최대 체력 1% 회복</td></tr>
+          <tr><td>아처</td><td class="num">8만 G + 다이아 3</td><td>1.5초마다 화살 (사거리 300, 공격력 ×1)</td></tr>
+          <tr><td>사냥꾼</td><td class="num">10만 G + 다이아 5</td><td>보스 피해 +100%, 보스 12마리마다, 보스 재료 +1</td></tr>
+          <tr><td>악마</td><td class="num">20만 G + 별 1</td><td>모든 피해 ×1.6, 기본 공격마다 체력 1% 소모</td></tr>
+          <tr><td>천사</td><td class="num">30만 G + 별 2</td><td>사냥마다 1회 부활 (체력 50%, 2초 무적)</td></tr>
+          <tr><td>사기꾼</td><td class="num">50만 G + 별 3</td><td>스킬 장착 3칸</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="rule">
+      <h3>스킬 (Lv 1 기준, 최고 Lv 5)</h3>
+      <p>룬석으로 배우고 강화한다. 장착은 2칸(사기꾼 3칸), 패시브도 한 칸을 차지한다. 폭탄과 낙뢰는 보스에게 30%만 들어간다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>스킬</th><th>종류</th><th>효과</th><th>재사용</th></tr></thead>
+        <tbody>
+          <tr><td>돌진 베기</td><td>액티브</td><td>돌진하며 공격력 ×2, 돌진 중 무적</td><td class="num">6초</td></tr>
+          <tr><td>수호의 장막</td><td>액티브</td><td>1초 무적</td><td class="num">12초</td></tr>
+          <tr><td>폭탄 설치</td><td>액티브</td><td>2초 뒤 반경 65에 공격력 ×6</td><td class="num">10초</td></tr>
+          <tr><td>낙뢰</td><td>액티브</td><td>적이 가장 많은 곳 반경 55에 공격력 ×12</td><td class="num">20초</td></tr>
+          <tr><td>회오리 베기</td><td>액티브</td><td>반경 90에 공격력 ×3</td><td class="num">7초</td></tr>
+          <tr><td>피의 갈증</td><td>액티브</td><td>5초 동안 벨 때마다 최대 체력 3% 회복</td><td class="num">15초</td></tr>
+          <tr><td>광폭화</td><td>액티브</td><td>3.5초 동안 사거리 1.5배, 공격 속도 2배</td><td class="num">14초</td></tr>
+          <tr><td>가시 갑옷</td><td>패시브</td><td>부딪힌 적에게 공격력 ×1 반사</td><td>-</td></tr>
+          <tr><td>바람의 발걸음</td><td>패시브</td><td>이동 속도 +15%</td><td>-</td></tr>
+          <tr><td>서리 기운</td><td>패시브</td><td>반경 85 안의 적 이동 속도 −25%</td><td>-</td></tr>
+          <tr><td>치명 일격</td><td>패시브</td><td>15% 확률로 2.5배 피해</td><td>-</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="rule">
+      <h3>상점 아이템</h3>
+      <div class="tablewrap"><table>
+        <thead><tr><th>아이템</th><th>가격</th><th>효과</th></tr></thead>
+        <tbody>
+          <tr><td>파괴방지권</td><td class="num">3,000 G</td><td>검 파괴를 자동으로 1회 막음</td></tr>
+          <tr><td>하락방지권</td><td class="num">1,200 G</td><td>검·곡괭이 하락을 자동으로 1회 막음</td></tr>
+          <tr><td>행운의 숫돌</td><td class="num">800 G</td><td>켜 둔 동안 강화 1회 성공 +10%p</td></tr>
+          <tr><td>곡괭이 기름</td><td class="num">1,500 G</td><td>다음 200번 캘 때 골드 2배</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section id="vars" class="rule" aria-labelledby="h-vars">
+    <h2 id="h-vars">조정용 변수</h2>
+    <p class="muted">게임 파일(index.html) 스크립트에서 이 이름을 찾아 숫자를 바꾸면 된다.</p>
+    <div class="vars">
+      <div class="var"><code>ITEMS.sword / ITEMS.pick</code><span>강화 확률(odds), 재료(mats), 최고 단계</span></div>
+      <div class="var"><code>swordCost · tieredCost</code><span>검·곡괭이 강화 비용 구간과 배율</span></div>
+      <div class="var"><code>ITEMS.sword.price</code><span>판매가 배율</span></div>
+      <div class="var"><code>MATS · RECIPES</code><span>광산 보석 확률, 합성 비율</span></div>
+      <div class="var"><code>MINE_GROWTH · VEIN_* · MINER_*</code><span>돌 골드 배율, 황금 광맥, 광부</span></div>
+      <div class="var"><code>SHOP · STONE_BONUS · OIL_CLICKS</code><span>상점 아이템과 효과</span></div>
+      <div class="var"><code>ZONES</code><span>사냥터 몹 체력·공격력·골드, 드롭 확률</span></div>
+      <div class="var"><code>BOSS_EVERY · BOSS_MAX_MOBS</code><span>보스 등장 주기, 보스전 몹 수</span></div>
+      <div class="var"><code>BOSS_TOUCH_DMG · BOSS_TOUCH_R</code><span>보스 접촉 피해와 범위</span></div>
+      <div class="var"><code>PATTERNS</code><span>보스별 패턴과 나오는 비율</span></div>
+      <div class="var"><code>DUNGEON · DUNGEON_GOLD · DUNGEON_HEAL</code><span>던전 보스 순서·세기·보상</span></div>
+      <div class="var"><code>CHARS</code><span>캐릭터 가격과 능력 설명</span></div>
+      <div class="var"><code>SKILLS · BOSS_AOE</code><span>스킬 수치, 범위 스킬의 보스 피해</span></div>
+      <div class="var"><code>FROST_* · BOLT_* · TAIL_*</code><span>드래곤 브레스·꼬리</span></div>
+      <div class="var"><code>REAP_* · BLINK_TIME · BIND_TIME</code><span>암흑사신</span></div>
+      <div class="var"><code>CLUB_* · CHAIN_* · SLAM_TIMING · FIREBALL_VOLLEY</code><span>지옥 도깨비</span></div>
+      <div class="var"><code>STORM_* · THUNDER_*</code><span>번개 드래곤 낙뢰</span></div>
+      <div class="var"><code>TRI_* · KING_ASCEND_CHANCE · ASCEND_TIME</code><span>킹 드래곤</span></div>
+      <div class="var"><code>QUESTS</code><span>여정의 목표와 보상</span></div>
+      <div class="var"><code>TRAITS · xpNeed · ZONE_XP</code><span>장인 등급, 특성, 경험치</span></div>
+      <div class="var"><code>SFX · SONGS</code><span>효과음, 배경음악</span></div>
+    </div>
+  </section>
+
+  <footer>
+    게임 링크: <span class="mono">claude.ai/artifact/8mWey7z5RE6pGBHtxxhFSn</span> · 이 문서는 v42 기준이에요. 이후 업데이트는 맨 위에 이어서 적어요.
+  </footer>
+</main>
