@@ -103,6 +103,17 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; 
 .wallet span b { font-family: var(--mono); font-weight: 400; color: var(--fg); }
 .wallet em { font-style: normal; font-size: 12px; color: var(--muted); opacity: .7; padding-block: 4px; }
 .savebar > button { flex: none; }
+.transfer { display: grid; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.transfer b { font-size: 14px; }
+.transfer textarea {
+  width: 100%; resize: vertical; min-height: 64px; font-family: var(--mono); font-size: 11px; line-height: 1.4;
+  color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px; word-break: break-all;
+}
+.transfer textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
+.transfer-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.transfer-btns button.armed { border-color: var(--bad) !important; color: var(--bad) !important; }
+#transfer-msg:empty { display: none; }
+#transfer-msg.ok { color: var(--good); } #transfer-msg.bad { color: var(--bad); }
 .save-row, .install-row { border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 13px; }
 .install-row button { border-color: var(--ember) !important; color: var(--ember) !important; flex: none; }
 .sound-panel button { border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
@@ -462,6 +473,16 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
     <label class="sound-row" for="sound-sfx">효과음 <input type="range" id="sound-sfx" min="0" max="100"></label>
     <label class="sound-row" for="sound-music">배경음악 <input type="range" id="sound-music" min="0" max="100"></label>
     <p class="hint">화면을 한 번 누른 뒤부터 소리가 나요. 설정은 이 기기에 저장돼요.</p>
+    <div class="transfer">
+      <b>진행 상황 옮기기</b>
+      <p class="hint">다른 기기, 또는 claude.ai 링크와 설치한 앱 사이에서 진행 상황을 옮길 때 써요. 내보낸 코드를 복사해서, 옮길 곳의 설정 창 같은 칸에 붙여 넣고 불러오기를 누르세요.</p>
+      <textarea id="transfer-code" rows="3" placeholder="불러올 저장 코드를 여기에 붙여 넣으세요" spellcheck="false" autocomplete="off"></textarea>
+      <div class="transfer-btns">
+        <button id="export-btn">내보내기 (코드 복사)</button>
+        <button id="import-btn">불러오기</button>
+      </div>
+      <p class="hint" id="transfer-msg" role="status"></p>
+    </div>
     <div class="sound-row install-row" id="install-row" hidden>
       <span id="install-text">휴대폰 홈 화면에 앱으로 설치할 수 있어요.</span>
       <button id="install-btn">설치</button>
@@ -1647,6 +1668,77 @@ function updateMusic() {
   step = 0;
   if (actx) nextT = actx.currentTime + 0.1;
 }
+
+// ── 진행 상황 옮기기 ── 저장 데이터를 "SF1.본문.확인값" 코드로 바꿔 복사하고, 붙여 넣은 코드를 검사해서 불러온다
+const transferHash = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = (h * 33 ^ str.charCodeAt(i)) >>> 0; return h.toString(16).padStart(8, "0"); };
+
+function exportCode() {
+  const json = JSON.stringify({ ...state, log: [] });
+  const body = btoa(unescape(encodeURIComponent(json)));
+  return `SF1.${body}.${transferHash(body)}`;
+}
+
+function readCode(code) {
+  const m = code.replace(/\s+/g, "").match(/^SF1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/);
+  if (!m || transferHash(m[1]) !== m[2]) return null;
+  try {
+    const data = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    return data && typeof data.gold === "number" ? data : null;
+  } catch { return null; }
+}
+
+function transferMsg(text, kind = "") {
+  $("transfer-msg").textContent = text;
+  $("transfer-msg").className = "hint " + kind;
+}
+
+$("export-btn").addEventListener("click", async () => {
+  const box = $("transfer-code");
+  box.value = exportCode();
+  try {
+    await navigator.clipboard.writeText(box.value);
+    transferMsg("코드를 복사했어요. 옮길 곳의 설정 창에 붙여 넣고 불러오기를 누르세요.", "ok");
+  } catch {
+    box.focus();
+    box.select();
+    transferMsg("자동 복사가 막혀 있어요. 칸 안의 코드가 선택돼 있으니 길게 눌러(또는 Ctrl+C) 복사하세요.");
+  }
+});
+
+let importArmed = null;
+function disarmImport() {
+  clearTimeout(importArmed);
+  importArmed = null;
+  $("import-btn").classList.remove("armed");
+  $("import-btn").textContent = "불러오기";
+}
+$("import-btn").addEventListener("click", () => {
+  const data = readCode($("transfer-code").value);
+  if (!data) {
+    disarmImport();
+    transferMsg("코드가 올바르지 않아요. 처음부터 끝까지 빠짐없이 복사했는지 확인하세요.", "bad");
+    return;
+  }
+  const s = normalize(data);
+  if (!importArmed) {
+    // 실수로 덮어쓰지 않게: 불러올 내용을 보여 주고 한 번 더 눌러야 적용
+    transferMsg(`검 +${s.sword} · 곡괭이 +${s.pick} · ${won(s.gold)} · 장인 Lv ${s.mlv} · 목표 ${s.quest + 1}단계. ` +
+      `지금 진행 상황은 이걸로 바뀌어요. 5초 안에 한 번 더 누르면 불러와요.`, "bad");
+    $("import-btn").classList.add("armed");
+    $("import-btn").textContent = "한 번 더 누르면 불러오기";
+    importArmed = setTimeout(() => { disarmImport(); transferMsg(""); }, 5000);
+    return;
+  }
+  disarmImport();
+  state = s;
+  state.lastTick = Date.now();   // 광부 자리 비움 보상은 불러온 시점부터
+  state.log.unshift({ text: "진행 상황 불러오기", delta: "완료" });
+  current = "sword";
+  $("transfer-code").value = "";
+  commit();
+  sfx("fanfare");
+  transferMsg("불러왔어요!", "ok");
+});
 
 // ── 앱 설치 (GitHub Pages 주소에서만) ──
 // 오프라인 파일을 등록하고, 설치할 수 있는 브라우저면 설정 창에 설치 버튼을 보여 준다.
