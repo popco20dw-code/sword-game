@@ -1,5 +1,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16130f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="대장간">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <title>대장간 강화소</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Gowun+Dodum&family=Nanum+Gothic+Coding:wght@700&display=swap">
@@ -95,7 +103,8 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; 
 .wallet span b { font-family: var(--mono); font-weight: 400; color: var(--fg); }
 .wallet em { font-style: normal; font-size: 12px; color: var(--muted); opacity: .7; padding-block: 4px; }
 .savebar > button { flex: none; }
-.save-row { border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 13px; }
+.save-row, .install-row { border-top: 1px solid var(--line); padding-top: 10px; color: var(--muted); font-size: 13px; }
+.install-row button { border-color: var(--ember) !important; color: var(--ember) !important; flex: none; }
 .sound-panel button { border: 1px solid var(--line); border-radius: 8px; padding: 5px 12px; font-size: 13px; color: var(--muted); }
 .sound-panel button.armed { border-color: var(--bad); color: var(--bad); }
 
@@ -453,6 +462,10 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
     <label class="sound-row" for="sound-sfx">효과음 <input type="range" id="sound-sfx" min="0" max="100"></label>
     <label class="sound-row" for="sound-music">배경음악 <input type="range" id="sound-music" min="0" max="100"></label>
     <p class="hint">화면을 한 번 누른 뒤부터 소리가 나요. 설정은 이 기기에 저장돼요.</p>
+    <div class="sound-row install-row" id="install-row" hidden>
+      <span id="install-text">휴대폰 홈 화면에 앱으로 설치할 수 있어요.</span>
+      <button id="install-btn">설치</button>
+    </div>
     <div class="sound-row save-row">
       <span id="save-status">이 브라우저에 저장됨</span>
       <button id="reset">새로 시작</button>
@@ -1634,6 +1647,36 @@ function updateMusic() {
   step = 0;
   if (actx) nextT = actx.currentTime + 0.1;
 }
+
+// ── 앱 설치 (GitHub Pages 주소에서만) ──
+// 오프라인 파일을 등록하고, 설치할 수 있는 브라우저면 설정 창에 설치 버튼을 보여 준다.
+// iPhone(Safari)은 버튼으로 설치할 수 없어서 공유 메뉴로 안내한다.
+(function setupInstall() {
+  const hosted = location.protocol === "https:" && location.hostname.endsWith("github.io");
+  const standalone = matchMedia("(display-mode: standalone)").matches || navigator.standalone;
+  if (!hosted || standalone) return;
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  let promptEvent = null;
+  if (ios) {
+    $("install-text").textContent = "Safari 아래쪽 공유 버튼 → '홈 화면에 추가'를 누르면 앱으로 설치돼요.";
+    $("install-btn").hidden = true;
+    $("install-row").hidden = false;
+  }
+  addEventListener("beforeinstallprompt", e => {
+    e.preventDefault();
+    promptEvent = e;
+    $("install-row").hidden = false;
+  });
+  $("install-btn").addEventListener("click", async () => {
+    if (!promptEvent) return;
+    promptEvent.prompt();
+    const { outcome } = await promptEvent.userChoice;
+    promptEvent = null;
+    if (outcome === "accepted") $("install-row").hidden = true;
+  });
+  addEventListener("appinstalled", () => { $("install-row").hidden = true; });
+})();
 
 // 소리 설정 창
 function syncSoundUI() {
