@@ -447,6 +447,20 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .zone .feat { color: #e8c98a; font-size: 12px; }
 .zone.w2lock { --zc: #9b7dff; text-align: center; grid-template-columns: 1fr; }
 .extra-h { margin: 8px 0 0; font-size: 13px; color: var(--muted); font-weight: 400; letter-spacing: .05em; }
+/* 테스트 모드 */
+html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
+#dev-btn { position: fixed; z-index: 96; left: max(8px, env(safe-area-inset-left)); bottom: max(8px, env(safe-area-inset-bottom)); border: 1px solid #3fbf7f; background: #12301f; color: #7dffb2; border-radius: 999px; padding: 8px 12px; font-size: 13px; }
+#dev { position: fixed; z-index: 97; inset: max(10px, env(safe-area-inset-top)) 10px max(56px, env(safe-area-inset-bottom)); overflow: auto; background: #141a16; border: 1px solid #3fbf7f; border-radius: 14px; padding: 14px; display: grid; gap: 8px; align-content: start; font-size: 13px; }
+#dev[hidden] { display: none; }
+#dev h4 { margin: 6px 0 0; color: #7dffb2; font-weight: 400; }
+.dv-head { display: flex; justify-content: space-between; align-items: center; }
+.dv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 6px; }
+.dv-grid label { display: grid; gap: 2px; color: var(--muted); font-size: 12px; }
+#dev input[type=number], #dev select { font: inherit; font-family: var(--mono); color: var(--fg); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 5px 6px; min-width: 0; }
+.dv-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#dev button { border: 1px solid #3fbf7f; color: #7dffb2; border-radius: 8px; padding: 6px 10px; background: rgba(63,191,127,.08); }
+.dv-kills { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; }
+.dv-kills label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; }
 .seg button { border: 0; border-radius: 7px; padding: 8px; font-size: 14px; color: var(--muted); }
 .seg button[aria-selected="true"] { background: var(--panel); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ember); }
@@ -759,6 +773,9 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 </main>
 
 <script>
+// 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
+const TEST = /[?&]test\b/.test(location.search);
+const dev = { god: false, atkMul: 1 };
 const START_GOLD = 2000;
 const MINE_GOLD = 10;      // 곡괭이 +0일 때 돌 하나당 골드
 const MINE_GROWTH = 1.2;   // 곡괭이 1단계마다 돌 하나당 골드 배율 (+35에서 약 5,900 G)
@@ -2022,11 +2039,11 @@ const transferHash = str => { let h = 5381; for (let i = 0; i < str.length; i++)
 function exportCode() {
   const json = JSON.stringify({ ...state, log: [] });
   const body = btoa(unescape(encodeURIComponent(json)));
-  return `SF1.${body}.${transferHash(body)}`;
+  return `${TEST ? "SFT1" : "SF1"}.${body}.${transferHash(body)}`;
 }
 
 function readCode(code) {
-  const m = code.replace(/\s+/g, "").match(/^SF1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/);
+  const m = code.replace(/\s+/g, "").match(TEST ? /^SFT?1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/ : /^SF1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/);
   if (!m || transferHash(m[1]) !== m[2]) return null;
   try {
     const data = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
@@ -2109,6 +2126,101 @@ $("coupon-btn").addEventListener("click", () => {
   sfx("fanfare");
   msg(`쿠폰 보상을 받았어요: ${c.text}`, "ok");
 });
+
+// ── 테스트 패널 ──
+function setupDev() {
+  document.documentElement.classList.add("test-mode");
+  const btn = document.createElement("button");
+  btn.id = "dev-btn"; btn.textContent = "🛠 테스트";
+  const panel = document.createElement("div");
+  panel.id = "dev"; panel.hidden = true;
+  document.body.append(btn, panel);
+  setStatus("테스트 모드 · 진짜 저장과 따로 저장됨");
+  btn.addEventListener("click", () => { panel.hidden = !panel.hidden; if (!panel.hidden) devRender(); });
+  panel.addEventListener("click", devClick);
+  panel.addEventListener("change", e => {
+    if (e.target.id === "dv-god") dev.god = e.target.checked;
+    if (e.target.id === "dv-mul") dev.atkMul = +e.target.value;
+  });
+}
+
+const devAllMats = () => [["gold", "골드"], ["runes", "룬석"], ...[...MATS, ...BOSS_MATS].map(m => [m.key, m.name])];
+const devGet = k => k === "gold" ? state.gold : k === "runes" ? state.runes : state.mats[k];
+function devSet(k, v) {
+  v = Math.max(0, Math.floor(v) || 0);
+  if (k === "gold") state.gold = v; else if (k === "runes") state.runes = v; else state.mats[k] = v;
+}
+
+function devRender() {
+  const zones = [...ZONES, ...ZONES2];
+  $("dev").innerHTML = `
+    <div class="dv-head"><b>🛠 테스트 패널</b><button data-dv="close">닫기</button></div>
+    <p class="hint">진짜 진행 상황과 따로 저장돼요. 친구 목록에도 올라가지 않아요.</p>
+    <h4>재화</h4>
+    <div class="dv-grid">${devAllMats().map(([k, n]) => `<label>${n}<input type="number" min="0" data-dvmat="${k}" value="${devGet(k)}"></label>`).join("")}</div>
+    <div class="dv-row"><button data-dv="apply">입력한 값 적용</button><button data-dv="rich">전부 넉넉하게</button><button data-dv="broke">전부 0</button></div>
+    <h4>장비</h4>
+    <div class="dv-grid">
+      <label>검 (+0~${ITEMS.sword.max})<input type="number" min="0" max="${ITEMS.sword.max}" id="dv-sword" value="${state.sword}"></label>
+      <label>곡괭이 (+0~${ITEMS.pick.max})<input type="number" min="0" max="${ITEMS.pick.max}" id="dv-pick" value="${state.pick}"></label>
+      <label>장인 Lv<input type="number" min="1" id="dv-mlv" value="${state.mlv}"></label>
+    </div>
+    <div class="dv-row"><button data-dv="gear">장비 단계 적용</button><button data-dv="armorAll">방어구 21종 모두 지급</button><button data-dv="armorMax">장착 방어구 +20</button></div>
+    <h4>진행</h4>
+    <div class="dv-kills">${zones.map(z => `<label><input type="checkbox" data-dvkill="${z.key}" ${(state.bossKills[z.key] || 0) > 0 ? "checked" : ""}>${z.world === 2 ? "W2 " : ""}${z.name}</label>`).join("")}</div>
+    <div class="dv-row"><button data-dv="kills">보스 처치 적용</button>
+      <label>목표 번호<input type="number" min="1" max="${QUESTS.length + 1}" id="dv-quest" value="${state.quest + 1}" style="width:64px"></label><button data-dv="quest">목표 이동</button></div>
+    <h4>전투</h4>
+    <div class="dv-row"><label><input type="checkbox" id="dv-god" ${dev.god ? "checked" : ""}> 무적</label>
+      <label>공격력 ×<select id="dv-mul">${[1, 10, 100, 1000].map(v => `<option ${dev.atkMul === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>
+      <button data-dv="boss">바로 보스 부르기</button><button data-dv="clear">몹 모두 처치</button></div>
+    <h4>저장</h4>
+    <div class="dv-row"><button data-dv="copyMain">내 진짜 진행 상황 복사해 오기</button><button data-dv="reset">테스트 저장 초기화</button></div>
+    <p class="hint" id="dv-msg"></p>`;
+}
+
+function devClick(e) {
+  const b = e.target.closest("[data-dv]");
+  if (!b) return;
+  let msg = "";
+  const act = b.dataset.dv, say_ = t => { msg = t; const m = $("dv-msg"); if (m) m.textContent = t; };
+  const num = id => +$(id.replace("#", "")).value;
+  if (act === "close") { $("dev").hidden = true; return; }
+  if (act === "apply") { document.querySelectorAll("[data-dvmat]").forEach(i => devSet(i.dataset.dvmat, +i.value)); say_("재화를 적용했어요."); }
+  if (act === "rich") { for (const [k] of devAllMats()) devSet(k, k === "gold" ? 1e13 : 9999); say_("전부 넉넉하게 채웠어요."); }
+  if (act === "broke") { for (const [k] of devAllMats()) devSet(k, 0); say_("전부 0으로 만들었어요."); }
+  if (act === "gear") {
+    state.sword = clamp(num("#dv-sword") | 0, 0, ITEMS.sword.max); state.best = Math.max(state.best, state.sword);
+    state.pick = clamp(num("#dv-pick") | 0, 0, ITEMS.pick.max);
+    state.mlv = Math.max(1, num("#dv-mlv") | 0); state.xp = 0;
+    for (const t of TRAITS) state.traits[t.key] = Math.min(state.traits[t.key], t.max);
+    say_("장비 단계를 적용했어요.");
+  }
+  if (act === "armorAll") {
+    for (const sl of ARMOR_SLOTS) for (const t of ARMOR_TYPES) { const id = armorId(sl.key, t.key); if (!(id in state.armor.owned)) state.armor.owned[id] = 0; }
+    state.bossKills.grave = Math.max(1, state.bossKills.grave || 0);
+    say_("방어구 21종을 모두 넣었어요. 대장간 → 방어구에서 장착하세요.");
+  }
+  if (act === "armorMax") { for (const id of equipped()) state.armor.owned[id] = ARMOR_MAX; say_("장착한 방어구를 +20으로 만들었어요."); }
+  if (act === "kills") {
+    document.querySelectorAll("[data-dvkill]").forEach(i => { state.bossKills[i.dataset.dvkill] = i.checked ? Math.max(1, state.bossKills[i.dataset.dvkill] || 0) : 0; });
+    say_("보스 처치 기록을 적용했어요. (방어구는 망자의 묘지, 월드 2는 용의 둥지)");
+  }
+  if (act === "quest") { state.quest = clamp((num("#dv-quest") | 0) - 1, 0, QUESTS.length); say_("목표를 옮겼어요."); }
+  if (act === "boss") { if (run && !run.over && !run.dungeon) { run.kills = 999; say_("곧 보스가 나와요."); } else say_("사냥터 안에서 눌러 주세요."); }
+  if (act === "clear") { if (run && !run.over) { for (const m of run.mobs) if (!m.boss && !m.dead) { m.dead = true; kill(m); } say_("일반 몹을 처치했어요."); } else say_("사냥터 안에서 눌러 주세요."); }
+  if (act === "copyMain") {
+    try {
+      const raw = localStorage.getItem(MAIN_SAVE_KEY);
+      if (!raw) return say_("이 브라우저에 진짜 저장이 없어요. (설치한 앱의 저장은 앱에서 내보내기 → 여기 설정 창에서 불러오기)");
+      state = normalize(JSON.parse(raw)); state.lastTick = Date.now(); say_("진짜 진행 상황을 복사해 왔어요. (원본은 그대로)");
+    } catch { return say_("복사하지 못했어요."); }
+  }
+  if (act === "reset") { state = fresh(); say_("테스트 저장을 처음 상태로 돌렸어요."); }
+  commit();
+  devRender();
+  $("dv-msg").textContent = msg;
+}
 
 // ── 앱 설치 (GitHub Pages 주소에서만) ──
 // 오프라인 파일을 등록하고, 설치할 수 있는 브라우저면 설정 창에 설치 버튼을 보여 준다.
@@ -3724,7 +3836,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   const crit = critLv && Math.random() * 100 < SK.crit.chance(critLv);
   if (isChar("hunter") && m.boss) mult *= 2;
   if (isChar("demon")) mult *= 1.6;
-  const dmg = Math.round(run.atk * mult * (crit ? 2.5 : 1));
+  const dmg = Math.round(run.atk * mult * (crit ? 2.5 : 1) * dev.atkMul);
   m.hp -= dmg;
   m.flash = 0.1;
   if (m.mode === "drain") {
@@ -4055,6 +4167,7 @@ function update(dt) {
   r.rings = r.rings.filter(g => g.t > 0);
 
   updateSkillButtons();
+  if (dev.god) p.hp = p.max;
   if (p.hp <= 0) {
     if (isChar("angel") && !r.revived) {
       r.revived = true;
@@ -6697,7 +6810,8 @@ $("to-zones").addEventListener("click", () => {
 // ── 저장 ──
 // 이 브라우저(localStorage)에는 바로 저장하고, claude.ai에 로그인해 열었으면 계정에도 저장해서
 // 다른 기기에서 열어도 이어서 할 수 있게 한다. 둘 다 있으면 더 최근에 저장된 쪽을 쓴다.
-const SAVE_KEY = "sword-forge-save-v1";
+const MAIN_SAVE_KEY = "sword-forge-save-v1";
+const SAVE_KEY = TEST ? "sword-forge-test-v1" : MAIN_SAVE_KEY;
 let cloud = null;        // 계정 저장 위치 (db 문서)
 let saveTimer = null;
 let saving = false;
@@ -7075,6 +7189,7 @@ function start(saved) {
   window.claude?.hot?.snapshot?.(() => state);
   offlineCatchUp();
   render();
+  if (TEST) { setupDev(); return; }   // 테스트 모드는 계정 저장·친구 기록 없음
   if (typeof window.claude?.use === "function") connectCloud();
   else connectFirebase();
 }
