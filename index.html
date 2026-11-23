@@ -3243,6 +3243,7 @@ function renderZones() {
         <h3>${DUNGEON.name}</h3>
         <p class="${lv < DUNGEON.rec ? "weak" : ""}">권장 검 +${DUNGEON.rec}${lv < DUNGEON.rec ? " · 지금 검으로는 위험해요" : ""}</p>
         <p>슬라임 킹부터 킹 드래곤까지 보스 ${dl}마리와 연달아 싸워요. 모든 보스가 각 사냥터보다 강해요. 일반 몹은 없고, 보스를 잡을 때마다 체력 30% 회복.</p>
+        <p>보상은 9마리를 모두 잡아야 한꺼번에: ${won(DUNGEON_PRIZE.gold)} · ${matName("star")} ${DUNGEON_PRIZE.mats.star} · 룬석 ${DUNGEON_PRIZE.runes} · 보스 재료 각 2개. 도중에 쓰러지면 보상 없음.</p>
         <p>최고 기록 ${state.dungeonBest}/${dl} · 클리어 ${state.dungeonClears}회</p>
         <button data-zone="dungeon">입장</button>
       </div>`;
@@ -3542,37 +3543,43 @@ function dungeonStep(dt, bossAlive) {
 }
 
 function dungeonReward(m) {
-  const d = run.dungeon, gold = DUNGEON_GOLD * d.stage;
+  const d = run.dungeon;
   if (d.only) {
     run.loot.bosses++;
     lootFx(m, "처치!", "#ffd24a", 16);
     return;
   }
-  state.gold += gold;
-  run.loot.gold += gold;
-  lootFx(m, "+" + won(gold), "#f0c35a");
-  gainXp(150 * d.stage);
-  gainMat(m.mat, 2);
-  lootFx(m, `${matName(m.mat)} +2`, "#ffffff", 15);
-  gainMat("star", 2 * d.stage);
-  lootFx(m, `${matName("star")} +${2 * d.stage}`, "#ffc6f0", 14);
-  gainRunes(3 + d.stage, m);
+  // 보상은 보스마다 주지 않고, 9마리를 모두 잡았을 때 한꺼번에 준다
+  lootFx(m, `${d.stage}/${DUNGEON.bosses.length} 처치!`, "#ffd24a", 16);
   run.loot.bosses++;
   state.dungeonBest = Math.max(state.dungeonBest, d.stage);
-  state.log.unshift({ text: `던전 ${d.stage}/${DUNGEON.bosses.length} ${m.name} 처치`, delta: "+" + won(gold) });
+  state.log.unshift({ text: `던전 ${d.stage}/${DUNGEON.bosses.length} ${m.name} 처치`, delta: "보상은 클리어 때" });
   run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * DUNGEON_HEAL);
   d.wait = 2.5;
 }
 
+// 던전 클리어 보상 (예전 보스별 보상을 모두 합친 것 + 클리어 보너스)
+const DUNGEON_PRIZE = (() => {
+  const n = DUNGEON.bosses.length, sum = n * (n + 1) / 2;
+  const mats = { star: 2 * sum + 5, frost: 2 };
+  for (const b of DUNGEON.bosses) mats[b.mat] = (mats[b.mat] || 0) + 2;
+  return { gold: DUNGEON_GOLD * sum, xp: 150 * sum, runes: 3 * n + sum + 30, mats };
+})();
+
 function dungeonClear() {
-  state.runes += 30;
-  run.loot.runes += 30;
-  gainMat("star", 5);
-  gainMat("frost", 2);
+  const P = DUNGEON_PRIZE;
+  state.gold += P.gold;
+  run.loot.gold += P.gold;
+  gainXp(P.xp);
+  state.runes += P.runes;
+  run.loot.runes += P.runes;
+  for (const [k, n] of Object.entries(P.mats)) gainMat(k, n);
   state.dungeonClears++;
-  fx(W / 2, H / 2 - 40, "던전 클리어!", "#ffd24a", 26);
+  fx(W / 2, H / 2 - 70, "던전 클리어!", "#ffd24a", 26, 20, 2.2);
+  fx(W / 2, H / 2 - 38, "+" + won(P.gold), "#f0c35a", 18, 20, 2.2);
+  fx(W / 2, H / 2 - 14, `${matName("star")} +${P.mats.star} · 룬석 +${P.runes}`, "#ffc6f0", 15, 20, 2.2);
   sfx("fanfare");
-  state.log.unshift({ text: "보스 던전 클리어", delta: "+룬석 30" });
+  state.log.unshift({ text: "보스 던전 클리어", delta: "+" + won(P.gold) });
   commit();
 }
 
