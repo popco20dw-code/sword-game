@@ -3571,7 +3571,7 @@ function enterZone(key) {
     cds: [0, 0, 0], cdMax: [1, 1, 1], buff: { drain: 0, drainHeal: 0, frenzy: 0 },
     arrows: [], shots: [], hazards: [], bolts: [], zaps: [], fires: [], adds: [], parts: [], arrowCd: 1, revived: false,
     arm, trails: [], chains: [], chainCd: 0, starRevived: false, hard: isHard(zone),
-    w2: { torn: [], ink: 0, sandT: 9, sand: 0, lanes: [], beams: [], prison: null },
+    w2: { torn: [], ink: 0, sandT: 9, sand: 0, lanes: [], beams: [], prisons: [], booms: [], later: [], waves: [], pits: [], links: [], sweep: null, sweepCd: 0 },
     dungeon: zone.dungeon ? { stage: zone.practice ?? 0, wait: zone.practice != null ? 0.8 : 1.2, cleared: false, clearT: 0,
                               only: zone.practice != null, spawned: false } : null,
     loot: { gold: 0, kills: 0, bosses: 0, runes: 0, mats: {} },
@@ -3864,6 +3864,7 @@ function kill(m) {
   sparksAt(m.x, m.y, m.color, m.boss ? 34 : 10, m.boss ? 230 : 140);
   // 슬라임 킹은 한 번 분열한다. 보상은 마지막 분열체를 잡았을 때
   if (m.boss && m.kind === "slimeKing" && !m.mini) { splitSlime(m); return; }
+  if (m.noLoot) { lootFx(m, "분신 파괴", "#e4ccff"); return; }
   if (m.boss && m.mini && run.mobs.concat(run.adds).some(o => o !== m && o.mini && !o.dead)) {
     lootFx(m, "분열체 처치", "#7fd18b");
     return;
@@ -3879,6 +3880,7 @@ function kill(m) {
   state.gold += gold;
   run.loot.gold += gold;
   lootFx(m, "+" + won(gold), "#f0c35a");
+  if (m.kind === "crystalBat") for (let k = 0; k < 4; k++) w2Shot(m, k / 4 * Math.PI * 2 + Math.random(), 170, m.dmg * 0.5, "#d6a8ff");
   if (m.kind === "iceGolem") {
     ring(m.x, m.y, GOLEM_SNOW_R, "#e6f6ff");
     const p = run.p;
@@ -4012,7 +4014,8 @@ function update(dt) {
     let slow = frost && d < SK.frost.radius() + m.r ? 1 - SK.frost.slow(frost) / 100 : 1;
     if (inIcePatch(m)) slow *= 1 - r.arm.patch / 100 * (m.boss ? 0.5 : 1);
     m.slowed = slow < 1 || m.chillT > 0;
-    if (RANGED.has(m.kind)) archerAI(m, ax, ay, d, slow, dtm);
+    if (W2AI[m.kind]) W2AI[m.kind](m, ax, ay, d, slow, dtm);
+    else if (RANGED.has(m.kind)) archerAI(m, ax, ay, d, slow, dtm);
     else if (MELEE.has(m.kind)) knightAI(m, ax, ay, d, slow, dtm, thorns);
     else if (m.kind === "wraith") wraithAI(m, ax, ay, d, slow, dtm);
     else if (m.kind === "hawk") hawkAI(m, ax, ay, d, slow, dtm);
@@ -4944,8 +4947,8 @@ function archerAI(m, ax, ay, d, slow, dt) {
   }
 }
 
-const RANGED = new Set(["archer", "spark", "imp", "bandit"]);
-const MELEE = new Set(["knight", "skeleton", "grunt", "drakonid", "crystalGolem", "merman"]);
+const RANGED = new Set(["archer", "spark", "imp"]);
+const MELEE = new Set(["knight", "skeleton", "grunt", "drakonid"]);
 
 // 원혼: 흔들리며 다가오다가, 가끔 사라졌다(맞지 않음) 나타나며 달려든다
 function wraithAI(m, ax, ay, d, slow, dt) {
@@ -5763,11 +5766,11 @@ const DRAW = {
   imp: drawImp, grunt: drawGrunt, drakonid: drawDrakonid, whelp: drawWhelp,
   thunderDragon: (m, t) => { drawDragon(m, t, DRAGON_THUNDER); sparks(m, t); },
   scorpion: drawScorpion, bandit: drawBandit, crystalBat: drawCrystalBat, crystalGolem: drawCrystalGolem,
-  jelly: drawJelly, merman: drawMerman, sandWorm: drawSandWorm, crystalQueen: drawCrystalQueen, kraken: drawKraken,
+  jelly: drawJelly, merman: drawMerman, qclone: (m, t) => { ctx.globalAlpha = 0.6 + 0.2 * Math.sin(t * 6); drawCrystalQueen(m, t); ctx.globalAlpha = 1; }, sandWorm: drawSandWorm, crystalQueen: drawCrystalQueen, kraken: drawKraken,
 };
 // 위아래가 있는 몹(슬라임, 박쥐, 골렘)은 회전하지 않고, 나머지는 바라보는 방향으로 돌린다
 const UPRIGHT = new Set(["slime", "slimeKing", "bat", "golem", "iceGolem", "iceBomb", "reaper", "dokkaebi", "wraith", "spark", "imp", "grunt",
-  "crystalBat", "crystalGolem", "jelly", "crystalQueen", "kraken", "sandWorm"]);
+  "crystalBat", "crystalGolem", "jelly", "crystalQueen", "kraken", "sandWorm", "qclone"]);
 
 // ── 월드 2 몹 그림 ──
 function drawScorpion(m, t) {
@@ -5838,7 +5841,7 @@ function drawMerman(m, t) {
 // ── 월드 2 보스 그림 ──
 function drawSandWorm(m, t) {
   const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
-  if (m.mode === "under") {
+  if (m.mode === "under" || m.mode === "chargeWait" || m.mode === "charge") {
     // 땅속: 움직이는 모래 둔덕만 보임
     blob(0, 0, r * 1.1, r * 0.55, "rgba(201,162,106,.85)");
     for (let k = 0; k < 6; k++) blob(Math.cos(t * 9 + k) * r * 0.8, Math.sin(t * 7 + k) * r * 0.3, 3, 3, "#e8c98a");
@@ -5886,10 +5889,13 @@ function drawKraken(m, t) {
   if (m.mode === "whirl") { ctx.strokeStyle = "rgba(150,230,240,.5)"; ctx.lineWidth = 3; for (let k = 1; k <= 3; k++) { ctx.beginPath(); ctx.arc(0, 0, r * (1.2 + k * 0.5 + (t * 2 % 0.5)), 0, Math.PI * 2); ctx.stroke(); } }
 }
 
-// ── 월드 2 보스 행동 ──
+// ── 월드 2 보스 행동 ── 체력 50% 아래에서 분노: 기술이 강해지고 더 자주 씀. 같은 기술은 연달아 쓰지 않음
 const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken"]);
-const W2_PATTERNS = { sandWorm: ["burrow", "tornado", "spit", "burrow"], crystalQueen: ["prism", "shards", "prison", "prism"],
-                      kraken: ["slam", "slam", "ink", "whirl", "summon"] };
+const W2_PATTERNS = {
+  sandWorm: ["burrow", "charge", "tornado", "spit", "quicksand"],
+  crystalQueen: ["prism", "sweep", "rain", "prison", "clones", "shards"],
+  kraken: ["slam", "cage", "geyser", "wave", "ink", "whirl", "summon"],
+};
 const segDist = (px, py, x1, y1, x2, y2) => {
   const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy || 1, k = clamp(((px - x1) * dx + (py - y1) * dy) / l, 0, 1);
   return Math.hypot(px - x1 - dx * k, py - y1 - dy * k);
@@ -5906,85 +5912,88 @@ function bouncePath(x, y, a, n) {
   }
   return pts;
 }
-function w2Shot(m, a, v, dmg, col) {
-  run.shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, dmg: Math.round(dmg), t: 3, ball: col, owner: m });
+function w2Shot(m, a, v, dmg, col, extra = {}) {
+  run.shots.push({ x: m.x, y: m.y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, dmg: Math.round(dmg), t: 3, ball: col, owner: m, ...extra });
+}
+// 예고 원: t초 뒤 터짐 (eff: slow / stun / root / knock)
+function w2Boom(x, y, r, t, dmg, col, owner, eff = null, el = null) {
+  run.w2.booms.push({ x: clamp(x, 10, W - 10), y: clamp(y, 10, H - 10), r, t, max: t, dmg: Math.round(dmg), col, owner, eff, el });
+}
+// 일정 시간 뒤 실행 (연속 공격)
+const w2Later = (t, fn) => run.w2.later.push({ t, fn });
+// 화면을 가로지르는 띠 공격 (촉수, 웜 돌진 예고): t초 예고 뒤 0.35초 동안 판정
+function w2Lane(l, w, t, dmg, owner, look = "tentacle") { run.w2.lanes.push({ l, w, t, max: t, fire: 0.35, dmg: Math.round(dmg), owner, hit: false, look }); }
+function laneThrough(px, py, horizontal) {
+  return horizontal ? [-20, py, W + 20, py] : [px, 150, px, H + 20];
+}
+function hitBy(m, dmg, el) { curMob = m; const got = hurtPlayer(Math.round(dmg), el); curMob = null; return got; }
+
+function w2Pick(m) {
+  const clonesUp = run.mobs.some(o => o.kind === "qclone" && !o.dead);
+  let moves = W2_PATTERNS[m.kind].filter(v => v !== m.last && !(v === "clones" && clonesUp));
+  if (!moves.length) moves = W2_PATTERNS[m.kind].filter(v => v !== "clones");
+  if (!moves.length) moves = [m.kind === "crystalQueen" ? "shards" : W2_PATTERNS[m.kind][0]];
+  return (m.last = moves[Math.floor(Math.random() * moves.length)]);
 }
 
 function w2BossAI(m, dt) {
-  const p = run.p, w = run.w2, toP = () => Math.atan2(p.y - m.y, p.x - m.x);
+  const p = run.p, w = run.w2, toP = () => Math.atan2(p.y - m.y, p.x - m.x), E = !!m.enraged;
   if (m.kind === "kraken" && !m.placed) { m.placed = true; m.x = W / 2; m.y = 96; m.face = Math.PI / 2; }
-  if (!m.enraged && m.hp < m.max * 0.4) { m.enraged = true; fx(m.x, m.y - m.r - 20, "분노!", "#ff5f56", 18); }
-  const cdBase = m.enraged ? 1.0 : 1.5;
+  if (!m.enraged && m.hp < m.max * 0.5) {
+    m.enraged = true;
+    fx(m.x, m.y - m.r - 20, "분노! 패턴이 강해집니다", "#ff5f56", 17);
+    sfx("bossIn");
+    if (m.kind === "sandWorm") { w.sand = 5; fx(W / 2, 120, "모래 폭풍!", "#e8c98a", 18); }
+  }
+  const done = () => { m.mode = "chase"; m.cd = E ? 0.6 : 1.1; };
   m.timer -= dt;
   switch (m.mode) {
     case "chase": {
       m.cd -= dt;
       if (m.cd > 0) return;
-      const moves = W2_PATTERNS[m.kind], mv = moves[Math.floor(Math.random() * moves.length)];
-      if (mv === "burrow") { m.mode = "dig"; m.timer = 0.6; sfx("rock"); }
-      else if (mv === "tornado") {
-        m.mode = "howl"; m.timer = 0.6;
-        for (let k = 0; k < (m.enraged ? 4 : 3); k++) { const a = Math.random() * Math.PI * 2; w.torn.push({ x: m.x + Math.cos(a) * 50, y: m.y + Math.sin(a) * 50, t: 5.5, cd: 0, ph: Math.random() * 6, dmg: m.dmg * 0.35 }); }
-        sfx("whirl");
-      } else if (mv === "spit") {
-        m.mode = "howl"; m.timer = 0.5;
-        const a0 = toP();
-        for (let k = -2; k <= 2; k++) w2Shot(m, a0 + k * 0.22, 230, m.dmg * 0.5, "#e8c98a");
-        sfx("boom");
-      } else if (mv === "prism") {
-        m.mode = "prismAim"; m.timer = 1.0;
-        const a0 = toP(), angs = m.enraged ? [a0 - 0.28, a0 + 0.28] : [a0];
-        w.beams = angs.map(a => ({ pts: bouncePath(m.x, m.y, a, 2), hit: false }));
-      } else if (mv === "shards") {
-        m.mode = "howl"; m.timer = 0.5;
-        const n = m.enraged ? 16 : 12, off = Math.random();
-        for (let k = 0; k < n; k++) w2Shot(m, off + k / n * Math.PI * 2, 190, m.dmg * 0.45, "#d6a8ff");
-        sfx("ice");
-      } else if (mv === "prison") {
-        m.mode = "prisonCast"; m.timer = 1.15;
-        w.prison = { x: p.x, y: p.y, r: 95, t: 1.15, max: 1.15 };
-        fx(p.x, p.y - 40, "수정 감옥! 원 밖으로", "#d6a8ff", 14);
-      } else if (mv === "slam") {
-        m.mode = "slamAim"; m.timer = m.enraged ? 0.8 : 1.0;
-        w.lanes = [];
-        const n = m.enraged ? 3 : 2;
-        for (let k = 0; k < n; k++) {
-          const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 140, H - 30);
-          const lane = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 150, tx, H] : [0, clamp(ty - 120, 150, H), W, clamp(ty + 120, 150, H)];
-          w.lanes.push({ l: lane, w: 46, hit: false });
-        }
-      } else if (mv === "ink") {
-        m.mode = "howl"; m.timer = 0.5;
-        w.ink = 4.5;
-        for (let k = -1; k <= 1; k++) w2Shot(m, toP() + k * 0.3, 200, m.dmg * 0.4, "#1a2a33");
-        fx(m.x, m.y + m.r + 10, "먹물!", "#9fe3ff", 16);
-      } else if (mv === "whirl") { m.mode = "whirl"; m.timer = 2.6; fx(m.x, m.y + m.r + 10, "소용돌이!", "#9fe3ff", 16); sfx("whirl"); }
-      else if (mv === "summon") {
-        m.mode = "howl"; m.timer = 0.6;
-        if (run.mobs.filter(o => !o.dead).length < 6) for (const s of [-1, 1]) {
-          const b = ZONES2[2].mob;
-          run.adds.push(hardened({ boss: false, kind: b.kind, name: b.name, color: b.color, x: m.x + s * 70, y: m.y + 40, hp: b.hp, max: b.hp, dmg: b.dmg,
-            speed: b.speed, r: b.r, gold: b.gold * 0.3, face: 0, hitCd: 0, flash: 0, phase: Math.random() * 6 }));
-        }
+      const mv = w2Pick(m);
+      // 분노한 여왕은 기술마다 순간이동
+      if (m.kind === "crystalQueen" && E && mv !== "sweep") {
+        ring(m.x, m.y, 40, "#d6a8ff");
+        m.x = clamp(p.x + (Math.random() - 0.5) * 300, 50, W - 50); m.y = clamp(p.y - 140 - Math.random() * 80, 60, H - 60);
+        ring(m.x, m.y, 40, "#e4ccff"); sfx("ice");
       }
+      W2_START[mv](m, p, w, toP, E);
       return;
     }
-    case "howl": if (m.timer <= 0) { m.mode = "chase"; m.cd = cdBase; } return;
-    // 모래 거인 웜: 땅속으로 → 쫓아옴 → 발밑에서 튀어나옴
-    case "dig": if (m.timer <= 0) { m.mode = "under"; m.timer = 1.8; m.ghost = 99; } return;
+    case "howl": if (m.timer <= 0) done(); return;
+    // 모래 거인 웜: 땅속으로 → 쫓아옴 → 발밑에서 튀어나옴 (분노: 3번 연속)
+    case "dig": if (m.timer <= 0) { m.mode = "under"; m.timer = 1.5; m.ghost = 99; } return;
     case "under": {
-      const a = toP(), v = 175;
-      m.x = clamp(m.x + Math.cos(a) * v * dt, m.r, W - m.r);
-      m.y = clamp(m.y + Math.sin(a) * v * dt, m.r, H - m.r);
-      if (m.timer <= 0) { m.mode = "rise"; m.timer = 0.75; m.rise = { x: p.x, y: p.y }; }
+      const a = toP();
+      m.x = clamp(m.x + Math.cos(a) * 185 * dt, m.r, W - m.r);
+      m.y = clamp(m.y + Math.sin(a) * 185 * dt, m.r, H - m.r);
+      if (m.timer <= 0) { m.mode = "rise"; m.timer = E ? 0.6 : 0.75; m.riseMax = m.timer; m.rise = { x: p.x, y: p.y }; }
       return;
     }
     case "rise": {
       if (m.timer > 0) return;
-      m.x = m.rise.x; m.y = m.rise.y; m.ghost = 0;
+      m.x = m.rise.x; m.y = m.rise.y;
       ring(m.x, m.y, 80, "#e8c98a"); sfx("boom"); run.quake = 0.3;
-      if (Math.hypot(p.x - m.x, p.y - m.y) < 70 + P_R) { curMob = m; hurtPlayer(Math.round(m.dmg * 1.3)); curMob = null; }
-      m.mode = "chase"; m.cd = cdBase;
+      if (Math.hypot(p.x - m.x, p.y - m.y) < 70 + P_R && hitBy(m, m.dmg * 1.3) && !p.dash) {
+        const a = Math.atan2(p.y - m.y, p.x - m.x);
+        p.knock = { vx: Math.cos(a) * 320, vy: Math.sin(a) * 320, t: 0.2 };
+      }
+      for (let k = 0; k < 8; k++) w2Shot(m, k / 8 * Math.PI * 2, 170, m.dmg * 0.35, "#e8c98a");
+      if (--m.ambush > 0) { m.mode = "under"; m.timer = 0.8; }
+      else { m.ghost = 0; done(); }
+      return;
+    }
+    case "charge": {
+      // 땅속 돌진: 정해진 띠를 따라 화면을 가로지름
+      const c = m.chg, k = clamp(1 - m.timer / c.dur, 0, 1);
+      m.x = c.l[0] + (c.l[2] - c.l[0]) * k; m.y = c.l[1] + (c.l[3] - c.l[1]) * k;
+      if (!c.hit && Math.hypot(p.x - m.x, p.y - m.y) < m.r + P_R && hitBy(m, m.dmg * 1.4)) c.hit = true;
+      if (m.timer <= 0) {
+        if (m.chgNext) { m.chg = m.chgNext; m.chgNext = null; m.timer = m.chg.dur; return; }
+        m.x = clamp(m.x, m.r + 10, W - m.r - 10); m.y = clamp(m.y, m.r + 10, H - m.r - 10); m.ghost = 0;
+        ring(m.x, m.y, 60, "#e8c98a"); done();
+      }
       return;
     }
     // 수정 여왕
@@ -5993,43 +6002,244 @@ function w2BossAI(m, dt) {
       for (const b of w.beams) {
         if (b.hit) continue;
         for (let i = 1; i < b.pts.length; i++) {
-          if (segDist(p.x, p.y, ...b.pts[i - 1], ...b.pts[i]) < 13 + P_R * 0.5) { b.hit = true; curMob = m; hurtPlayer(Math.round(m.dmg * 0.8)); curMob = null; break; }
+          if (segDist(p.x, p.y, ...b.pts[i - 1], ...b.pts[i]) < 13 + P_R * 0.5) { b.hit = true; hitBy(m, m.dmg * 0.8); break; }
         }
       }
-      if (m.timer <= 0) { w.beams = []; m.mode = "chase"; m.cd = cdBase; }
+      if (m.timer <= 0) { w.beams = []; done(); }
+      return;
+    }
+    case "sweepAim": if (m.timer <= 0) { m.mode = "sweep"; m.timer = 2.4; sfx("thunder"); } return;
+    case "sweep": {
+      const k = 1 - m.timer / 2.4;
+      w.sweep = { x: m.x, y: m.y, angs: (E ? [0, Math.PI] : [0]).map(o => m.sweepA0 + (k * 3.4 - 1.7) * m.sweepDir + o) };
+      w.sweepCd -= dt;
+      if (w.sweepCd <= 0) for (const a of w.sweep.angs) {
+        if (segDist(p.x, p.y, m.x, m.y, m.x + Math.cos(a) * 800, m.y + Math.sin(a) * 800) < 12 + P_R * 0.5) { w.sweepCd = 0.6; hitBy(m, m.dmg * 0.6); break; }
+      }
+      if (m.timer <= 0) { w.sweep = null; done(); }
       return;
     }
     case "prisonCast": {
       if (m.timer > 0) return;
-      const q = w.prison;
-      ring(q.x, q.y, q.r, "#d6a8ff"); sfx("ice");
-      if (Math.hypot(p.x - q.x, p.y - q.y) < q.r) { curMob = m; if (hurtPlayer(m.dmg)) rootPlayer(0.9); curMob = null; }
-      w.prison = null; m.mode = "chase"; m.cd = cdBase;
+      for (const q of w.prisons) {
+        ring(q.x, q.y, q.r, "#d6a8ff");
+        if (Math.hypot(p.x - q.x, p.y - q.y) < q.r && hitBy(m, m.dmg)) rootPlayer(0.9);
+      }
+      sfx("ice"); w.prisons = []; done();
       return;
     }
     // 심해 크라켄
-    case "slamAim": if (m.timer <= 0) { m.mode = "slam"; m.timer = 0.45; sfx("boom"); run.quake = 0.25; } return;
-    case "slam": {
-      for (const ln of w.lanes) {
-        if (ln.hit) continue;
-        if (segDist(p.x, p.y, ...ln.l) < ln.w / 2 + P_R * 0.6) { ln.hit = true; curMob = m; hurtPlayer(m.dmg); curMob = null; }
-      }
-      if (m.timer <= 0) { w.lanes = []; m.mode = "chase"; m.cd = cdBase; }
-      return;
-    }
     case "whirl": {
       if (!p.dash && Math.hypot(m.x - p.x, m.y - p.y) > m.r + 46) {   // 몸 바로 앞까지만 끌어당김
-        const a = Math.atan2(m.y - p.y, m.x - p.x), pull = 80 * dt;
+        const a = Math.atan2(m.y - p.y, m.x - p.x), pull = (E ? 95 : 80) * dt;
         p.x = clamp(p.x + Math.cos(a) * pull, P_R, W - P_R);
         p.y = clamp(p.y + Math.sin(a) * pull, P_R, H - P_R);
       }
-      if (m.timer <= 0) { m.mode = "chase"; m.cd = cdBase; }
+      if (m.timer <= 0) done();
       return;
     }
   }
 }
 
-// 지형 특징과 보스 소품 (회오리, 먹물, 모래 폭풍)
+// 기술 시작
+const W2_START = {
+  burrow(m, p, w, toP, E) { m.mode = "dig"; m.timer = 0.6; m.ambush = E ? 3 : 1; sfx("rock"); },
+  charge(m, p, w, toP, E) {
+    const horiz = Math.random() < 0.5, l = laneThrough(p.x, p.y, horiz);
+    if (Math.random() < 0.5) l.splice(0, 4, l[2], l[3], l[0], l[1]);
+    w2Lane(l, 70, 0.9, 0, m, "sand");
+    m.mode = "chargeWait"; m.ghost = 99;
+    const first = { l, dur: 0.55, hit: false };
+    let second = null;
+    if (E) {   // 분노: 십자로 한 번 더
+      const l2 = laneThrough(p.x, p.y, !horiz);
+      w2Lane(l2, 70, 1.5, 0, m, "sand");
+      second = { l: l2, dur: 0.55, hit: false };
+    }
+    m.x = l[0]; m.y = l[1];
+    w2Later(0.9, () => { if (m.dead) return; m.mode = "charge"; m.chg = first; m.chgNext = second; m.timer = first.dur; sfx("dash"); });
+  },
+  tornado(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6;
+    for (let k = 0; k < (E ? 5 : 3); k++) { const a = Math.random() * Math.PI * 2; w.torn.push({ x: m.x + Math.cos(a) * 50, y: m.y + Math.sin(a) * 50, t: 6, cd: 0, ph: Math.random() * 6, dmg: m.dmg * 0.35, owner: m }); }
+    sfx("whirl");
+  },
+  spit(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = E ? 1.0 : 0.5;
+    const volley = () => { const a0 = Math.atan2(p.y - m.y, p.x - m.x); for (let k = -2; k <= 2; k++) w2Shot(m, a0 + k * 0.22, 240, m.dmg * 0.5, "#e8c98a"); sfx("boom"); };
+    volley();
+    if (E) { w2Later(0.35, () => !m.dead && volley()); w2Later(0.7, () => !m.dead && volley()); }
+  },
+  quicksand(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6;
+    w.pits.push({ x: p.x, y: p.y, r: E ? 105 : 85, t: 6, max: 6, dmg: m.dmg * 0.5, owner: m });
+    fx(p.x, p.y - 40, "유사! 빨려 들어가요", "#e8c98a", 14);
+  },
+  prism(m, p, w, toP, E) {
+    m.mode = "prismAim"; m.timer = 1.0;
+    const a0 = toP(), angs = E ? [a0 - 0.3, a0, a0 + 0.3] : [a0];
+    w.beams = angs.map(a => ({ pts: bouncePath(m.x, m.y, a, E ? 3 : 2), hit: false }));
+    // 분신도 같은 때 광선을 쏨
+    for (const c of run.mobs) if (c.kind === "qclone" && !c.dead) w.beams.push({ pts: bouncePath(c.x, c.y, Math.atan2(p.y - c.y, p.x - c.x), 1), hit: false });
+  },
+  sweep(m, p, w, toP, E) {
+    m.mode = "sweepAim"; m.timer = 0.8;
+    m.sweepA0 = toP(); m.sweepDir = Math.random() < 0.5 ? 1 : -1; w.sweepCd = 0;
+    w.sweep = { x: m.x, y: m.y, angs: [m.sweepA0 - 1.7 * m.sweepDir], aim: true };
+    fx(m.x, m.y - m.r - 20, "회전 광선!", "#e4ccff", 15);
+  },
+  rain(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6;
+    const n = E ? 12 : 8;
+    w2Boom(p.x, p.y, 36, 1.0, m.dmg * 0.7, "214,168,255", m);
+    for (let k = 1; k < n; k++) w2Boom(p.x + (Math.random() - 0.5) * 320, p.y + (Math.random() - 0.5) * 320, 36, 0.9 + k * 0.08, m.dmg * 0.7, "214,168,255", m);
+  },
+  prison(m, p, w, toP, E) {
+    m.mode = "prisonCast"; m.timer = 1.15;
+    w.prisons = [{ x: p.x, y: p.y, r: 95, t: 1.15, max: 1.15 }];
+    if (E) w.prisons.push({ x: clamp(p.x + (Math.random() < 0.5 ? -1 : 1) * 150, 60, W - 60), y: p.y, r: 95, t: 1.15, max: 1.15 });
+    fx(p.x, p.y - 40, "수정 감옥! 원 밖으로", "#d6a8ff", 14);
+  },
+  clones(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.7;
+    for (const s of [-1, 1]) run.adds.push({ boss: false, kind: "qclone", name: "수정 분신", color: "#e4ccff", x: clamp(m.x + s * 130, 40, W - 40), y: clamp(m.y + 30, 60, H - 60),
+      hp: m.max * 0.035, max: m.max * 0.035, dmg: m.dmg, speed: 0, r: 20, gold: 0, face: 0, hitCd: 0, flash: 0, phase: 0, contact: false, life: 14, noLoot: true });
+    fx(m.x, m.y - m.r - 20, "분신!", "#e4ccff", 16); sfx("learn");
+  },
+  shards(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = E ? 0.8 : 0.5;
+    const ringOf = off => { const n = E ? 16 : 12; for (let k = 0; k < n; k++) w2Shot(m, off + k / n * Math.PI * 2, 190, m.dmg * 0.45, "#d6a8ff"); sfx("ice"); };
+    const off = Math.random(); ringOf(off);
+    if (E) w2Later(0.35, () => !m.dead && ringOf(off + Math.PI / 16));
+  },
+  slam(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 1.4;
+    const n = E ? 3 : 2;
+    for (let k = 0; k < n; k++) {
+      const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 170, H - 30);
+      const l = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 150, tx, H] : [0, clamp(ty - 120, 150, H), W, clamp(ty + 120, 150, H)];
+      w2Lane(l, 46, E ? 0.8 : 1.0, m.dmg, m);
+    }
+  },
+  cage(m, p, w, toP, E) {
+    // 촉수 감옥: 양쪽에서 번갈아 안쪽으로 좁혀 들어오는 세로 촉수
+    m.mode = "howl"; m.timer = 2.4;
+    const xs = [40, W - 40, 120, W - 120, 200, W - 200];
+    xs.slice(0, E ? 6 : 4).forEach((x, i) => w2Lane([x, 150, x, H + 20], 54, 0.7 + i * 0.35, m.dmg * 0.9, m));
+    fx(m.x, m.y + m.r + 10, "촉수 감옥!", "#9fe3ff", 15);
+  },
+  geyser(m, p, w, toP, E) {
+    // 간헐천: 나를 따라오며 연달아 터짐
+    m.mode = "howl"; m.timer = 0.6;
+    const n = E ? 7 : 5;
+    for (let k = 0; k < n; k++) w2Later(k * 0.38, () => { if (!m.dead) w2Boom(run.p.x, run.p.y, 44, 0.75, m.dmg * 0.75, "120,220,240", m, "knock"); });
+  },
+  wave(m, p, w, toP, E) {
+    // 해일: 위에서 아래로 밀려오는 물결, 틈 하나로만 피할 수 있음
+    m.mode = "howl"; m.timer = 1.2;
+    const one = () => w.waves.push({ y: 150, gap: 50 + Math.random() * (W - 100), gw: 96, dmg: m.dmg * 1.1, hit: false, warn: 0.8, owner: m });
+    one();
+    if (E) w2Later(1.3, () => !m.dead && one());
+    fx(m.x, m.y + m.r + 10, "해일! 틈으로 피하세요", "#9fe3ff", 15);
+  },
+  ink(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.5;
+    w.ink = 4.5;
+    for (let k = -1; k <= 1; k++) w2Shot(m, toP() + k * 0.3, 200, m.dmg * 0.4, "#1a2a33");
+    if (E) W2_START.slam(m, p, w, toP, E);
+    fx(m.x, m.y + m.r + 10, "먹물!", "#9fe3ff", 16);
+  },
+  whirl(m, p, w, toP, E) {
+    m.mode = "whirl"; m.timer = 2.6; sfx("whirl");
+    fx(m.x, m.y + m.r + 10, "소용돌이!", "#9fe3ff", 16);
+    if (E) w2Later(0.9, () => { if (m.dead) return; for (const x of [p.x - 60, p.x + 60]) w2Lane([clamp(x, 30, W - 30), 150, clamp(x, 30, W - 30), H + 20], 46, 0.8, m.dmg, m); });
+  },
+  summon(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6;
+    if (run.mobs.filter(o => !o.dead).length < 6) for (const s of [-1, 1]) {
+      const b = ZONES2[2].mob;
+      run.adds.push({ boss: false, kind: b.kind, name: b.name, color: b.color, x: m.x + s * 70, y: m.y + 40, hp: b.hp, max: b.hp, dmg: b.dmg,
+        speed: b.speed, r: b.r, gold: b.gold * 0.3, face: 0, hitCd: 0, flash: 0, phase: Math.random() * 6 });
+    }
+  },
+};
+
+// ── 월드 2 일반 몹: 종류마다 고유 행동 ──
+const W2AI = {
+  // 모래 전갈: 가까워지면 잠깐 멈춰 노리다가 꼬리로 돌진 찌르기
+  scorpion(m, ax, ay, d, slow, dt) {
+    m.cd2 = (m.cd2 ?? 1.5) - dt;
+    if (m.lunge) {
+      const L = m.lunge;
+      L.t -= dt;
+      if (L.t > 0.25) return;   // 노리는 중
+      m.x = clamp(m.x + Math.cos(L.a) * 430 * dt, m.r, W - m.r); m.y = clamp(m.y + Math.sin(L.a) * 430 * dt, m.r, H - m.r);
+      if (!L.hit && Math.hypot(run.p.x - m.x, run.p.y - m.y) < m.r + P_R + 4 && hitBy(m, m.dmg * 1.3)) { L.hit = true; slowPlayer(1.2, 0.4); }
+      if (L.t <= 0) { m.lunge = null; m.cd2 = 2.6; }
+      return;
+    }
+    if (d < 130 && m.cd2 <= 0) { m.lunge = { a: Math.atan2(ay, ax), t: 0.75, hit: false }; m.face = m.lunge.a; return; }
+    m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt; m.face = Math.atan2(ay, ax);
+  },
+  // 사막 도적: 거리를 두고 단검 3개, 가까이 붙으면 연막을 터뜨리고 순간이동
+  bandit(m, ax, ay, d, slow, dt) {
+    const go = d > 190 ? 1 : d < 120 ? -1 : 0;
+    m.x = clamp(m.x + ax / d * m.speed * slow * dt * go, m.r, W - m.r); m.y = clamp(m.y + ay / d * m.speed * slow * dt * go, m.r, H - m.r);
+    m.face = Math.atan2(ay, ax);
+    m.shootCd -= dt; m.smokeCd = (m.smokeCd ?? 2) - dt;
+    if (d < 80 && m.smokeCd <= 0) {
+      m.smokeCd = 6;
+      for (let k = 0; k < 10; k++) run.parts.push({ x: m.x, y: m.y, vx: (Math.random() - 0.5) * 220, vy: (Math.random() - 0.5) * 220, t: 0.6, color: "rgba(200,190,170,.8)", size: 9 });
+      const a = Math.random() * Math.PI * 2;
+      m.x = clamp(run.p.x + Math.cos(a) * 210, 30, W - 30); m.y = clamp(run.p.y + Math.sin(a) * 210, 30, H - 30);
+      m.shootCd = Math.min(m.shootCd, 0.5); sfx("dash");
+    }
+    if (m.shootCd <= 0 && d < 300) {
+      m.shootCd = 2.4;
+      for (let k = -1; k <= 1; k++) run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face + k * 0.2) * 290, vy: Math.sin(m.face + k * 0.2) * 290, dmg: m.dmg, t: 2.5, owner: m });
+    }
+  },
+  // 수정 박쥐: 지그재그로 날아듦 (죽으면 파편이 터짐)
+  crystalBat(m, ax, ay, d, slow, dt) {
+    const a = Math.atan2(ay, ax) + Math.sin(run.time * 5 + m.phase) * 0.9;
+    m.x += Math.cos(a) * m.speed * slow * dt; m.y += Math.sin(a) * m.speed * slow * dt;
+  },
+  // 수정 골렘: 천천히 다가와 땅을 찍어 수정 가시 원
+  crystalGolem(m, ax, ay, d, slow, dt) {
+    m.cd2 = (m.cd2 ?? 2) - dt;
+    if (m.atk > 0) { m.atk -= dt; return; }
+    if (d < 120 && m.cd2 <= 0) { m.cd2 = 3.8; m.atk = 0.9; w2Boom(m.x, m.y, 78, 0.9, m.dmg, "214,168,255", m, "slow"); return; }
+    if (d > m.r + P_R + 6) { m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt; }
+  },
+  // 전기 해파리: 둥실둥실 다가오다 주기적으로 전기 파동 (해파리끼리는 전기로 연결)
+  jelly(m, ax, ay, d, slow, dt) {
+    m.cd2 = (m.cd2 ?? 2 + Math.random() * 2) - dt;
+    if (d > 40) { m.x += ax / d * m.speed * slow * dt + Math.sin(run.time * 2 + m.phase) * 20 * dt; m.y += ay / d * m.speed * slow * dt; }
+    if (d < 140 && m.cd2 <= 0) { m.cd2 = 4.5; w2Boom(m.x, m.y, 72, 0.8, m.dmg * 0.8, "255,230,120", m, "stun", "bolt"); }
+  },
+  // 어인 창병: 멀면 창을 던지고, 가까우면 찌르기. 물웅덩이 안에서는 빨라짐
+  merman(m, ax, ay, d, slow, dt) {
+    m.face = Math.atan2(ay, ax);
+    const wet = run.floor.puddles?.some(q => ((m.x - q.x) / q.rx) ** 2 + ((m.y - q.y) / q.ry) ** 2 < 1) ? 1.7 : 1;
+    m.spearCd = (m.spearCd ?? 1.5) - dt;
+    if (m.atk > 0) {
+      m.atk -= dt;
+      if (m.atk <= 0) { m.atkCd = 1.1; if (d < m.r + P_R + 34) hitBy(m, m.dmg); }
+      return;
+    }
+    m.atkCd = (m.atkCd || 0) - dt;
+    if (d > 150 && m.spearCd <= 0) {
+      m.spearCd = 3.2;
+      run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face) * 380, vy: Math.sin(m.face) * 380, dmg: Math.round(m.dmg * 0.9), t: 2, owner: m, spear: true });
+      return;
+    }
+    if (d > m.r + P_R + 4) { m.x += ax / d * m.speed * wet * slow * dt; m.y += ay / d * m.speed * wet * slow * dt; }
+    if (d < m.r + P_R + 26 && m.atkCd <= 0) m.atk = 0.35;
+  },
+  qclone(m, ax, ay, d, slow, dt) { m.life -= dt; if (m.life <= 0) { m.dead = true; ring(m.x, m.y, 30, "#e4ccff"); } },
+};
+
+// 지형 특징과 보스 소품 (회오리, 먹물, 모래 폭풍, 예고 원, 띠 공격, 해일, 유사, 해파리 연결)
 function w2Update(dt) {
   const r = run, w = r.w2, p = r.p;
   if (r.zone.key === "desert") {
@@ -6037,22 +6247,89 @@ function w2Update(dt) {
     else if ((w.sandT -= dt) <= 0) { w.sand = 5; w.sandT = 16; fx(W / 2, 120, "모래 폭풍!", "#e8c98a", 18); }
   }
   if (w.ink > 0) w.ink -= dt;
-  if (w.prison) w.prison.t -= dt;
+  for (const q of w.prisons) q.t -= dt;
+  for (const l of w.later) l.t -= dt;
+  const due = w.later.filter(l => l.t <= 0);
+  w.later = w.later.filter(l => l.t > 0);
+  due.forEach(l => l.fn());
+  // 회오리
   for (const tn of w.torn) {
     tn.t -= dt; tn.cd -= dt;
     const a = Math.atan2(p.y - tn.y, p.x - tn.x);
-    tn.x += Math.cos(a) * 68 * dt + Math.cos(tn.ph + r.time * 2) * 30 * dt;
-    tn.y += Math.sin(a) * 68 * dt + Math.sin(tn.ph + r.time * 2) * 30 * dt;
+    tn.x += Math.cos(a) * 70 * dt + Math.cos(tn.ph + r.time * 2) * 30 * dt;
+    tn.y += Math.sin(a) * 70 * dt + Math.sin(tn.ph + r.time * 2) * 30 * dt;
     if (tn.cd <= 0 && Math.hypot(p.x - tn.x, p.y - tn.y) < 22 + P_R) {
       tn.cd = 0.8;
-      if (hurtPlayer(Math.round(tn.dmg)) && !p.dash) p.knock = { vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, t: 0.18 };
+      if (hitBy(tn.owner, tn.dmg) && !p.dash) p.knock = { vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, t: 0.18 };
     }
   }
   w.torn = w.torn.filter(tn => tn.t > 0);
+  // 예고 원
+  for (const b of w.booms) {
+    b.t -= dt;
+    if (b.t > 0) continue;
+    ring(b.x, b.y, b.r, `rgb(${b.col})`);
+    if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + P_R * 0.6 && hitBy(b.owner, b.dmg, b.el)) {
+      if (b.eff === "slow") slowPlayer(1.5, 0.45);
+      else if (b.eff === "stun") stunPlayer(0.5);
+      else if (b.eff === "knock" && !p.dash) { const a = Math.atan2(p.y - b.y, p.x - b.x) || 0; p.knock = { vx: Math.cos(a) * 280, vy: Math.sin(a) * 280, t: 0.18 }; }
+    }
+  }
+  if (w.booms.some(b => b.t <= 0)) sfx("boom");
+  w.booms = w.booms.filter(b => b.t > 0);
+  // 띠 공격 (촉수·웜 돌진 예고)
+  for (const ln of w.lanes) {
+    ln.t -= dt;
+    if (ln.t > 0) continue;
+    if (!ln.fired) { ln.fired = true; if (ln.dmg) { sfx("boom"); run.quake = Math.max(run.quake || 0, 0.15); } }
+    ln.fire -= dt;
+    if (ln.dmg && !ln.hit && segDist(p.x, p.y, ...ln.l) < ln.w / 2 + P_R * 0.6) { ln.hit = true; hitBy(ln.owner, ln.dmg); }
+  }
+  w.lanes = w.lanes.filter(ln => ln.t > 0 || ln.fire > 0);
+  // 해일
+  for (const wv of w.waves) {
+    if (wv.warn > 0) { wv.warn -= dt; continue; }
+    wv.y += 240 * dt;
+    if (!wv.hit && Math.abs(p.y - wv.y) < 20 + P_R && Math.abs(p.x - wv.gap) > wv.gw / 2 - P_R * 0.5) {
+      wv.hit = true;
+      if (hitBy(wv.owner, wv.dmg) && !p.dash) p.knock = { vx: 0, vy: 300, t: 0.18 };
+    }
+  }
+  w.waves = w.waves.filter(wv => wv.y < H + 40);
+  // 유사: 안에 있으면 느려지고 가운데로 끌려감, 가운데는 아픔
+  for (const pit of w.pits) {
+    pit.t -= dt;
+    const d = Math.hypot(p.x - pit.x, p.y - pit.y);
+    if (d < pit.r && !p.dash) {
+      p.slowT = Math.max(p.slowT || 0, 0.1); p.slowAmt = Math.max(p.slowAmt || 0, 0.45);
+      if (d > 4) { p.x -= (p.x - pit.x) / d * 45 * dt; p.y -= (p.y - pit.y) / d * 45 * dt; }
+      if (d < 28 && !(p.invuln > 0)) p.hp -= pit.dmg * resistMul(null) * dt;
+    }
+  }
+  w.pits = w.pits.filter(q => q.t > 0);
+  // 해파리끼리 전기 연결: 그 사이를 지나가면 감전
+  w.links = [];
+  const jl = r.mobs.filter(m => m.kind === "jelly" && !m.dead);
+  for (let i = 0; i < jl.length; i++) for (let j = i + 1; j < jl.length; j++) {
+    if (Math.hypot(jl[i].x - jl[j].x, jl[i].y - jl[j].y) < 190) w.links.push([jl[i], jl[j]]);
+  }
+  w.linkCd = (w.linkCd || 0) - dt;
+  if (w.linkCd <= 0) for (const [a, b] of w.links) {
+    if (segDist(p.x, p.y, a.x, a.y, b.x, b.y) < 10 + P_R * 0.5) { w.linkCd = 0.6; if (hitBy(a, a.dmg * 0.5, "bolt")) stunPlayer(0.25); break; }
+  }
 }
 
 function drawW2Under(r, t) {
   const w = r.w2;
+  // 유사
+  for (const pit of w.pits) {
+    const k = Math.min(1, pit.t / 0.5, (pit.max - pit.t) / 0.4);
+    const g = ctx.createRadialGradient(pit.x, pit.y, 4, pit.x, pit.y, pit.r);
+    g.addColorStop(0, `rgba(90,60,30,${0.75 * k})`); g.addColorStop(1, `rgba(200,160,100,${0.25 * k})`);
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(pit.x, pit.y, pit.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(232,201,138,${0.6 * k})`; ctx.lineWidth = 2;
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(pit.x, pit.y, pit.r * (0.3 + i * 0.25), t * 2 + i, t * 2 + i + 3.6); ctx.stroke(); }
+  }
   // 회오리
   for (const tn of w.torn) {
     const k = Math.min(1, tn.t / 0.5);
@@ -6061,49 +6338,89 @@ function drawW2Under(r, t) {
       ctx.beginPath(); ctx.ellipse(tn.x, tn.y - i * 9, 22 - i * 3, 8 - i, 0, t * 8 + i, t * 8 + i + 4.5); ctx.stroke();
     }
   }
-  // 웜이 튀어나올 자리
-  for (const m of r.mobs) if (m.mode === "rise") {
-    const k = 1 - m.timer / 0.75;
-    ctx.fillStyle = `rgba(255,95,86,${0.15 + 0.3 * k})`; ctx.beginPath(); ctx.arc(m.rise.x, m.rise.y, 70, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = "rgba(255,95,86,.85)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.rise.x, m.rise.y, 70 * k, 0, Math.PI * 2); ctx.stroke();
+  // 예고 원
+  for (const b of w.booms) {
+    const k = 1 - b.t / b.max;
+    ctx.fillStyle = `rgba(${b.col},${0.12 + 0.28 * k})`; ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = `rgba(${b.col},.9)`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(b.x, b.y, b.r * k, 0, Math.PI * 2); ctx.stroke();
   }
-  // 수정 여왕 광선: 예고(점선) → 발사(굵은 빛)
-  for (const m of r.mobs) if ((m.mode === "prismAim" || m.mode === "prism") && w.beams.length) {
-    const fire = m.mode === "prism";
-    ctx.save();
-    if (fire) { ctx.shadowColor = "#e4ccff"; ctx.shadowBlur = 18; }
-    for (const b of w.beams) {
-      for (const [lw, col] of fire ? [[14, "rgba(214,168,255,.7)"], [5, "#ffffff"]] : [[2, "rgba(214,168,255,.75)"]]) {
-        ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(fire ? [] : [8, 6]);
-        ctx.beginPath(); b.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
-      }
-    }
-    ctx.restore();
-  }
-  // 수정 감옥: 원 안에 있으면 맞음
-  if (w.prison) {
-    const q = w.prison, k = 1 - q.t / q.max;
-    ctx.fillStyle = `rgba(214,168,255,${0.1 + 0.2 * k})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
-    for (let i = 0; i < 8; i++) {
-      const a = i / 8 * Math.PI * 2, x = q.x + Math.cos(a) * q.r, y = q.y + Math.sin(a) * q.r, h = 8 + 16 * k;
-      poly([[x - 5, y + 4], [x, y - h], [x + 5, y + 4]], "#e4ccff");
-    }
-  }
-  // 크라켄 촉수 내려치기
+  // 띠 공격
   for (const ln of w.lanes) {
-    const fire = r.mobs.some(m => m.mode === "slam");
     const [x1, y1, x2, y2] = ln.l, a = Math.atan2(y2 - y1, x2 - x1), len = Math.hypot(x2 - x1, y2 - y1);
     ctx.save(); ctx.translate(x1, y1); ctx.rotate(a);
-    if (!fire) {
-      ctx.fillStyle = "rgba(255,95,86,.16)"; ctx.fillRect(0, -ln.w / 2, len, ln.w);
-      ctx.strokeStyle = "rgba(255,95,86,.7)"; ctx.setLineDash([8, 6]); ctx.lineWidth = 2; ctx.strokeRect(0, -ln.w / 2, len, ln.w);
-    } else {
+    if (ln.t > 0) {
+      const k = 1 - ln.t / ln.max;
+      ctx.fillStyle = ln.look === "sand" ? `rgba(232,201,138,${0.12 + 0.2 * k})` : `rgba(255,95,86,${0.1 + 0.18 * k})`;
+      ctx.fillRect(0, -ln.w / 2, len, ln.w);
+      ctx.strokeStyle = ln.look === "sand" ? "rgba(232,201,138,.8)" : "rgba(255,95,86,.7)"; ctx.setLineDash([8, 6]); ctx.lineWidth = 2; ctx.strokeRect(0, -ln.w / 2, len, ln.w);
+    } else if (ln.look === "tentacle") {
       const g = ctx.createLinearGradient(0, -ln.w / 2, 0, ln.w / 2);
       g.addColorStop(0, "#1f5a66"); g.addColorStop(0.5, "#3fa3b0"); g.addColorStop(1, "#1f5a66");
       ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(0, -ln.w * 0.42, len, ln.w * 0.84, ln.w * 0.4); ctx.fill();
       for (let x = 20; x < len; x += 34) blob(x, 0, 6, 6, "#bfeff5");
     }
     ctx.restore();
+  }
+  // 웜이 튀어나올 자리
+  for (const m of r.mobs) if (m.mode === "rise") {
+    const k = 1 - m.timer / (m.riseMax || 0.75);
+    ctx.fillStyle = `rgba(255,95,86,${0.15 + 0.3 * k})`; ctx.beginPath(); ctx.arc(m.rise.x, m.rise.y, 70, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(255,95,86,.85)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.rise.x, m.rise.y, 70 * k, 0, Math.PI * 2); ctx.stroke();
+  }
+  // 수정 여왕 광선
+  for (const m of r.mobs) if ((m.mode === "prismAim" || m.mode === "prism") && w.beams.length) {
+    const fire = m.mode === "prism";
+    ctx.save();
+    if (fire) { ctx.shadowColor = "#e4ccff"; ctx.shadowBlur = 18; }
+    for (const b of w.beams) for (const [lw, col] of fire ? [[14, "rgba(214,168,255,.7)"], [5, "#ffffff"]] : [[2, "rgba(214,168,255,.75)"]]) {
+      ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.setLineDash(fire ? [] : [8, 6]);
+      ctx.beginPath(); b.pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke();
+    }
+    ctx.restore();
+  }
+  // 회전 광선
+  if (w.sweep) {
+    ctx.save();
+    for (const a of w.sweep.angs) {
+      const x2 = w.sweep.x + Math.cos(a) * 800, y2 = w.sweep.y + Math.sin(a) * 800;
+      if (w.sweep.aim) { ctx.strokeStyle = "rgba(214,168,255,.7)"; ctx.lineWidth = 2; ctx.setLineDash([8, 6]); }
+      else { ctx.shadowColor = "#e4ccff"; ctx.shadowBlur = 16; ctx.strokeStyle = "rgba(214,168,255,.75)"; ctx.lineWidth = 12; ctx.setLineDash([]); }
+      ctx.beginPath(); ctx.moveTo(w.sweep.x, w.sweep.y); ctx.lineTo(x2, y2); ctx.stroke();
+      if (!w.sweep.aim) { ctx.strokeStyle = "#fff"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(w.sweep.x, w.sweep.y); ctx.lineTo(x2, y2); ctx.stroke(); }
+    }
+    ctx.restore();
+  }
+  // 수정 감옥
+  for (const q of w.prisons) {
+    const k = 1 - q.t / q.max;
+    ctx.fillStyle = `rgba(214,168,255,${0.1 + 0.2 * k})`; ctx.beginPath(); ctx.arc(q.x, q.y, q.r, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 8; i++) {
+      const a = i / 8 * Math.PI * 2, x = q.x + Math.cos(a) * q.r, y = q.y + Math.sin(a) * q.r, h = 8 + 16 * k;
+      poly([[x - 5, y + 4], [x, y - h], [x + 5, y + 4]], "#e4ccff");
+    }
+  }
+  // 해일
+  for (const wv of w.waves) {
+    const warn = wv.warn > 0, al = warn ? 0.35 + 0.3 * Math.sin(t * 20) : 0.85;
+    ctx.fillStyle = `rgba(80,190,220,${al})`;
+    ctx.fillRect(0, wv.y - 18, wv.gap - wv.gw / 2, 36);
+    ctx.fillRect(wv.gap + wv.gw / 2, wv.y - 18, W - wv.gap - wv.gw / 2, 36);
+    ctx.fillStyle = `rgba(230,255,255,${al})`;
+    ctx.fillRect(0, wv.y - 18, wv.gap - wv.gw / 2, 5); ctx.fillRect(wv.gap + wv.gw / 2, wv.y - 18, W - wv.gap - wv.gw / 2, 5);
+    if (warn) { ctx.strokeStyle = "#7dffb2"; ctx.lineWidth = 2; ctx.setLineDash([5, 4]); ctx.strokeRect(wv.gap - wv.gw / 2, wv.y - 18, wv.gw, 36); ctx.setLineDash([]); }
+  }
+  // 해파리 전기 연결
+  for (const [a, b] of w.links) {
+    ctx.save(); ctx.shadowColor = "#ffe066"; ctx.shadowBlur = 8;
+    ctx.strokeStyle = "rgba(255,240,150,.8)"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(a.x, a.y);
+    for (let k = 1; k < 6; k++) ctx.lineTo(a.x + (b.x - a.x) * k / 6 + (Math.random() - 0.5) * 10, a.y + (b.y - a.y) * k / 6 + (Math.random() - 0.5) * 10);
+    ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
+  }
+  // 전갈이 노리는 방향
+  for (const m of r.mobs) if (m.lunge && m.lunge.t > 0.25) {
+    ctx.strokeStyle = "rgba(255,95,86,.7)"; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+    ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + Math.cos(m.lunge.a) * 120, m.y + Math.sin(m.lunge.a) * 120); ctx.stroke(); ctx.setLineDash([]);
   }
 }
 
@@ -6476,6 +6793,13 @@ function draw() {
       ctx.rotate(a);
       poly([[6, 0], [-10, -4], [-10, 4]], "#d8f3ff");
       ctx.restore();
+      continue;
+    }
+    if (sh.spear) {
+      ctx.save(); ctx.translate(sh.x, sh.y); ctx.rotate(a);
+      ctx.strokeStyle = "#c9b27a"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-26, 0); ctx.lineTo(0, 0); ctx.stroke();
+      poly([[0, -4], [9, 0], [0, 4]], "#e8eef5");
+      ctx.restore(); ctx.strokeStyle = "#ffb08a"; ctx.lineWidth = 2;
       continue;
     }
     if (sh.ball) {
