@@ -895,12 +895,12 @@ const ARMOR_SLOTS = [
 ];
 // rate: 세 부위를 합친 뽑기 확률(%). 한 부위 아이템은 그 1/3. mat: 강화 재료. dup: 중복일 때 돌려받는 별의 파편
 const ARMOR_TYPES = [
-  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,   rate: 37,   mat: null,      dup: 10 },
-  { key: "fire",    pre: "화염 ",   grade: "고급", stars: 2, color: "#ff6a3d", hpMul: 1,   rate: 13.5, mat: "scale",   dup: 25 },
-  { key: "ice",     pre: "얼음 ",   grade: "고급", stars: 2, color: "#8fd8ff", hpMul: 1,   rate: 13.5, mat: "frost",   dup: 25 },
-  { key: "bolt",    pre: "뇌전 ",   grade: "고급", stars: 2, color: "#ffe066", hpMul: 1,   rate: 13.5, mat: "horn",    dup: 25 },
-  { key: "ruby",    pre: "루비 ",   grade: "희귀", stars: 3, color: "#ff6b81", hpMul: 1.4, rate: 12,   mat: "ruby",    dup: 30 },
-  { key: "diamond", pre: "다이아 ", grade: "영웅", stars: 4, color: "#bff6ff", hpMul: 1.9, rate: 9,    mat: "diamond", dup: 50 },
+  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,   rate: 38,   mat: null,      dup: 10 },
+  { key: "ruby",    pre: "루비 ",   grade: "고급", stars: 2, color: "#ff6b81", hpMul: 1.3, rate: 20,   mat: "ruby",    dup: 20 },
+  { key: "diamond", pre: "다이아 ", grade: "희귀", stars: 3, color: "#bff6ff", hpMul: 1.6, rate: 15,   mat: "diamond", dup: 30 },
+  { key: "fire",    pre: "화염 ",   grade: "영웅", stars: 4, color: "#ff6a3d", hpMul: 1.6, rate: 8.5,  mat: "scale",   dup: 50 },
+  { key: "ice",     pre: "얼음 ",   grade: "영웅", stars: 4, color: "#8fd8ff", hpMul: 1.6, rate: 8.5,  mat: "frost",   dup: 50 },
+  { key: "bolt",    pre: "뇌전 ",   grade: "영웅", stars: 4, color: "#ffe066", hpMul: 1.6, rate: 8.5,  mat: "horn",    dup: 50 },
   { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6, rate: 1.5,  mat: "star",    dup: 100 },
 ];
 const ARMOR_MAX = 20, GACHA_COST = 100, GACHA_MAT = "star";
