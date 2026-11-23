@@ -2037,11 +2037,20 @@ function seeded(seed) {
 }
 
 const floorCache = {};
+// 휴대폰이 앱을 뒤로 보낼 때 메모리 속 바닥 그림을 버리는 경우가 있어서, 그러면 다시 그린다
+let floorLost = false;
+function refreshFloors() {
+  floorLost = false;
+  for (const k in floorCache) delete floorCache[k];
+  if (run) run.floor = getFloor(run.zone.dungeon ? DUNGEON : run.zone);
+}
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") floorLost = true; });
 function getFloor(zone) {
   if (floorCache[zone.key]) return floorCache[zone.key];
   const S = 2;
   const layer = () => {
     const cv = document.createElement("canvas");
+    cv.addEventListener("contextlost", () => { floorLost = true; });
     cv.width = W * S;
     cv.height = H * S;
     const g = cv.getContext("2d");
@@ -4904,6 +4913,10 @@ function draw() {
     r.quake -= 1 / 60;
     ctx.translate((Math.random() - 0.5) * 10, (Math.random() - 0.5) * 10);
   }
+  if (floorLost) refreshFloors();
+  // 바닥 그림이 사라져도 이전 화면이 남아 잔상이 생기지 않게 바탕색부터 칠함
+  ctx.fillStyle = z.bg || "#000";
+  ctx.fillRect(-20, -20, W + 40, H + 40);
   ctx.drawImage(r.floor.base, 0, 0, W, H);
   if (r.floor.lava) {
     ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 2.2);
