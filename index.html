@@ -1,3 +1,5 @@
+<!doctype html>
+<html lang="ko">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#16130f">
@@ -38,7 +40,10 @@ body {
   font-size: 15px;
   padding-left: max(16px, env(safe-area-inset-left, 0px));
   padding-right: max(16px, env(safe-area-inset-right, 0px));
-  padding-block: 24px;
+  /* 홈 화면 앱(아이폰)에서는 상태 표시줄·홈 막대 밑으로 들어가지 않게 안전 영역만큼 띄운다 */
+  padding-top: max(24px, calc(env(safe-area-inset-top, 0px) + 12px));
+  padding-bottom: max(24px, calc(env(safe-area-inset-bottom, 0px) + 12px));
+  -webkit-text-size-adjust: 100%; text-size-adjust: 100%;
 }
 main { max-width: 520px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
