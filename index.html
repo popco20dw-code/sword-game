@@ -449,9 +449,9 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .prow .pname { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; min-width: 0; }
 .prow .pname b { font-size: 16px; overflow-wrap: anywhere; }
 .prow .pname small { font-family: var(--mono); font-size: 12px; color: var(--muted); }
-.prow .pstats { grid-column: 1; font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.prow .pstats { grid-column: 1; font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; word-break: keep-all; overflow-wrap: anywhere; }
 .prow .pstats em { font-style: normal; color: var(--fg); }
-.prow button { grid-column: 2; grid-row: 1 / span 2; }
+.prow button { grid-column: 2; grid-row: 1 / span 3; }
 .empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 
 /* 광산 */
@@ -1166,6 +1166,15 @@ function ago(ts) {
   return Math.floor(m / 1440) + "일 전";
 }
 
+// 장인 레벨 · 잡은 최대 보스 · 던전 · 목표 (예전 기록에는 없을 수 있음)
+function profileExtra(p) {
+  const boss = p.maxBoss > 0 ? ZONES[p.maxBoss - 1]?.name ?? "?" : "없음";
+  const goal = p.ended ? "엔딩 달성" : `목표 ${Math.min((p.quest | 0) + 1, QUESTS.length)}/${QUESTS.length}`;
+  const ch = CHARS.find(c => c.key === p.char)?.name;
+  return `장인 Lv <em>${p.mlv | 0}</em> · 최대 보스 <em>${esc(boss)}</em> · 던전 <em>${p.dungeonBest | 0}/${DUNGEON.bosses.length}</em>` +
+    ` · ${goal}${ch ? " · " + esc(ch) : ""}`;
+}
+
 function playerRow(id, p, isFriend) {
   const btn = isFriend
     ? `<button class="remove" data-unfriend="${esc(id)}">삭제</button>`
@@ -1176,7 +1185,8 @@ function playerRow(id, p, isFriend) {
   }
   return `<div class="prow">
     <div class="pname"><b>${esc(p.nickname)}</b><small>${esc(tag(id))} · ${ago(p.updatedAt)}</small></div>
-    <div class="pstats">검 <em>+${p.sword | 0}</em> (최고 +${p.best | 0}) · 곡괭이 <em>+${p.pick | 0}</em> · ${won(p.gold | 0)}</div>
+    <div class="pstats">검 <em>+${p.sword | 0}</em> (최고 +${p.best | 0}) · 곡괭이 <em>+${p.pick | 0}</em> · ${won(p.gold || 0)}</div>
+    ${p.mlv ? `<div class="pstats">${profileExtra(p)}</div>` : ""}
     ${btn}</div>`;
 }
 
@@ -1188,7 +1198,9 @@ function renderFriends() {
     : "닉네임은 이 기기에 저장돼요.";
 
   let note = "";
-  if (!me.db) note = "친구 기능은 claude.ai에 로그인한 상태에서 게임 링크로 열었을 때 쓸 수 있어요.";
+  if (!me.db) note = fbState === "loading" ? "친구 목록에 연결하는 중이에요…"
+    : fbState === "failed" ? "인터넷에 연결되면 친구 목록이 보여요. 게임은 지금처럼 그대로 할 수 있어요."
+    : "친구 기능은 claude.ai에 로그인한 상태에서 게임 링크로 열었을 때 쓸 수 있어요.";
   else if (!me.canWrite) note = "이 링크는 보기 전용이라 내 진행 상황을 올릴 수 없어요. 링크를 공유한 사람에게 편집 권한을 요청하세요.";
   else if (!state.nickname) note = "닉네임을 정하면 다른 플레이어 목록에 내 진행 상황이 보여요.";
   $("friends-note").textContent = note;
@@ -1202,7 +1214,8 @@ function renderFriends() {
   const others = players.filter(p => p.id !== me.id && !state.friends.includes(p.id));
   $("other-list").innerHTML = others.length
     ? others.map(p => playerRow(p.id, p, false)).join("")
-    : `<div class="empty">${me.db ? "아직 다른 플레이어가 없어요. 게임 링크를 친구에게 공유해 보세요." : "로그인하고 링크로 열면 다른 플레이어가 보여요."}</div>`;
+    : `<div class="empty">${me.db ? "아직 다른 플레이어가 없어요. 게임 주소를 친구에게 공유해 보세요."
+        : fbState === "off" ? "로그인하고 링크로 열면 다른 플레이어가 보여요." : "연결되면 다른 플레이어가 보여요."}</div>`;
 }
 
 function say(text, kind) { msgs[current] = [text, kind]; }
@@ -1479,6 +1492,7 @@ $("nick-form").addEventListener("submit", e => {
   state.nickname = name;
   $("nick").blur();
   commit();
+  schedulePush(true);
   $("nick-hint").textContent = `닉네임을 '${name}'(으)로 저장했어요.`;
 });
 
@@ -5506,6 +5520,7 @@ function persist() {
   state.log = state.log.slice(0, 6);
   state.savedAt = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {}
+  schedulePush();
   if (!cloud) return;
   // 돌을 연달아 캐도 계정 저장은 손을 멈춘 뒤 한 번만
   dirty = true;
@@ -5540,12 +5555,82 @@ async function flush() {
 // 닉네임을 정한 경우에만, 바뀐 내용이 있을 때 공개 진행 상황을 올림
 async function pushProfile() {
   if (!me.db || !me.id || !me.canWrite || !state.nickname) return;
-  const p = { nickname: state.nickname, sword: state.sword, best: state.best, pick: state.pick, gold: state.gold };
+  const p = profileData();
   const key = JSON.stringify(p);
   if (key === lastProfile) return;
+  lastPush = Date.now();
   await me.db.doc("players/" + me.id).set({ ...p, updatedAt: Date.now() });
   lastProfile = key;
 }
+
+// 친구에게 보이는 기록. build(캐릭터·스킬·특성)는 나중에 친구 분신과 겨루는 기능에 쓰려고 함께 올림
+function profileData() {
+  let maxBoss = 0;
+  ZONES.forEach((z, i) => { if ((state.bossKills[z.key] || 0) > 0) maxBoss = i + 1; });
+  const sword = state.sword | 0;
+  return JSON.parse(JSON.stringify({
+    nickname: state.nickname, sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
+    gold: Math.max(0, Math.floor(state.gold)), mlv: state.mlv | 0, quest: state.quest | 0, ended: !!state.ended,
+    maxBoss, dungeonBest: Math.min(DUNGEON.bosses.length, state.dungeonBest | 0), dungeonClears: state.dungeonClears | 0,
+    char: state.char, build: { equip: state.equip, skills: state.skills, traits: state.traits },
+  }));
+}
+
+// ── Firebase 친구 기능 (GitHub 사이트·설치한 앱) ── claude.ai 밖에서 열었을 때만 쓴다.
+// 이 값들은 공개용 설정값이고, 누가 무엇을 쓸 수 있는지는 Firebase 규칙이 지킨다
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBhThRilb_kWMVUI9UvJzA6py06jurMAqg",
+  authDomain: "sword-game-5d589.firebaseapp.com",
+  projectId: "sword-game-5d589",
+  storageBucket: "sword-game-5d589.firebasestorage.app",
+  messagingSenderId: "460381593661",
+  appId: "1:460381593661:web:f506664bfeb3e171630a54",
+};
+const FB_SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
+const FB_PUSH_GAP = 60000;   // 골드는 계속 바뀌므로 기록은 최대 1분에 한 번만 올림 (무료 사용량 아끼기)
+let fbState = "off";         // off | loading | on | failed
+let lastPush = 0, pushTimer = null;
+
+function schedulePush(now = false) {
+  if (!me.db || cloud) return;   // claude.ai 쪽은 계정 저장(flush)이 올림
+  clearTimeout(pushTimer);
+  const wait = now ? 0 : Math.max(3000, lastPush + FB_PUSH_GAP - Date.now());
+  pushTimer = setTimeout(() => pushProfile().catch(() => {}), wait);
+}
+
+async function connectFirebase() {
+  if (fbState === "loading" || fbState === "on") return;
+  fbState = "loading";
+  renderFriends();
+  try {
+    const [{ initializeApp }, A, F] = await Promise.all(
+      ["firebase-app.js", "firebase-auth.js", "firebase-firestore.js"].map(f => import(FB_SDK + f)));
+    const app = initializeApp(FIREBASE_CONFIG);
+    const auth = A.getAuth(app);
+    await auth.authStateReady();
+    if (!auth.currentUser) await A.signInAnonymously(auth);   // 회원가입 없이 이 기기 전용 아이디
+    const db = F.getFirestore(app);
+    me.id = auth.currentUser.uid;
+    me.db = { doc: path => ({ set: data => F.setDoc(F.doc(db, path), { ...data, updatedAt: F.serverTimestamp() }) }) };
+    F.onSnapshot(F.query(F.collection(db, "players"), F.orderBy("updatedAt", "desc"), F.limit(200)),
+      snap => {
+        players = snap.docs.map(d => {
+          const x = d.data();
+          return { id: d.id, ...x, updatedAt: x.updatedAt?.toMillis?.() ?? Date.now() };
+        }).filter(p => typeof p.nickname === "string" && p.nickname);
+        renderFriends();
+      },
+      () => {});
+    fbState = "on";
+    renderFriends();
+    schedulePush(true);
+  } catch {
+    fbState = "failed";
+    me.db = null;
+    renderFriends();
+  }
+}
+addEventListener("online", () => { if (fbState === "failed") { fbState = "off"; connectFirebase(); } });
 
 async function connectCloud() {
   if (typeof window.claude?.use !== "function") return;
@@ -5585,7 +5670,7 @@ async function connectCloud() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") flush();
+  if (document.visibilityState === "hidden") { flush(); if (lastProfile !== JSON.stringify(profileData())) schedulePush(true); }
 });
 
 // 새로 시작: 실수로 누르지 않게 3초 안에 한 번 더 눌러야 초기화
@@ -5620,7 +5705,8 @@ function start(saved) {
   window.claude?.hot?.snapshot?.(() => state);
   offlineCatchUp();
   render();
-  connectCloud();
+  if (typeof window.claude?.use === "function") connectCloud();
+  else connectFirebase();
 }
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
 </script>
