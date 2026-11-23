@@ -408,9 +408,16 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .g-in { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .55s cubic-bezier(.3,1.5,.5,1); }
 .g-card.open .g-in { transform: rotateY(180deg); }
 .g-face { position: absolute; inset: 0; border-radius: 10px; backface-visibility: hidden; -webkit-backface-visibility: hidden; display: grid; place-items: center; overflow: hidden; }
-.g-back { background: radial-gradient(circle, color-mix(in srgb, var(--gc) 50%, #1a1024), #120b1a 70%); border: 2px solid color-mix(in srgb, var(--gc) 70%, transparent);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--gc) 60%, transparent); }
-.g-back::after { content: "✦"; font-size: 30px; color: color-mix(in srgb, var(--gc) 80%, #fff); opacity: .8; }
+/* 카드 뒷면은 모두 같은 색. 영웅 이상만 틈새로 빛이 새어 나옴 */
+.g-back { background: radial-gradient(circle, #3a2c4a, #140d1c 72%); border: 2px solid #6b5a80; box-shadow: 0 0 10px rgba(150, 120, 200, .25); }
+.g-back::after { content: "✦"; font-size: 30px; color: #b9a6d6; opacity: .75; }
+.g-back::before { content: ""; position: absolute; inset: 0; border-radius: 8px; opacity: 0; pointer-events: none; }
+.g-card.leak .g-back { animation: gleak 1.3s ease-in-out infinite alternate; }
+.g-card.leak .g-back::before { opacity: 1; background: radial-gradient(ellipse at 50% 50%, transparent 52%, color-mix(in srgb, var(--gc) 45%, transparent) 100%); }
+.g-card.legend .g-back { animation: gleakL 1s ease-in-out infinite alternate, ghue 2.4s linear infinite; }
+@keyframes gleak { from { box-shadow: 0 0 6px color-mix(in srgb, var(--gc) 40%, transparent); border-color: #6b5a80; }
+  to { box-shadow: 0 0 22px 3px color-mix(in srgb, var(--gc) 85%, transparent); border-color: color-mix(in srgb, var(--gc) 55%, #6b5a80); } }
+@keyframes gleakL { from { box-shadow: 0 0 10px #ffc6f0; } to { box-shadow: 0 0 34px 8px #ffc6f0, 0 0 60px 10px rgba(255, 224, 102, .5); } }
 .g-front { transform: rotateY(180deg); background: linear-gradient(180deg, color-mix(in srgb, var(--gc) 30%, #1a1420), #120e16); border: 2px solid var(--gc);
   box-shadow: 0 0 22px color-mix(in srgb, var(--gc) 70%, transparent); align-content: center; gap: 2px; padding: 6px 4px; text-align: center; color: #fff; }
 .g-front svg { width: 62%; height: auto; filter: drop-shadow(0 3px 8px color-mix(in srgb, var(--gc) 80%, transparent)); }
@@ -3086,7 +3093,7 @@ function gLater(ms, fn) { gTimers.push(setTimeout(fn, ms)); }
 
 function gCard(r, i, n) {
   const { type } = armorParts(r.id);
-  return `<div class="g-card${type.key === "star" ? " legend" : ""}" style="--gc:${type.color};animation-delay:${n > 1 ? i * 0.05 : 0}s" data-i="${i}">
+  return `<div class="g-card${type.stars >= 4 ? " leak" : ""}${type.key === "star" ? " legend" : ""}" style="--gc:${type.color};animation-delay:${n > 1 ? i * 0.05 : 0}s" data-i="${i}">
     <div class="g-in"><div class="g-face g-back"></div>
     <div class="g-face g-front">${armorSvg(r.id)}<div class="st">${"★".repeat(type.stars)}</div>
       <div class="gr">${type.grade}</div><div class="nm">${armorName(r.id)}</div>
