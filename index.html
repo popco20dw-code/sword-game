@@ -456,6 +456,7 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .prow .pstats { grid-column: 1; font-family: var(--mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; word-break: keep-all; overflow-wrap: anywhere; }
 .prow .pstats em { font-style: normal; color: var(--fg); }
 .prow button { grid-column: 2; grid-row: 1 / span 3; }
+.prow.mine { border-color: var(--ember); }
 .empty { color: var(--muted); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; padding: 14px; text-align: center; }
 
 /* 광산 */
@@ -614,6 +615,8 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
       </div>
     </div>
     <p class="note" id="friends-note" hidden></p>
+    <h2>남에게 보이는 내 기록</h2>
+    <div class="plist" id="my-row"></div>
     <h2>친구</h2>
     <div class="plist" id="friend-list"></div>
     <h2>이 게임의 다른 플레이어</h2>
@@ -1184,7 +1187,7 @@ function profileExtra(p) {
 }
 
 function playerRow(id, p, isFriend) {
-  const btn = isFriend
+  const btn = id === me.id ? "" : isFriend
     ? `<button class="remove" data-unfriend="${esc(id)}">삭제</button>`
     : `<button data-friend="${esc(id)}">친구 추가</button>`;
   if (!p) {
@@ -1196,6 +1199,23 @@ function playerRow(id, p, isFriend) {
     <div class="pstats">검 <em>+${p.sword | 0}</em> (최고 +${p.best | 0}) · 곡괭이 <em>+${p.pick | 0}</em> · ${won(p.gold || 0)}</div>
     ${p.mlv ? `<div class="pstats">${profileExtra(p)}</div>` : ""}
     ${btn}</div>`;
+}
+
+// 다른 사람 목록에 실제로 올라가 있는 내 기록. 아직 없으면 올라갈 모습을 미리 보여 줌
+function myRow() {
+  const pub = me.id ? players.find(p => p.id === me.id) : null;
+  const local = profileData();
+  let note;
+  if (!state.nickname) note = "닉네임을 정하면 친구들에게 이렇게 보여요.";
+  else if (!me.db) note = "인터넷에 연결되면 올라가요. 지금은 미리 보기예요.";
+  else if (!pub) note = "곧 올라가요. 지금은 미리 보기예요.";
+  else {
+    const { updatedAt, id, ...shown } = pub;
+    const same = ["sword", "best", "pick", "gold", "mlv", "maxBoss", "dungeonBest", "quest", "nickname"].every(k => shown[k] === local[k]);
+    note = same ? "지금 친구들에게 보이는 그대로예요." : "위는 지금 올라가 있는 기록이에요. 최근 기록은 1분 안에 반영돼요.";
+  }
+  const row = playerRow(me.id || "me----", pub ?? { ...local, nickname: local.nickname || "(닉네임 없음)", updatedAt: Date.now() }, false);
+  return row.replace('<div class="prow">', '<div class="prow mine">') + `<p class="hint">${note}</p>`;
 }
 
 function renderFriends() {
@@ -1214,6 +1234,8 @@ function renderFriends() {
   else if (!state.nickname) note = "닉네임을 정하면 다른 플레이어 목록에 내 진행 상황이 보여요.";
   $("friends-note").textContent = note;
   $("friends-note").hidden = !note;
+
+  $("my-row").innerHTML = myRow();
 
   const byId = new Map(players.map(p => [p.id, p]));
   $("friend-list").innerHTML = state.friends.length
