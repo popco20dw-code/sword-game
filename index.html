@@ -31,6 +31,9 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+/* 빠르게 연타해도 휴대폰이 두 번 탭 확대를 하지 않게 (두 손가락 확대는 그대로 가능). 사냥터처럼 none을 직접 준 곳은 그대로 */
+* { touch-action: manipulation; }
+button { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 html, body { height: 100%; }
 body {
   margin: 0;
