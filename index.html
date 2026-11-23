@@ -398,6 +398,8 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
   animation: gspin 2.4s linear infinite; }
 .g-orb.legend { animation: gcharge 2.4s ease-in forwards, gshake .07s linear infinite, ghue 1.2s linear infinite; }
 .g-orb + p { position: absolute; bottom: 12%; color: rgba(255,255,255,.6); font-size: 14px; letter-spacing: .2em; animation: gpulse .8s ease-in-out infinite alternate; }
+.g-tap { position: absolute; bottom: 4%; margin: 0; color: rgba(255,255,255,.65); font-size: 14px; letter-spacing: .1em; animation: gpulse .8s ease-in-out infinite alternate; pointer-events: none; }
+.g-card { cursor: pointer; } .g-card:not(.open):active .g-in { transform: scale(.94); }
 .g-flash { position: absolute; inset: -40px; background: #fff; pointer-events: none; animation: gflash .7s ease-out forwards; z-index: 2; }
 .g-grid { display: grid; gap: 8px; width: 100%; max-width: 480px; justify-content: center; align-content: center; }
 .g-grid.one { grid-template-columns: min(220px, 60vw); }
@@ -3098,38 +3100,47 @@ function showGacha(results, best) {
   $("gacha").hidden = false;
   $("g-ok").hidden = true;
   $("g-skip").hidden = false;
+  $("g-skip").textContent = "건너뛰기";
   const cards = `<div class="g-grid ${n > 1 ? "ten" : "one"}">${results.map((r, i) => gCard(r, i, n)).join("")}</div>`;
-  const revealAll = () => {
+  const done = () => { $("g-skip").hidden = true; $("g-ok").hidden = false; };
+  // 카드 한 장 뒤집기 (좋은 카드는 소리도 다르게)
+  const flip = (el, quiet) => {
+    if (el.classList.contains("open")) return;
+    el.classList.add("open");
+    if (!quiet) {
+      const t = armorParts(results[+el.dataset.i].id).type;
+      sfx(t.stars === 5 ? "gLegend" : t.stars >= 4 ? "gRare" : "gFlip");
+    }
+    if (!stage.querySelector(".g-card:not(.open)")) done();
+  };
+  const flipAll = () => {
+    const left = [...stage.querySelectorAll(".g-card:not(.open)")];
+    left.forEach(el => flip(el, true));
+    const top = Math.max(0, ...left.map(el => armorParts(results[+el.dataset.i].id).type.stars));
+    sfx(top === 5 ? "gLegend" : top >= 4 ? "gRare" : "gFlip");
+  };
+  // 카드를 깔고 직접 눌러서 뒤집게 함
+  const deal = flash => {
     gTimers.forEach(clearTimeout);
     gTimers = [];
-    if (!stage.querySelector(".g-grid")) stage.innerHTML = cards;
-    stage.querySelectorAll(".g-card").forEach(c => { c.style.animation = "none"; c.classList.add("open"); });
-    $("g-skip").hidden = true;
-    $("g-ok").hidden = false;
-    if (best.stars >= 4) sfx(best.stars === 5 ? "gLegend" : "gRare");
+    stage.innerHTML = cards + `<p class="g-tap">카드를 눌러 뒤집으세요</p>` + (flash ? `<div class="g-flash"></div>` : "");
+    stage.querySelectorAll(".g-card").forEach(el => el.addEventListener("click", () => flip(el)));
+    $("g-skip").textContent = n > 1 ? "모두 뒤집기" : "뒤집기";
+    $("g-skip").onclick = flipAll;
   };
-  $("g-skip").onclick = revealAll;
-  if (gachaSkip) { stage.innerHTML = cards; revealAll(); return; }
-
-  // 1) 빛의 구슬이 모이며 흔들림 (가장 좋은 결과의 색, 전설이면 무지개)
+  if (gachaSkip) {
+    stage.innerHTML = cards;
+    stage.querySelectorAll(".g-card").forEach(el => { el.style.animation = "none"; el.classList.add("open"); });
+    done();
+    if (best.stars >= 4) sfx(best.stars === 5 ? "gLegend" : "gRare");
+    return;
+  }
+  // 빛의 구슬이 모이며 흔들림 (가장 좋은 결과의 색, 전설이면 무지개) → 번쩍 터지고 카드가 깔림
   const legend = best.stars === 5;
   stage.innerHTML = `<div class="g-orb${legend ? " legend" : ""}" style="--c:${best.stars >= 3 ? best.color : "#e8e0ff"}"></div><p>소환 중</p>`;
   sfx("gCharge");
-  const charge = legend ? 2400 : 1600;
-  // 2) 번쩍 터지고 카드가 깔림
-  gLater(charge, () => {
-    sfx("gBurst");
-    stage.innerHTML = cards + `<div class="g-flash"></div>`;
-    // 3) 한 장씩 뒤집기 (좋은 카드는 소리도 다르게)
-    const els = [...stage.querySelectorAll(".g-card")];
-    const step = n > 1 ? 260 : 0, start = n > 1 ? 650 : 500;
-    els.forEach((el, i) => gLater(start + i * step, () => {
-      el.classList.add("open");
-      const t = armorParts(results[i].id).type;
-      sfx(t.stars === 5 ? "gLegend" : t.stars >= 4 ? "gRare" : "gFlip");
-    }));
-    gLater(start + n * step + 400, () => { $("g-skip").hidden = true; $("g-ok").hidden = false; });
-  });
+  $("g-skip").onclick = () => deal(false);
+  gLater(legend ? 2400 : 1600, () => { sfx("gBurst"); deal(true); });
 }
 
 $("g-ok").addEventListener("click", () => { gTimers.forEach(clearTimeout); $("gacha").hidden = true; render(); });
