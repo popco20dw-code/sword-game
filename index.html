@@ -3473,11 +3473,12 @@ function ring(x, y, r, color) {
 }
 
 // 방어구가 열리는 망자의 묘지 다음 사냥터(뇌운 봉우리부터)와 보스 던전은 몹이 조금 더 세다
-const HARD_ZONES = new Set(["storm", "hell", "lair"]), HARD_DMG = 1.2, HARD_HP = 1.1;
-const isHard = z => HARD_ZONES.has(z.key) || (!!z.dungeon && (z.practice == null || z.practice >= 6));
+// 공격력 배율: 뒤로 갈수록 더 세게 (방어구 체력을 감안)
+const HARD_DMG = { storm: 1.5, hell: 1.6, lair: 1.7, dungeon: 1.7 }, HARD_HP = 1.1;
+const isHard = z => (!!z.dungeon && (z.practice == null || z.practice >= 6)) ? HARD_DMG.dungeon : HARD_DMG[z.key] ?? 0;
 function hardened(m) {
   if (!run.hard) return m;
-  m.dmg = Math.round(m.dmg * HARD_DMG);
+  m.dmg = Math.round(m.dmg * run.hard);
   m.hp = m.max = Math.round(m.max * HARD_HP);
   return m;
 }
