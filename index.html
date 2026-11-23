@@ -412,12 +412,11 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .g-back { background: radial-gradient(circle, #3a2c4a, #140d1c 72%); border: 2px solid #6b5a80; box-shadow: 0 0 10px rgba(150, 120, 200, .25); }
 .g-back::after { content: "✦"; font-size: 30px; color: #b9a6d6; opacity: .75; }
 .g-back::before { content: ""; position: absolute; inset: 0; border-radius: 8px; opacity: 0; pointer-events: none; }
+/* 영웅·전설 모두 같은 노란 빛 (등급을 색으로 구별할 수 없게) */
 .g-card.leak .g-back { animation: gleak 1.3s ease-in-out infinite alternate; }
-.g-card.leak .g-back::before { opacity: 1; background: radial-gradient(ellipse at 50% 50%, transparent 52%, color-mix(in srgb, var(--gc) 45%, transparent) 100%); }
-.g-card.legend .g-back { animation: gleakL 1s ease-in-out infinite alternate, ghue 2.4s linear infinite; }
-@keyframes gleak { from { box-shadow: 0 0 6px color-mix(in srgb, var(--gc) 40%, transparent); border-color: #6b5a80; }
-  to { box-shadow: 0 0 22px 3px color-mix(in srgb, var(--gc) 85%, transparent); border-color: color-mix(in srgb, var(--gc) 55%, #6b5a80); } }
-@keyframes gleakL { from { box-shadow: 0 0 10px #ffc6f0; } to { box-shadow: 0 0 34px 8px #ffc6f0, 0 0 60px 10px rgba(255, 224, 102, .5); } }
+.g-card.leak .g-back::before { opacity: 1; background: radial-gradient(ellipse at 50% 50%, transparent 52%, rgba(255, 214, 90, .45) 100%); }
+@keyframes gleak { from { box-shadow: 0 0 6px rgba(255, 214, 90, .4); border-color: #6b5a80; }
+  to { box-shadow: 0 0 22px 3px rgba(255, 214, 90, .85); border-color: #c9a85a; } }
 .g-front { transform: rotateY(180deg); background: linear-gradient(180deg, color-mix(in srgb, var(--gc) 30%, #1a1420), #120e16); border: 2px solid var(--gc);
   box-shadow: 0 0 22px color-mix(in srgb, var(--gc) 70%, transparent); align-content: center; gap: 2px; padding: 6px 4px; text-align: center; color: #fff; }
 .g-front svg { width: 62%; height: auto; filter: drop-shadow(0 3px 8px color-mix(in srgb, var(--gc) 80%, transparent)); }
@@ -3142,12 +3141,11 @@ function showGacha(results, best) {
     if (best.stars >= 4) sfx(best.stars === 5 ? "gLegend" : "gRare");
     return;
   }
-  // 빛의 구슬이 모이며 흔들림 (가장 좋은 결과의 색, 전설이면 무지개) → 번쩍 터지고 카드가 깔림
-  const legend = best.stars === 5;
-  stage.innerHTML = `<div class="g-orb${legend ? " legend" : ""}" style="--c:${best.stars >= 3 ? best.color : "#e8e0ff"}"></div><p>소환 중</p>`;
+  // 빛의 구슬이 모이며 흔들림 (영웅 이상이 있으면 노란빛, 아니면 보랏빛. 전설인지는 알 수 없게) → 번쩍 터지고 카드가 깔림
+  stage.innerHTML = `<div class="g-orb" style="--c:${best.stars >= 4 ? "#ffd65a" : "#c9b6ff"}"></div><p>소환 중</p>`;
   sfx("gCharge");
   $("g-skip").onclick = () => deal(false);
-  gLater(legend ? 2400 : 1600, () => { sfx("gBurst"); deal(true); });
+  gLater(1800, () => { sfx("gBurst"); deal(true); });
 }
 
 $("g-ok").addEventListener("click", () => { gTimers.forEach(clearTimeout); $("gacha").hidden = true; render(); });
