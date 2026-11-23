@@ -921,6 +921,8 @@ const ARMOR_TYPES = [
   { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6, rate: 1.5,  mat: "star",    dup: 30 },
 ];
 const ARMOR_MAX = 20, GACHA_COST = 30, GACHA_MAT = "star";
+// QUEST_VER 2: 암흑사신 다음에 '방어구 뽑기 잠금 해제' 목표 추가 (14번째 자리)
+const QUEST_VER = 2, ARMOR_QUEST = 14;
 const AT = Object.fromEntries(ARMOR_TYPES.map(t => [t.key, t]));
 const ASLOT = Object.fromEntries(ARMOR_SLOTS.map(sl => [sl.key, sl]));
 const armorId = (slot, type) => slot + "-" + type;
@@ -1033,7 +1035,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [] };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -1191,6 +1193,7 @@ const QUESTS = [
   { text: "검을 +50까지 강화하기", prog: () => [state.best, 50], reward: { gold: 3000000, mats: ["star", 5] } },
   { text: "얼어붙은 빙원에서 얼음 드래곤 처치하기", prog: bossGoal("frost", "frost"), reward: { runes: 30 } },
   { text: "망자의 묘지에서 암흑사신 처치하기", prog: bossGoal("grave", "soul"), reward: { runes: 30 } },
+  { text: "방어구 뽑기 잠금 해제하기 (상점 → 방어구 뽑기)", prog: () => [armorUnlocked() ? 1 : 0, 1], reward: { mats: ["star", 300] } },
   { text: "검을 +65까지 강화하기", prog: () => [state.best, 65], reward: { gold: 1e7, mats: ["star", 8] } },
   { text: "뇌운 봉우리에서 번개 드래곤 처치하기", prog: bossGoal("storm", "horn"), reward: { runes: 35 } },
   { text: "지옥 불구덩이에서 지옥 도깨비 처치하기", prog: bossGoal("hell", "ogre"), reward: { runes: 40 } },
@@ -6215,10 +6218,10 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [] });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER });
 
 function normalize(s) {
-  return {
+  const o = {
     gold: s.gold,
     sword: s.sword ?? s.level ?? 0,   // 첫 버전은 검 단계를 level에 저장
     pick: s.pick ?? 0,
@@ -6253,7 +6256,15 @@ function normalize(s) {
     savedAt: s.savedAt ?? 0,
     armor: normArmor(s.armor),
     coupons: Array.isArray(s.coupons) ? s.coupons.filter(x => typeof x === "string").slice(0, 50) : [],
+    questV: QUEST_VER,
   };
+  // 목표가 중간에 추가되기 전에 이미 그 지점을 지난 저장은 번호를 한 칸 밀고 보상을 바로 준다
+  if ((s.questV ?? 1) < 2 && o.quest >= ARMOR_QUEST) {
+    o.quest++;
+    o.mats.star += 300;
+    o.log.unshift({ text: "새 목표 자동 달성: 방어구 뽑기 잠금 해제", delta: "+별의 파편 300" });
+  }
+  return o;
 }
 
 function loadLocal() {
