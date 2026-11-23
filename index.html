@@ -119,6 +119,9 @@ h1 { font-family: var(--display); font-weight: 400; font-size: 26px; margin: 0; 
 }
 .transfer textarea:focus-visible { outline: 2px solid var(--ember); outline-offset: 1px; }
 .transfer-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+#coupon { flex: 1; min-width: 0; font: inherit; font-family: var(--mono); text-transform: uppercase; color: var(--fg); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+#coupon-msg:empty { display: none; } #coupon-msg.ok { color: var(--good); } #coupon-msg.bad { color: var(--bad); }
 .transfer-btns button.armed { border-color: var(--bad) !important; color: var(--bad) !important; }
 #transfer-msg:empty { display: none; }
 #transfer-msg.ok { color: var(--good); } #transfer-msg.bad { color: var(--bad); }
@@ -600,6 +603,12 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
       </div>
       <p class="hint" id="transfer-msg" role="status"></p>
     </div>
+    <div class="transfer">
+      <b>쿠폰</b>
+      <div class="transfer-btns"><input id="coupon" placeholder="쿠폰 코드" autocomplete="off" spellcheck="false" maxlength="24">
+        <button id="coupon-btn">사용</button></div>
+      <p class="hint" id="coupon-msg" role="status"></p>
+    </div>
     <div class="sound-row install-row" id="install-row" hidden>
       <span id="install-text">휴대폰 홈 화면에 앱으로 설치할 수 있어요.</span>
       <button id="install-btn">설치</button>
@@ -903,15 +912,15 @@ const ARMOR_SLOTS = [
 ];
 // rate: 세 부위를 합친 뽑기 확률(%). 한 부위 아이템은 그 1/3. mat: 강화 재료. dup: 중복일 때 돌려받는 별의 파편
 const ARMOR_TYPES = [
-  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,   rate: 38,   mat: null,      dup: 10 },
-  { key: "ruby",    pre: "루비 ",   grade: "고급", stars: 2, color: "#ff6b81", hpMul: 1.3, rate: 20,   mat: "ruby",    dup: 20 },
-  { key: "diamond", pre: "다이아 ", grade: "희귀", stars: 3, color: "#bff6ff", hpMul: 1.6, rate: 15,   mat: "diamond", dup: 30 },
-  { key: "fire",    pre: "화염 ",   grade: "영웅", stars: 4, color: "#ff6a3d", hpMul: 1.6, rate: 8.5,  mat: "scale",   dup: 50 },
-  { key: "ice",     pre: "얼음 ",   grade: "영웅", stars: 4, color: "#8fd8ff", hpMul: 1.6, rate: 8.5,  mat: "frost",   dup: 50 },
-  { key: "bolt",    pre: "뇌전 ",   grade: "영웅", stars: 4, color: "#ffe066", hpMul: 1.6, rate: 8.5,  mat: "horn",    dup: 50 },
-  { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6, rate: 1.5,  mat: "star",    dup: 100 },
+  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,   rate: 38,   mat: null,      dup: 3 },
+  { key: "ruby",    pre: "루비 ",   grade: "고급", stars: 2, color: "#ff6b81", hpMul: 1.3, rate: 20,   mat: "ruby",    dup: 6 },
+  { key: "diamond", pre: "다이아 ", grade: "희귀", stars: 3, color: "#bff6ff", hpMul: 1.6, rate: 15,   mat: "diamond", dup: 9 },
+  { key: "fire",    pre: "화염 ",   grade: "영웅", stars: 4, color: "#ff6a3d", hpMul: 1.6, rate: 8.5,  mat: "scale",   dup: 15 },
+  { key: "ice",     pre: "얼음 ",   grade: "영웅", stars: 4, color: "#8fd8ff", hpMul: 1.6, rate: 8.5,  mat: "frost",   dup: 15 },
+  { key: "bolt",    pre: "뇌전 ",   grade: "영웅", stars: 4, color: "#ffe066", hpMul: 1.6, rate: 8.5,  mat: "horn",    dup: 15 },
+  { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6, rate: 1.5,  mat: "star",    dup: 30 },
 ];
-const ARMOR_MAX = 20, GACHA_COST = 100, GACHA_MAT = "star";
+const ARMOR_MAX = 20, GACHA_COST = 30, GACHA_MAT = "star";
 const AT = Object.fromEntries(ARMOR_TYPES.map(t => [t.key, t]));
 const ASLOT = Object.fromEntries(ARMOR_SLOTS.map(sl => [sl.key, sl]));
 const armorId = (slot, type) => slot + "-" + type;
@@ -1024,7 +1033,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor() };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [] };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -2027,6 +2036,29 @@ $("import-btn").addEventListener("click", () => {
   commit();
   sfx("fanfare");
   transferMsg("불러왔어요!", "ok");
+});
+
+// ── 쿠폰 ── 코드 원문은 넣지 않고 섞은 값만 둔다. 저장마다 한 번씩만 사용
+const COUPONS = {
+  "0ff93377c357a936": { id: "armor-700", text: "별의 파편 700개", mats: { star: 700 } },
+};
+function couponKey(code) {
+  const h = transferHash(code), t = "sf-coupon:" + parseInt(h, 16).toString(16);
+  return h + transferHash(t);
+}
+$("coupon-btn").addEventListener("click", () => {
+  const code = $("coupon").value.trim().toUpperCase();
+  const c = COUPONS[couponKey(code)];
+  const msg = (t, k) => { $("coupon-msg").textContent = t; $("coupon-msg").className = "hint " + k; };
+  if (!c) return msg("없는 쿠폰이에요. 코드를 다시 확인해 주세요.", "bad");
+  if (state.coupons.includes(c.id)) return msg("이미 사용한 쿠폰이에요.", "bad");
+  state.coupons.push(c.id);
+  for (const [k, n] of Object.entries(c.mats || {})) state.mats[k] += n;
+  state.log.unshift({ text: "쿠폰 사용", delta: c.text });
+  $("coupon").value = "";
+  commit();
+  sfx("fanfare");
+  msg(`쿠폰 보상을 받았어요: ${c.text}`, "ok");
 });
 
 // ── 앱 설치 (GitHub Pages 주소에서만) ──
@@ -6170,7 +6202,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor() });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [] });
 
 function normalize(s) {
   return {
@@ -6207,6 +6239,7 @@ function normalize(s) {
     friends: Array.isArray(s.friends) ? s.friends.filter(x => typeof x === "string").slice(0, 100) : [],
     savedAt: s.savedAt ?? 0,
     armor: normArmor(s.armor),
+    coupons: Array.isArray(s.coupons) ? s.coupons.filter(x => typeof x === "string").slice(0, 50) : [],
   };
 }
 
