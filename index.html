@@ -767,7 +767,7 @@ const rockGold = () => Math.round(MINE_GOLD * Math.pow(MINE_GROWTH, state.pick) 
 
 const COLORS = ["#a0703f", "#b9c0c8", "#6fb8ff", "#b47cff", "#ffd24a", "#9ff3ff", "#ff8fd8", "#ffffff",
                 "#7dffb2", "#ff5a36", "#fff3a0", "#c0d0ff", "#9fe3ff",
-                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#ffe9a8", "#9b7dff", "#7fd8ff", "#fff6ff"];
+                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff"];
 // 5단계마다 이름과 색이 바뀜
 const tierIndex = (lv, item) => Math.min(Math.floor(lv / 5), item.names.length - 1);
 
@@ -829,10 +829,12 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 86,   // 월드 2가 열릴 때마다 늘어남 (최종 +100)
+    max: 95,   // 월드 2 사냥터가 열릴 때마다 5단계씩 늘어남 (최종 +125)
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
-            "명계의 검", "뇌신검", "업화검", "용왕검", "별빛 성검", "균열의 검", "창공의 검", "별을 벤 검"],
+            "명계의 검", "뇌신검", "업화검", "용왕검",
+            // 월드 2: 사냥터 하나당 5단계
+            "사막왕의 검", "수정 여왕의 검", "해신검", "맹독검", "천풍검", "시간의 검", "그림자검", "거신검", "별을 벤 검"],
     odds(lv) {
       if (lv < 5)  return [95, 5, 0, 0];
       if (lv < 10) return [70, 25, 5, 0];
@@ -874,8 +876,8 @@ const ITEMS = {
       if (lv < 75) return [["ogre", 1], ["horn", 1]];
       if (lv < 80) return [["kingheart", 1], ["ogre", 1]];
       // 월드 2: 사냥터 순서대로 새 보스 재료
-      if (lv < 82) return [["tooth", 1], ["kingheart", 1]];
-      if (lv < 84) return [["qcore", 1], ["tooth", 1]];
+      if (lv < 85) return [["tooth", 1], ["kingheart", 1]];
+      if (lv < 90) return [["qcore", 1], ["tooth", 1]];
       return [["tentacle", 1], ["qcore", 1]];
     },
     // 판매가 = 그 단계 강화 비용 × (2 + 0.1 × 단계). 높이 키울수록 배율도 커짐
@@ -1178,17 +1180,17 @@ const ZONES2 = [
     alt: { kind: "bandit", name: "사막 도적", color: "#a8724a", hp: 7.5e6, dmg: 260, speed: 60, r: 12, gold: 1.3e6, contact: false },
     boss: { kind: "sandWorm", name: "모래 거인 웜", color: "#c9a26a", mat: "tooth", hp: 2.0e8, dmg: 380, speed: 58, r: 32 },
     drops: { ruby: 14, diamond: 10, star: 11 } },
-  { key: "crystal", world: 2, name: "수정 동굴", rec: 82, bg: "#1d1830", rune: 18, xp: 230, stars: 24,
+  { key: "crystal", world: 2, name: "수정 동굴", rec: 85, bg: "#1d1830", rune: 18, xp: 230, stars: 24,
     feature: "수정 여왕의 레이저는 벽에 튕겨요",
-    mob: { kind: "crystalBat", name: "수정 박쥐", color: "#c7a8ff", hp: 1.1e7, dmg: 300, speed: 105, r: 12, gold: 1.9e6 },
-    alt: { kind: "crystalGolem", name: "수정 골렘", color: "#9f86e0", hp: 2.0e7, dmg: 400, speed: 55, r: 18, gold: 2.3e6, contact: false },
-    boss: { kind: "crystalQueen", name: "수정 여왕", color: "#d6a8ff", mat: "qcore", hp: 2.8e8, dmg: 400, speed: 52, r: 28 },
+    mob: { kind: "crystalBat", name: "수정 박쥐", color: "#c7a8ff", hp: 2.2e7, dmg: 330, speed: 105, r: 12, gold: 2.4e6 },
+    alt: { kind: "crystalGolem", name: "수정 골렘", color: "#9f86e0", hp: 4.2e7, dmg: 430, speed: 55, r: 18, gold: 2.9e6, contact: false },
+    boss: { kind: "crystalQueen", name: "수정 여왕", color: "#d6a8ff", mat: "qcore", hp: 4.4e8, dmg: 420, speed: 52, r: 28 },
     drops: { ruby: 15, diamond: 11, star: 12 } },
-  { key: "temple", world: 2, name: "가라앉은 신전", rec: 84, bg: "#14262b", rune: 19, xp: 270, stars: 26,
+  { key: "temple", world: 2, name: "가라앉은 신전", rec: 90, bg: "#14262b", rune: 19, xp: 270, stars: 26,
     feature: "물웅덩이에 들어가면 느려져요",
-    mob: { kind: "jelly", name: "전기 해파리", color: "#7fe0ff", hp: 1.6e7, dmg: 340, speed: 48, r: 13, gold: 2.6e6 },
-    alt: { kind: "merman", name: "어인 창병", color: "#3f9a8a", hp: 2.2e7, dmg: 420, speed: 72, r: 14, gold: 2.9e6, contact: false },
-    boss: { kind: "kraken", name: "심해 크라켄", color: "#2f7a8a", mat: "tentacle", hp: 4.0e8, dmg: 430, speed: 0, r: 42 },
+    mob: { kind: "jelly", name: "전기 해파리", color: "#7fe0ff", hp: 4.8e7, dmg: 370, speed: 48, r: 13, gold: 3.8e6 },
+    alt: { kind: "merman", name: "어인 창병", color: "#3f9a8a", hp: 6.5e7, dmg: 460, speed: 72, r: 14, gold: 4.3e6, contact: false },
+    boss: { kind: "kraken", name: "심해 크라켄", color: "#2f7a8a", mat: "tentacle", hp: 9.6e8, dmg: 460, speed: 0, r: 42 },
     drops: { ruby: 16, diamond: 12, star: 13 } },
 ];
 const world2Open = () => (state.bossKills.lair || 0) > 0;
@@ -1237,10 +1239,10 @@ const QUESTS = [
   { text: "용의 둥지에서 킹 드래곤 처치하기", prog: bossGoal("lair", "kingheart"), reward: { gold: 1e8, runes: 80 }, final: true },
   // ── 월드 2 ──
   { text: "잿빛 사막에서 모래 거인 웜 처치하기", prog: bossGoal("desert", "tooth"), reward: { mats: ["star", 40], runes: 40 } },
-  { text: "검을 +82까지 강화하기", prog: () => [state.best, 82], reward: { gold: 3e8, mats: ["star", 30] } },
+  { text: "검을 +85까지 강화하기 (사막왕의 검)", prog: () => [state.best, 85], reward: { gold: 3e8, mats: ["star", 30] } },
   { text: "수정 동굴에서 수정 여왕 처치하기", prog: bossGoal("crystal", "qcore"), reward: { mats: ["star", 45], runes: 45 } },
+  { text: "검을 +90까지 강화하기 (수정 여왕의 검)", prog: () => [state.best, 90], reward: { gold: 8e8, mats: ["star", 40] } },
   { text: "가라앉은 신전에서 심해 크라켄 처치하기", prog: bossGoal("temple", "tentacle"), reward: { mats: ["star", 50], runes: 50 } },
-  { text: "검을 +85까지 강화하기 (별빛 성검)", prog: () => [state.best, 85], reward: { gold: 6e8, mats: ["star", 40] } },
 ];
 
 function rewardText(r) {
@@ -1273,7 +1275,7 @@ function showEnding() {
   $("ending-text").innerHTML =
     `킹 드래곤이 쓰러지고, 대장간의 이름이 온 대륙에 퍼졌습니다.<br>그때 하늘에서 별이 떨어지며 <b>월드 2</b>로 가는 길이 열렸습니다.<br><br>` +
     `최고 검 <b>+${state.best}</b> · 곡괭이 <b>+${state.pick}</b> · 장인 <b>Lv ${state.mlv}</b><br>캔 돌 <b>${state.mined.toLocaleString("ko-KR")}</b>개` +
-    `<br><br>사냥터 → <b>월드 2</b>에서 검 +100을 향한 여정이 이어집니다. 월드 1 보스 던전은 언제든 도전할 수 있어요.`;
+    `<br><br>사냥터 → <b>월드 2</b>에서 검 +125를 향한 여정이 이어집니다. 월드 1 보스 던전은 언제든 도전할 수 있어요.`;
   $("ending").hidden = false;
 }
 
@@ -3398,7 +3400,7 @@ function renderZones() {
     ? `<div class="hunt-stats">검 <b>+${lv}</b> · 공격력 <b>${myAtk().toLocaleString("ko-KR")}</b> · 체력 <b>${myHp()}</b></div>` + charPicker() +
       seg("world", huntWorld, [["1", "월드 1"], ["2", world2Open() ? "월드 2" : "월드 2 🔒"]]) +
       (huntWorld === "2" && !world2Open()
-        ? `<div class="zone w2lock"><h3>월드 2: 별이 떨어진 대륙</h3><p>용의 둥지에서 <b>킹 드래곤</b>을 처치하면 열려요.</p><p>새 사냥터와 보스, 검 +100까지의 강화가 기다려요.</p></div>`
+        ? `<div class="zone w2lock"><h3>월드 2: 별이 떨어진 대륙</h3><p>용의 둥지에서 <b>킹 드래곤</b>을 처치하면 열려요.</p><p>새 사냥터와 보스, 검 +125까지의 강화가 기다려요.</p></div>`
         : huntWorld === "2" ? zones + `<p class="hint">다음 지역(독버섯 늪 ~ 별의 균열)과 월드 2 던전은 업데이트로 추가돼요.</p>`
         : zones + `<h4 class="extra-h">추가 콘텐츠</h4>` + dungeonCard)
     : `<div class="skills-head"><h3>장착 스킬</h3><span>룬석 <b>${state.runes}</b>개</span></div>
