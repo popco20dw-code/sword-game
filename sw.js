@@ -1,6 +1,6 @@
 // 대장간 강화소 오프라인 지원.
-// 게임 파일은 "인터넷 먼저, 안 되면 저장본" 방식이라 업데이트는 바로 받고, 인터넷이 없어도 마지막 버전으로 열린다.
-const CACHE = "sword-forge-v1";
+// 게임 파일은 "인터넷 먼저(10분 캐시도 건너뜀), 안 되면 저장본" 방식이라 업데이트는 바로 받고, 인터넷이 없어도 마지막 버전으로 열린다.
+const CACHE = "sword-forge-v2";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -29,7 +29,9 @@ self.addEventListener("fetch", e => {
     })));
     return;
   }
-  e.respondWith(fetch(req).then(res => {
+  // GitHub Pages는 파일을 10분 동안 재사용하라고 알려 주므로, 게임 파일은 매번 서버에 바뀌었는지 물어본다
+  // (안 바뀌었으면 서버가 "그대로"라고만 답해서 데이터는 거의 쓰지 않음)
+  e.respondWith(fetch(req.url, { cache: "no-cache", credentials: "same-origin" }).then(res => {
     if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return res;
   }).catch(() => caches.match(req).then(hit => hit || caches.match("./index.html"))));
