@@ -437,6 +437,10 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
   border: 1px solid var(--ember); border-radius: 8px; padding: 8px 12px; white-space: nowrap;
 }
 .nick-row button { background: var(--ember); color: #241306; font-weight: 700; }
+.acct { display: grid; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 2px; }
+.acct button { justify-self: start; border: 1px solid var(--line); border-radius: 8px; padding: 8px 14px; color: var(--fg); background: rgba(0, 0, 0, .2); }
+.acct button:disabled { color: var(--good); border-color: var(--good); opacity: 1; }
+#acct-hint.bad { color: var(--bad); }
 .prow button { color: var(--ember); }
 .prow button.remove { border-color: var(--line); color: var(--muted); }
 .hint { font-size: 13px; color: var(--muted); margin: 0; }
@@ -604,6 +608,10 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
         <button type="submit">저장</button>
       </form>
       <p class="hint" id="nick-hint"></p>
+      <div class="acct" id="acct" hidden>
+        <button id="google-btn" type="button">구글 계정 연결</button>
+        <p class="hint" id="acct-hint"></p>
+      </div>
     </div>
     <p class="note" id="friends-note" hidden></p>
     <h2>친구</h2>
@@ -1197,6 +1205,7 @@ function renderFriends() {
     ? `내 태그 ${tag(me.id)} · 닉네임이 같아도 태그로 구분돼요`
     : "닉네임은 이 기기에 저장돼요.";
 
+  renderAcct();
   let note = "";
   if (!me.db) note = fbState === "loading" ? "친구 목록에 연결하는 중이에요…"
     : fbState === "failed" ? "인터넷에 연결되면 친구 목록이 보여요. 게임은 지금처럼 그대로 할 수 있어요."
@@ -5589,14 +5598,117 @@ const FIREBASE_CONFIG = {
 const FB_SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
 const FB_PUSH_GAP = 60000;   // 골드는 계속 바뀌므로 기록은 최대 1분에 한 번만 올림 (무료 사용량 아끼기)
 let fbState = "off";         // off | loading | on | failed
+let fb = null;               // { A, F, auth, db } Firebase 모듈과 연결
+let acctMsg = null;          // [문구, "bad"?] 구글 연결 결과 안내
+let lastSaveKey = 0;
 let lastPush = 0, pushTimer = null;
 
 function schedulePush(now = false) {
   if (!me.db || cloud) return;   // claude.ai 쪽은 계정 저장(flush)이 올림
   clearTimeout(pushTimer);
   const wait = now ? 0 : Math.max(3000, lastPush + FB_PUSH_GAP - Date.now());
-  pushTimer = setTimeout(() => pushProfile().catch(() => {}), wait);
+  pushTimer = setTimeout(() => { pushProfile().catch(() => {}); pushSave().catch(() => {}); }, wait);
 }
+
+// ── 구글 계정 연결 ── 익명 아이디를 구글 계정에 묶으면, 다시 설치하거나 기기를 바꿔도 같은 아이디·진행 상황으로 돌아온다
+const fbLinked = () => !!fb?.auth.currentUser && !fb.auth.currentUser.isAnonymous;
+
+// 구글에 연결된 경우에만 전체 진행 상황을 saves/{아이디}에 보관
+async function pushSave() {
+  if (!fbLinked() || state.savedAt === lastSaveKey) return;
+  const key = state.savedAt;
+  await fb.F.setDoc(fb.F.doc(fb.db, "saves/" + me.id),
+    { data: JSON.stringify({ ...state, log: [] }), savedAt: key, updatedAt: fb.F.serverTimestamp() });
+  lastSaveKey = key;
+}
+
+async function readCloudSave() {
+  const snap = await fb.F.getDoc(fb.F.doc(fb.db, "saves/" + me.id));
+  if (!snap.exists()) return null;
+  try {
+    const d = JSON.parse(snap.data().data);
+    return d && typeof d.gold === "number" ? d : null;
+  } catch { return null; }
+}
+
+function adoptSave(data, text) {
+  state = normalize(data);
+  offlineCatchUp();
+  current = "sword";
+  lastSaveKey = state.savedAt;
+  state.log.unshift({ text, delta: "완료" });
+  commit();
+}
+
+function renderAcct() {
+  const box = $("acct");
+  box.hidden = fbState !== "on";
+  if (box.hidden) return;
+  const btn = $("google-btn"), hint = $("acct-hint");
+  if (fbLinked()) {
+    btn.disabled = true;
+    btn.textContent = "구글 계정 연결됨";
+    hint.textContent = acctMsg?.[0] ?? `${fb.auth.currentUser.email || "구글 계정"} · 다시 설치하거나 기기를 바꿔도 이 버튼을 누르면 같은 아이디와 진행 상황으로 돌아와요.`;
+  } else {
+    btn.disabled = false;
+    btn.textContent = "구글 계정 연결";
+    hint.textContent = acctMsg?.[0] ?? "연결해 두면 앱을 다시 깔거나 기기를 바꿔도 같은 아이디(태그)와 진행 상황으로 돌아올 수 있어요.";
+  }
+  hint.className = "hint" + (acctMsg?.[1] ? " " + acctMsg[1] : "");
+}
+
+const ACCT_ERR = {
+  "auth/popup-blocked": "로그인 창이 막혔어요. 브라우저에서 팝업을 허용하고 다시 눌러 주세요.",
+  "auth/operation-not-allowed": "아직 Firebase에서 구글 로그인이 켜져 있지 않아요.",
+  "auth/unauthorized-domain": "이 주소가 Firebase 승인된 도메인에 없어요.",
+  "auth/network-request-failed": "인터넷 연결을 확인하고 다시 눌러 주세요.",
+};
+
+$("google-btn").addEventListener("click", async () => {
+  if (!fb || fbLinked()) return;
+  const { A, F, auth } = fb;
+  const provider = new A.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  acctMsg = null;
+  try {
+    // 처음 연결: 지금 아이디(태그)를 그대로 구글 계정에 묶음
+    await A.linkWithPopup(auth.currentUser, provider);
+    lastSaveKey = 0;
+    await pushSave();
+    acctMsg = ["연결했어요! 이제 이 구글 계정으로 아이디와 진행 상황이 보관돼요."];
+  } catch (e) {
+    if (e?.code === "auth/credential-already-in-use" || e?.code === "auth/email-already-in-use") {
+      // 이미 다른 기기에서 연결해 둔 계정: 그 아이디로 갈아탐 (이 기기의 임시 기록은 지움)
+      const cred = A.GoogleAuthProvider.credentialFromError(e);
+      try {
+        await F.deleteDoc(F.doc(fb.db, "players/" + me.id)).catch(() => {});
+        await A.signInWithCredential(auth, cred);
+        me.id = auth.currentUser.uid;
+        lastProfile = "";
+        lastSaveKey = 0;
+        const remote = await readCloudSave();
+        if (remote) {
+          const r = normalize(remote);
+          const ok = confirm(`구글 계정에 보관된 진행 상황을 불러올까요?\n\n` +
+            `구글 계정: 검 +${r.sword} · 곡괭이 +${r.pick} · ${won(r.gold)} · 장인 Lv ${r.mlv}\n` +
+            `이 기기: 검 +${state.sword} · 곡괭이 +${state.pick} · ${won(state.gold)} · 장인 Lv ${state.mlv}\n\n` +
+            `취소하면 이 기기의 진행 상황이 구글 계정에 덮어써져요.`);
+          if (ok) adoptSave(remote, "구글 계정 진행 상황 불러오기");
+        }
+        acctMsg = ["예전 아이디로 돌아왔어요!"];
+        commit();
+        schedulePush(true);
+      } catch (e2) {
+        acctMsg = [ACCT_ERR[e2?.code] ?? `연결하지 못했어요 (${e2?.code ?? "알 수 없는 오류"}).`, "bad"];
+      }
+    } else if (e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request") {
+      acctMsg = null;
+    } else {
+      acctMsg = [ACCT_ERR[e?.code] ?? `연결하지 못했어요 (${e?.code ?? "알 수 없는 오류"}).`, "bad"];
+    }
+  }
+  renderFriends();
+});
 
 async function connectFirebase() {
   if (fbState === "loading" || fbState === "on") return;
@@ -5610,7 +5722,12 @@ async function connectFirebase() {
     await auth.authStateReady();
     if (!auth.currentUser) await A.signInAnonymously(auth);   // 회원가입 없이 이 기기 전용 아이디
     const db = F.getFirestore(app);
+    fb = { A, F, auth, db };
     me.id = auth.currentUser.uid;
+    if (fbLinked()) {
+      const remote = await readCloudSave().catch(() => null);
+      if (remote && (remote.savedAt ?? 0) > state.savedAt) adoptSave(remote, "구글 계정 진행 상황 받아 옴");
+    }
     me.db = { doc: path => ({ set: data => F.setDoc(F.doc(db, path), { ...data, updatedAt: F.serverTimestamp() }) }) };
     F.onSnapshot(F.query(F.collection(db, "players"), F.orderBy("updatedAt", "desc"), F.limit(200)),
       snap => {
