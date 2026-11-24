@@ -858,7 +858,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v88";
+const GAME_VERSION = "v89";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1207,7 +1207,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -4041,8 +4041,8 @@ function charShop() {
   const head = `<div class="cg-box">
     <div class="cg-orb-mini"></div>
     <h3>캐릭터 뽑기</h3>
-    <p>뽑기권은 보스를 잡으면 낮은 확률로 나와요 (월드 1 5% · 월드 2 10% · 보스 ${TICKET_PITY}마리 동안 못 받으면 확정 · 던전 클리어 1장).</p>
-    <div class="g-have">뽑기권 <b>${state.ctickets}</b>장 · 소울 <b>${state.souls.toLocaleString("ko-KR")}</b> · 천장까지 ${TICKET_PITY - state.ctPity}마리</div>
+    <p>뽑기권은 보스를 잡으면 낮은 확률로 나와요 (월드 1 초원 1% → 용의 둥지 5% · 월드 2 10% · 던전 클리어 1장). 못 받은 보스의 확률이 쌓여 ${TICKET_PITY}%가 되면 확정.</p>
+    <div class="g-have">뽑기권 <b>${state.ctickets}</b>장 · 소울 <b>${state.souls.toLocaleString("ko-KR")}</b> · 천장 ${Math.min(100, Math.floor(state.ctPity / TICKET_PITY * 100))}%</div>
     <button class="cg-pull" data-cpull ${state.ctickets < 1 ? "disabled" : ""}>뽑기 (뽑기권 1장)</button>
     <details class="g-rates"><summary>확률 보기</summary><table>
       <tr><th>결과</th><th>확률</th></tr>
@@ -4863,9 +4863,12 @@ const DUNGEON2_PRIZE = (() => {
   return { gold: 5e10, xp: 60000, runes: 300, mats };
 })();
 
-const TICKET_PITY = 20;
+// 뽑기권 확률: 월드 1은 쉬운 보스일수록 낮게 (초원 1% → 용의 둥지 5%), 월드 2는 10%
+// 천장: 못 받은 보스의 확률(%)이 쌓여서 200이 되면 확정 (월드 2 보스 20마리 · 용의 둥지 40마리 · 슬라임 킹 200마리)
+const TICKET_PITY = 200;
+const ticketPct = z => z.world === 2 ? 10 : 1 + 0.5 * Math.max(0, ZONES.indexOf(z));
 function ticketDrop(m, pct) {
-  state.ctPity++;
+  state.ctPity += pct;
   if (Math.random() * 100 < pct || state.ctPity >= TICKET_PITY) {
     state.ctPity = 0;
     state.ctickets++;
@@ -4987,7 +4990,7 @@ function kill(m) {
     const st = zoneStars(z);
     if (st) { gainMat("star", st); lootFx(m, `${matName("star")} +${st}`, "#ffc6f0", 14); }
     gainRunes(3 + Math.floor(Math.random() * 3), m);
-    ticketDrop(m, z.world === 2 ? 10 : 5);
+    ticketDrop(m, ticketPct(z));
     run.loot.bosses++;
     state.bossKills[z.key] = (state.bossKills[z.key] || 0) + 1;
     lootFx(m, `${matName(z.boss.mat)} +${n}!`, "#ffffff", 16);
@@ -9067,7 +9070,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V });
 
 function normalize(s) {
   const o = {
@@ -9101,7 +9104,8 @@ function normalize(s) {
     shards: { ...(s.shards || {}) },
     souls: s.souls ?? 0,
     ctickets: s.ctickets ?? 0,
-    ctPity: s.ctPity ?? 0,
+    ctPity: s.ctPts ? s.ctPity ?? 0 : (s.ctPity ?? 0) * 5,   // 예전엔 마리 수(20마리)였음 → 확률 합(200)으로
+    ctPts: 1,
     cpulls: s.cpulls ?? 0,
     charV: CHAR_V,
     astones: s.astones ?? 0,
