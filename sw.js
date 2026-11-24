@@ -1,6 +1,6 @@
 // 대장간 강화소 오프라인 지원.
 // 게임 파일은 "인터넷 먼저(10분 캐시도 건너뜀), 안 되면 저장본" 방식이라 업데이트는 바로 받고, 인터넷이 없어도 마지막 버전으로 열린다.
-const CACHE = "sword-forge-v2";
+const CACHE = "sword-forge-v3";
 const CORE = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png"];
 
 self.addEventListener("install", e => {
