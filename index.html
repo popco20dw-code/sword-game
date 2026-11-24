@@ -1506,7 +1506,7 @@ function myRow() {
   else {
     const { updatedAt, id, ...shown } = pub;
     const same = ["sword", "best", "pick", "gold", "mlv", "maxBoss", "dungeonBest", "quest", "nickname"].every(k => shown[k] === local[k]);
-    note = same ? "지금 친구들에게 보이는 그대로예요." : "위는 지금 올라가 있는 기록이에요. 최근 기록은 1분 안에 반영돼요.";
+    note = same ? "지금 친구들에게 보이는 그대로예요." : "위는 지금 올라가 있는 기록이에요. 최근 기록은 30초 안에 반영돼요.";
   }
   const row = playerRow(me.id || "me----", pub ?? { ...local, nickname: local.nickname || "(닉네임 없음)", updatedAt: Date.now() }, false);
   return row.replace('<div class="prow">', '<div class="prow mine">') + `<p class="hint">${note}</p>`;
@@ -7222,15 +7222,15 @@ function persist() {
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {}
   schedulePush();
   if (!cloud) return;
-  // 돌을 연달아 캐도 계정 저장은 손을 멈춘 뒤 한 번만
+  // 돌을 연달아 캐도 계정 저장은 1.5초에 한 번만 (예약을 미루지 않아서 계속 플레이해도 저장됨)
   dirty = true;
   setStatus("저장 중…");
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(flush, 1500);
+  if (!saveTimer) saveTimer = setTimeout(flush, 1500);
 }
 
 async function flush() {
   clearTimeout(saveTimer);
+  saveTimer = null;
   if (!cloud || !dirty || saving) return;
   saving = true;
   dirty = false;
@@ -7290,7 +7290,7 @@ const FIREBASE_CONFIG = {
   appId: "1:460381593661:web:f506664bfeb3e171630a54",
 };
 const FB_SDK = "https://www.gstatic.com/firebasejs/10.12.2/";
-const FB_PUSH_GAP = 60000;   // 골드는 계속 바뀌므로 기록은 최대 1분에 한 번만 올림 (무료 사용량 아끼기)
+const FB_PUSH_GAP = 30000;   // 골드는 계속 바뀌므로 기록은 최대 30초에 한 번만 올림 (무료 사용량 아끼기)
 let fbState = "off";         // off | loading | on | failed
 let fb = null;               // { A, F, auth, db } Firebase 모듈과 연결
 let acctMsg = null;          // [문구, "bad"?] 구글 연결 결과 안내
@@ -7299,9 +7299,11 @@ let lastPush = 0, pushTimer = null;
 
 function schedulePush(now = false) {
   if (!me.db || cloud) return;   // claude.ai 쪽은 계정 저장(flush)이 올림
-  clearTimeout(pushTimer);
+  // 이미 예약돼 있으면 미루지 않는다 (계속 플레이해도 정해진 간격마다 올라가게)
+  if (now) { clearTimeout(pushTimer); pushTimer = null; }
+  else if (pushTimer) return;
   const wait = now ? 0 : Math.max(3000, lastPush + FB_PUSH_GAP - Date.now());
-  pushTimer = setTimeout(() => { pushProfile().catch(() => {}); pushSave().catch(() => {}); }, wait);
+  pushTimer = setTimeout(() => { pushTimer = null; pushProfile().catch(() => {}); pushSave().catch(() => {}); }, wait);
 }
 
 // ── 구글 계정 연결 ── 익명 아이디를 구글 계정에 묶으면, 다시 설치하거나 기기를 바꿔도 같은 아이디·진행 상황으로 돌아온다
