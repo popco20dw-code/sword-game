@@ -786,7 +786,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v83";
+const GAME_VERSION = "v84";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -827,9 +827,12 @@ const BOSS_MATS = [
   { key: "mcap", name: "버섯왕의 갓", color: "#9be05a" },
   { key: "gfeather", name: "그리폰 깃털", color: "#bfe8ff" },
   { key: "tgear", name: "시간의 톱니", color: "#e0c070" },
+  { key: "mask", name: "쌍둥이의 가면", color: "#8a7ab8" },
+  { key: "gheart", name: "거신의 심장석", color: "#ff7a3d" },
+  { key: "score", name: "별의 핵", color: "#fff6ff" },
   { key: "kingheart", name: "용왕의 심장", color: "#f7d7ff" },
 ];
-const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0 });
+const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0 });
 // +35를 넘으면 단계마다 보석 확률이 두 배씩 더 붙는다
 const matChance = m => state.pick < m.req ? 0 : m.base + m.per * (state.pick - m.req) + m.per * 2 * Math.max(0, state.pick - 35);
 // 광산에서 남는 보석을 별의 파편으로 합성
@@ -865,7 +868,7 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 110,   // 월드 2 사냥터가 열릴 때마다 5단계씩 늘어남 (최종 +125)
+    max: 125,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
@@ -889,7 +892,8 @@ const ITEMS = {
       if (lv < 75) return [3, 47, 30, 20];
       if (lv < 80) return [2.5, 47.5, 30, 20];
       if (lv < 95) return [2, 48, 30, 20];
-      return [1.8, 48.2, 30, 20];
+      if (lv < 110) return [1.8, 48.2, 30, 20];
+      return [1.5, 48.5, 30, 20];
     },
     cost: swordCost,
     // 전설의 검(+20)부터는 골드와 함께 재료가 필요: [재료, 개수]
@@ -918,7 +922,10 @@ const ITEMS = {
       if (lv < 95) return [["tentacle", 1], ["qcore", 1]];
       if (lv < 100) return [["mcap", 1], ["tentacle", 1]];
       if (lv < 105) return [["gfeather", 1], ["mcap", 1]];
-      return [["tgear", 1], ["gfeather", 1]];
+      if (lv < 110) return [["tgear", 1], ["gfeather", 1]];
+      if (lv < 115) return [["mask", 1], ["tgear", 1]];
+      if (lv < 120) return [["gheart", 1], ["mask", 1]];
+      return [["score", 1], ["gheart", 1]];
     },
     // 판매가 = 그 단계 강화 비용 × (2 + 0.1 × 단계). 높이 키울수록 배율도 커짐
     price: lv => lv === 0 ? 0 : Math.round(swordCost(lv) * (2 + 0.1 * lv) / 10) * 10,
@@ -1096,7 +1103,7 @@ const minerCost = n => 20000 * Math.pow(2, n);
 const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
-              mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
+              mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
               best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER };
 
@@ -1260,9 +1267,40 @@ const ZONES2 = [
     alt: { kind: "turret", name: "포탑", color: "#8a7a6a", hp: 7.0e8, dmg: 420, speed: 0, r: 16, gold: 1.2e7, contact: false },
     boss: { kind: "timeKnight", name: "시간의 기사", color: "#e0c070", mat: "tgear", hp: 1.0e10, dmg: 560, speed: 72, r: 30 },
     drops: { ruby: 19, diamond: 15, star: 16 } },
+  { key: "shadow", world: 2, name: "그림자 미궁", rec: 110, bg: "#15121c", rune: 23, xp: 430, stars: 34,
+    feature: "어두워서 내 주변만 보여요",
+    mob: { kind: "assassin", name: "그림자 암살자", color: "#3a3450", hp: 1.1e9, dmg: 580, speed: 105, r: 13, gold: 1.7e7, contact: false },
+    alt: { kind: "specter", name: "망령", color: "#9fb0d8", hp: 9e8, dmg: 480, speed: 55, r: 13, gold: 1.6e7, contact: false },
+    boss: { kind: "shadowTwin", name: "그림자 쌍둥이", color: "#6a5aa0", mat: "mask", hp: 2.2e10, dmg: 600, speed: 78, r: 26, twins: true },
+    drops: { ruby: 20, diamond: 16, star: 17 } },
+  { key: "abyss", world: 2, name: "용암 심연", rec: 115, bg: "#2a120a", rune: 24, xp: 470, stars: 36,
+    feature: "바닥 곳곳이 용암으로 변해요 (빨간 예고)",
+    mob: { kind: "lavaSprite", name: "용암 정령", color: "#ff7a3d", hp: 2.4e9, dmg: 620, speed: 80, r: 13, gold: 2.5e7, contact: false },
+    alt: { kind: "obsidian", name: "흑요석 기사", color: "#2a2430", hp: 3.4e9, dmg: 720, speed: 50, r: 17, gold: 2.8e7, contact: false },
+    boss: { kind: "colossus", name: "화산 거신", color: "#8a3a22", mat: "gheart", hp: 4.8e10, dmg: 640, speed: 50, r: 40 },
+    drops: { ruby: 21, diamond: 17, star: 18 } },
+  { key: "rift", world: 2, name: "별의 균열", rec: 120, bg: "#0e0c1e", rune: 25, xp: 520, stars: 40,
+    feature: "중력장이 나를 끌어당겨요",
+    mob: { kind: "voidTentacle", name: "공허 촉수", color: "#5a3a8a", hp: 5.3e9, dmg: 650, speed: 0, r: 16, gold: 3.6e7, contact: false },
+    alt: { kind: "starSentinel", name: "별의 파수꾼", color: "#c8c0ff", hp: 4.6e9, dmg: 600, speed: 70, r: 14, gold: 3.4e7, contact: false },
+    boss: { kind: "devourer", name: "별을 삼킨 자", color: "#3a2a6a", mat: "score", hp: 1.06e11, dmg: 680, speed: 62, r: 40 },
+    drops: { ruby: 22, diamond: 18, star: 19 } },
 ];
+// ── 월드 2 던전 ── 월드 2 보스 9마리 + 숨은 보스. 별의 균열 보스를 잡으면 열림
+const DUNGEON2 = {
+  key: "dungeon2", name: "별의 던전", rec: 120, bg: "#0c0a18", dungeon: true, w2: true, rune: 0, drops: {},
+  bosses: [
+    ...["desert", "crystal", "temple", "swamp", "sky", "clock", "shadow", "abyss", "rift"].map((k, i) => {
+      const b = ZONES2[i].boss;
+      return { kind: b.kind, name: b.name, color: b.color, hp: b.hp * 1.2, dmg: Math.round(b.dmg * 1.15), speed: b.speed, r: b.r, mat: b.mat, twins: b.twins };
+    }),
+    { kind: "devourer", name: "??? 별을 삼킨 자 · 진", color: "#ff9fe0", hp: 2.4e11, dmg: 820, speed: 70, r: 44, mat: "score", hidden: true },
+  ],
+};
+const dungeon2Open = () => (state.bossKills.rift || 0) > 0;
 const world2Open = () => (state.bossKills.lair || 0) > 0;
 const SAW_RAILS = [210, 420];   // 태엽 시계탑 톱날 레일의 높이
+const RIFT_WELLS = [[115, 250], [345, 470]];   // 별의 균열 중력장 위치
 const zoneByKey = key => ZONES.find(z => z.key === key) || ZONES2.find(z => z.key === key);
 const zoneStars = z => z.stars ?? BOSS_STARS[ZONES.indexOf(z)] ?? 0;
 const zoneXp = z => z.xp ?? ZONE_XP[ZONES.indexOf(z)] ?? 0;
@@ -1318,6 +1356,14 @@ const QUESTS = [
   { text: "하늘 정원에서 폭풍 그리폰 처치하기", prog: bossGoal("sky", "gfeather"), reward: { mats: ["star", 60], runes: 60 } },
   { text: "검을 +105까지 강화하기 (천풍검)", prog: () => [state.best, 105], reward: { gold: 6e9, mats: ["star", 55] } },
   { text: "태엽 시계탑에서 시간의 기사 처치하기", prog: bossGoal("clock", "tgear"), reward: { mats: ["star", 65], runes: 65 } },
+  { text: "검을 +110까지 강화하기 (시간의 검)", prog: () => [state.best, 110], reward: { gold: 1.2e10, mats: ["star", 60] } },
+  { text: "그림자 미궁에서 그림자 쌍둥이 처치하기", prog: bossGoal("shadow", "mask"), reward: { mats: ["star", 70], runes: 70 } },
+  { text: "검을 +115까지 강화하기 (그림자검)", prog: () => [state.best, 115], reward: { gold: 2.5e10, mats: ["star", 65] } },
+  { text: "용암 심연에서 화산 거신 처치하기", prog: bossGoal("abyss", "gheart"), reward: { mats: ["star", 75], runes: 75 } },
+  { text: "검을 +120까지 강화하기 (거신검)", prog: () => [state.best, 120], reward: { gold: 5e10, mats: ["star", 70] } },
+  { text: "별의 균열에서 별을 삼킨 자 처치하기", prog: bossGoal("rift", "score"), reward: { mats: ["star", 80], runes: 80 } },
+  { text: "검을 +125까지 강화하기 (별을 벤 검)", prog: () => [state.best, 125], reward: { gold: 1e11, mats: ["star", 100] } },
+  { text: "별의 던전을 클리어하기", prog: () => [state.dungeon2Clears, 1], reward: { gold: 2e11, runes: 200 }, final: true, ending: 2 },
 ];
 
 function rewardText(r) {
@@ -1342,11 +1388,20 @@ function claimQuest() {
   state.quest++;
   state.log.unshift({ text: `목표 달성: ${q.text}`, delta: "+" + rewardText(r) });
   sfx("fanfare");
-  if (q.final) { state.ended = true; showEnding(); }
+  if (q.final) { state.ended = true; showEnding(q.ending || 1); }
   commit();
 }
 
-function showEnding() {
+function showEnding(n = 1) {
+  if (n === 2) {
+    $("ending-title").textContent = "별을 벤 대장장이";
+    $("ending-text").innerHTML =
+      `별을 삼킨 자가 쓰러지고, 균열 너머에서 떨어지던 별들이 멈췄습니다.<br>당신이 벼린 검은 이제 하늘의 별마저 벨 수 있습니다.<br><br>` +
+      `최고 검 <b>+${state.best}</b> · 곡괭이 <b>+${state.pick}</b> · 장인 <b>Lv ${state.mlv}</b><br>별의 던전 클리어 <b>${state.dungeon2Clears}</b>회` +
+      `<br><br>두 번째 여정이 끝났습니다. 대장간의 불은 꺼지지 않아요. 던전 반복과 방어구 강화에 도전해 보세요.`;
+    $("ending").hidden = false;
+    return;
+  }
   $("ending-text").innerHTML =
     `킹 드래곤이 쓰러지고, 대장간의 이름이 온 대륙에 퍼졌습니다.<br>그때 하늘에서 별이 떨어지며 <b>월드 2</b>로 가는 길이 열렸습니다.<br><br>` +
     `최고 검 <b>+${state.best}</b> · 곡괭이 <b>+${state.pick}</b> · 장인 <b>Lv ${state.mlv}</b><br>캔 돌 <b>${state.mined.toLocaleString("ko-KR")}</b>개` +
@@ -1358,8 +1413,8 @@ function renderJourney() {
   const q = QUESTS[state.quest], pts = traitPts();
   let goal;
   if (!q) {
-    goal = `<div class="goal done"><small>지금 있는 목표를 모두 달성</small><b>월드 2의 다음 지역을 기다리는 중</b>
-      <span class="gtip">다음 업데이트에서 새 사냥터와 목표가 열려요 · 보스 던전 클리어 ${state.dungeonClears}회</span></div>`;
+    goal = `<div class="goal done"><small>여정 완료</small><b>별을 벤 대장장이</b>
+      <span class="gtip">별의 던전 클리어 ${state.dungeon2Clears}회 · 보스 던전 클리어 ${state.dungeonClears}회 · 던전 반복과 방어구 강화에 도전해 보세요</span></div>`;
   } else {
     const [a, b] = q.prog(), ok = a >= b;
     goal = `<div class="goal${ok ? " ready" : ""}">
@@ -2620,7 +2675,7 @@ let floorLost = false;
 function refreshFloors() {
   floorLost = false;
   for (const k in floorCache) delete floorCache[k];
-  if (run) run.floor = getFloor(run.zone.dungeon ? DUNGEON : run.zone);
+  if (run) run.floor = getFloor(run.zone.practice != null ? DUNGEON : run.zone);
 }
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") floorLost = true; });
 function getFloor(zone) {
@@ -3032,6 +3087,33 @@ function getFloor(zone) {
     for (const y of SAW_RAILS) { g.fillStyle = "rgba(0,0,0,.35)"; g.fillRect(0, y - 4, W, 8); g.fillStyle = "rgba(160,140,110,.5)"; g.fillRect(0, y - 1.5, W, 3); }
   }
 
+  if (zone.key === "shadow") {
+    // 돌로 된 미로 바닥
+    g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 2;
+    for (let y = 0; y < H; y += 40) for (let x = (y / 40 % 2) * 20; x < W; x += 40) g.strokeRect(x, y, 40, 40);
+    blobs(30, ["rgba(90,70,140,.18)", "rgba(0,0,0,.35)"], 30, 90);
+    g.fillStyle = "rgba(40,34,60,.9)";
+    for (let i = 0; i < 9; i++) { const x = rnd(40, W - 80), y = rnd(80, H - 60); g.fillRect(x, y, rnd(40, 90), 10); g.fillRect(x, y, 10, rnd(30, 70)); }
+  } else if (zone.key === "abyss") {
+    blobs(40, ["rgba(0,0,0,.35)", "rgba(90,30,10,.3)"], 25, 80);
+    for (let i = 0; i < 70; i++) stone(rnd(0, W), rnd(0, H), rnd(8, 20), "rgba(30,14,10,.95)", "rgba(10,4,2,.7)");
+    g.save(); g.shadowColor = "#ff5a1a"; g.shadowBlur = 10; g.strokeStyle = "rgba(255,110,40,.7)"; g.lineWidth = 2;
+    for (let i = 0; i < 18; i++) crack(g, rnd(0, W), rnd(0, H), 6, 11);
+    g.restore();
+  } else if (zone.key === "rift" || zone.key === "dungeon2") {
+    const vg2 = g.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, H * 0.7);
+    vg2.addColorStop(0, zone.key === "rift" ? "#2a1a4a" : "#2a1838"); vg2.addColorStop(1, "#08060f");
+    g.fillStyle = vg2; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 160; i++) { g.fillStyle = `rgba(255,255,255,${rnd(0.2, 0.9)})`; g.beginPath(); g.arc(rnd(0, W), rnd(0, H), rnd(0.5, 1.8), 0, Math.PI * 2); g.fill(); }
+    for (let i = 0; i < 5; i++) { const x = rnd(0, W), y = rnd(0, H), rr = rnd(60, 130); const ng = g.createRadialGradient(x, y, 4, x, y, rr);
+      ng.addColorStop(0, i % 2 ? "rgba(255,159,224,.16)" : "rgba(143,216,255,.14)"); ng.addColorStop(1, "rgba(0,0,0,0)"); g.fillStyle = ng; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill(); }
+    // 떠 있는 바위 섬
+    for (let i = 0; i < 6; i++) { const x = rnd(50, W - 50), y = rnd(80, H - 60), rx = rnd(40, 70);
+      g.fillStyle = "rgba(0,0,0,.4)"; g.beginPath(); g.ellipse(x + 6, y + 10, rx, rx * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#2e2648"; g.beginPath(); g.ellipse(x, y, rx, rx * 0.5, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#3e3460"; g.beginPath(); g.ellipse(x - rx * 0.1, y - rx * 0.08, rx * 0.8, rx * 0.36, 0, 0, Math.PI * 2); g.fill(); }
+  }
+
   // 모든 사냥터: 가장자리를 살짝 어둡게
   const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)");
@@ -3139,6 +3221,18 @@ function drawProps(g, key, rnd) {
       boulder(x, y, r * 0.9, "#3d3258");
       g.save(); g.shadowColor = "#d6a8ff"; g.shadowBlur = 14;
       shard(x - r * 0.3, y + r * 0.1, r * 1.2, "#b48cff"); shard(x + r * 0.15, y, r * 1.7, "#e4ccff"); shard(x + r * 0.5, y + r * 0.2, r, "#9f86e0");
+      g.restore();
+    } else if (key === "shadow") {
+      g.fillStyle = "#1a1626"; g.fillRect(x - r, y - r, r * 2, r * 2);
+      g.fillStyle = "#2a2440"; g.fillRect(x - r * 0.85, y - r * 0.85, r * 1.7, r * 0.5);
+    } else if (key === "abyss") {
+      shadow(x, y, r * 0.8);
+      g.save(); g.shadowColor = "#ff5a1a"; g.shadowBlur = 12;
+      shard(x - r * 0.3, y + r * 0.1, r * 1.2, "#2a1610"); shard(x + r * 0.2, y, r * 1.6, "#1a0c08"); shard(x + r * 0.55, y + r * 0.2, r, "#2a1610");
+      g.restore();
+    } else if (key === "rift" || key === "dungeon2") {
+      g.save(); g.shadowColor = "#b8a8ff"; g.shadowBlur = 14;
+      shard(x - r * 0.3, y + r * 0.1, r * 1.1, "#6a5aa0"); shard(x + r * 0.15, y, r * 1.5, "#b8a8ff"); shard(x + r * 0.5, y + r * 0.2, r * 0.9, "#8a7ab8");
       g.restore();
     } else if (key === "swamp") {
       shadow(x, y, r * 0.8);
@@ -3653,6 +3747,20 @@ let run = null, raf = 0, lastT = 0, ctx = null, joy = null;
 const keys = new Set();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+function dungeon2Card() {
+  const lv = state.sword, D = DUNGEON2, P = DUNGEON2_PRIZE, n = D.bosses.length;
+  if (!dungeon2Open()) return `<div class="zone w2lock"><h3>${D.name}</h3><p>별의 균열에서 <b>별을 삼킨 자</b>를 처치하면 열려요.</p></div>`;
+  return `<h4 class="extra-h">월드 2 던전</h4>
+      <div class="zone" style="--zc:#ff9fe0">
+        <h3>${D.name}</h3>
+        <p class="${lv < D.rec ? "weak" : ""}">권장 검 +${D.rec}${lv < D.rec ? " · 지금 검으로는 위험해요" : ""}</p>
+        <p>월드 2 보스 ${n - 1}마리와 연달아 싸우고, 마지막에 <b>숨은 보스</b>가 나타나요. 보스를 잡을 때마다 체력 30% 회복.</p>
+        <p>보상은 모두 잡아야 한꺼번에: ${won(P.gold)} · ${matName("star")} ${P.mats.star} · 룬석 ${P.runes} · 월드 2 보스 재료 각 3개. 도중에 쓰러지면 보상 없음.</p>
+        <p>최고 기록 ${state.dungeon2Best}/${n} · 클리어 ${state.dungeon2Clears}회</p>
+        <button data-zone="dungeon2">입장</button>
+      </div>`;
+}
+
 function renderZones() {
   const lv = state.sword;
   const zones = (huntWorld === "2" ? ZONES2 : ZONES).map(z => `
@@ -3722,7 +3830,7 @@ function renderZones() {
       seg("world", huntWorld, [["1", "월드 1"], ["2", world2Open() ? "월드 2" : "월드 2 🔒"]]) +
       (huntWorld === "2" && !world2Open()
         ? `<div class="zone w2lock"><h3>월드 2: 별이 떨어진 대륙</h3><p>용의 둥지에서 <b>킹 드래곤</b>을 처치하면 열려요.</p><p>새 사냥터와 보스, 검 +125까지의 강화가 기다려요.</p></div>`
-        : huntWorld === "2" ? zones + `<p class="hint">다음 지역(그림자 미궁 ~ 별의 균열)과 월드 2 던전은 업데이트로 추가돼요.</p>`
+        : huntWorld === "2" ? zones + `` + dungeon2Card()
         : zones + `<h4 class="extra-h">추가 콘텐츠</h4>` + dungeonCard)
     : `<div class="skills-head"><h3>장착 스킬</h3><span>룬석 <b>${state.runes}</b>개</span></div>
        <div class="slots" style="grid-template-columns: repeat(${slotCount()}, 1fr)">${slots}</div>
@@ -3769,11 +3877,11 @@ function toggleEquip(key) {
 }
 
 function enterZone(key) {
-  const zone = key === DUNGEON.key ? DUNGEON : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : zoneByKey(key);
+  const zone = key === DUNGEON.key ? DUNGEON : key === DUNGEON2.key ? DUNGEON2 : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : zoneByKey(key);
   const arm = armorSnapshot();
   const hp = myHp() + (armorUnlocked() ? armorHpTotal() : 0);
   run = {
-    zone, atk: myAtk(), swordColor: COLORS[tierIndex(state.sword, ITEMS.sword)], charColor: CH[state.char].color, charKey: state.char, floor: getFloor(zone.dungeon ? DUNGEON : zone),
+    zone, atk: myAtk(), swordColor: COLORS[tierIndex(state.sword, ITEMS.sword)], charColor: CH[state.char].color, charKey: state.char, floor: getFloor(zone.practice != null ? DUNGEON : zone),
     p: { x: W / 2, y: H / 2, hp, max: hp, atkCd: 0, swing: 0, aim: -Math.PI / 2, hurt: 0,
          dir: { x: 0, y: -1 }, invuln: 0, dash: null },
     mobs: [], fx: [], rings: [], bombs: [], kills: 0, spawnCd: 0.6, over: false, time: 0,
@@ -3781,7 +3889,7 @@ function enterZone(key) {
     arrows: [], shots: [], hazards: [], bolts: [], zaps: [], fires: [], adds: [], parts: [], arrowCd: 1, revived: false,
     arm, trails: [], chains: [], chainCd: 0, starRevived: false, hard: isHard(zone),
     w2: { torn: [], ink: 0, sandT: 9, sand: 0, lanes: [], beams: [], prisons: [], booms: [], later: [], waves: [], pits: [], links: [], sweep: null, sweepCd: 0,
-          clouds: [], aura: null, gust: null, gustT: 7, saws: SAW_RAILS.map((y, i) => ({ x: i ? W - 40 : 40, y, v: i ? -150 : 150, cd: 0 })), fields: [], hands: null },
+          clouds: [], aura: null, gust: null, gustT: 7, saws: SAW_RAILS.map((y, i) => ({ x: i ? W - 40 : 40, y, v: i ? -150 : 150, cd: 0 })), fields: [], hands: null, lavaT: 2, lavas: [], safe: null },
     dungeon: zone.dungeon ? { stage: zone.practice ?? 0, wait: zone.practice != null ? 0.8 : 1.2, cleared: false, clearT: 0,
                               only: zone.practice != null, spawned: false } : null,
     loot: { gold: 0, kills: 0, bosses: 0, runes: 0, mats: {} },
@@ -3877,6 +3985,7 @@ const AMBIENT = {
   forest: ["160,200,110", 14, 20, 2.2, false], frost: ["255,255,255", 34, 46, 1.6, false], dungeon: ["176,122,255", 16, -12, 1.5, true],
   grave: ["160,230,220", 14, -10, 2, true], storm: ["200,215,255", 44, 300, 1, false],
   hell: ["255,120,50", 30, -70, 1.8, true], lair: ["255,215,120", 18, -8, 1.6, true],
+  shadow: ["150,130,210", 16, -6, 1.6, true], abyss: ["255,120,50", 34, -80, 1.8, true], rift: ["220,210,255", 40, -12, 1.3, true], dungeon2: ["255,180,240", 30, -10, 1.4, true],
   swamp: ["170,240,110", 22, -16, 1.8, true], sky: ["255,255,255", 30, 60, 1.4, false], clock: ["224,192,112", 16, -8, 1.4, true],
   desert: ["240,210,160", 26, 18, 1.4, false], crystal: ["214,168,255", 20, -10, 1.6, true], temple: ["150,230,240", 22, -24, 1.8, true],
 };
@@ -3911,7 +4020,7 @@ function ring(x, y, r, color) {
 // 방어구가 열리는 망자의 묘지 다음 사냥터(뇌운 봉우리부터)와 보스 던전은 몹이 조금 더 세다
 // 공격력 배율: 뒤로 갈수록 더 세게 (방어구 체력을 감안)
 const HARD_DMG = { storm: 1.5, hell: 1.6, lair: 1.7, dungeon: 1.7 }, HARD_HP = 1.1;
-const isHard = z => (!!z.dungeon && (z.practice == null || z.practice >= 6)) ? HARD_DMG.dungeon : HARD_DMG[z.key] ?? 0;
+const isHard = z => z.w2 ? 0 : (!!z.dungeon && (z.practice == null || z.practice >= 6)) ? HARD_DMG.dungeon : HARD_DMG[z.key] ?? 0;
 function hardened(m) {
   if (!run.hard) return m;
   m.dmg = Math.round(m.dmg * run.hard);
@@ -3933,6 +4042,25 @@ function spawn(boss) {
     : { boss: false, kind: b.kind, name: b.name, color: b.color, x, y, hp: b.hp, max: b.hp, dmg: b.dmg,
         speed: b.speed * (0.85 + Math.random() * 0.3), r: b.r, gold: b.gold, face: 0, hitCd: 0, flash: 0,
         contact: b.contact, shootCd: 1 + Math.random() * 1.5, atkCd: 0, atk: 0, phase: Math.random() * 6 }));
+  if (boss && z.boss.twins) addTwin(run.mobs[run.mobs.length - 1], z.boss);
+}
+// 그림자 쌍둥이: 보스 하나를 둘로 나누고 서로 짝으로 묶음
+function addTwin(a, def) {
+  a.hp = a.max = a.max / 2;
+  const b = { ...a, x: clamp(W - a.x, 40, W - 40), side: 1, color: "#a090d0", lootN: 0, flash: 0 };
+  a.side = 0; a.partner = b; b.partner = a;
+  run.mobs.push(b);
+}
+function twinDown(m) {
+  if (m.kind !== "shadowTwin" || !m.partner) return false;
+  const o = m.partner;
+  if (!o.dead && !(o.downed > 0)) {
+    m.hp = 0; m.downed = 5; m.ghost = 99; m.mode = "downed";
+    fx(m.x, m.y - m.r - 18, "쓰러짐! 5초 안에 다른 쪽을 잡으세요", "#b8a8ff", 14);
+    return true;
+  }
+  if (o.downed > 0) o.dead = true;   // 둘 다 쓰러뜨림: 짝은 보상 없이 사라지고 이쪽이 보상
+  return false;
 }
 
 function splitSlime(m) {
@@ -3946,12 +4074,13 @@ function splitSlime(m) {
 }
 
 function spawnDungeonBoss() {
-  const d = run.dungeon, b = DUNGEON.bosses[d.stage];
+  const d = run.dungeon, DG = run.zone, b = DG.bosses[d.stage];
   d.stage++;
   run.mobs.push(hardened({ boss: true, kind: b.kind, name: b.name, color: b.color, x: W / 2, y: 110, hp: b.hp, max: b.hp,
                   dmg: b.dmg, speed: b.speed, baseSpeed: b.speed, r: b.r, gold: 0, mat: b.mat, dashSpeed: b.dashSpeed,
                   mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, face: Math.PI / 2, combo: 1, hitCd: 0, flash: 0, phase: 0 }));
-  fx(W / 2, H / 2 - 60, `${d.stage}/${DUNGEON.bosses.length} ${b.name}`, "#ffd24a", 22);
+  if (b.twins) addTwin(run.mobs[run.mobs.length - 1], b);
+  fx(W / 2, H / 2 - 60, b.hidden ? "숨은 보스 등장!" : `${d.stage}/${DG.bosses.length - (DG.w2 ? 1 : 0)} ${b.name}`, b.hidden ? "#ff9fe0" : "#ffd24a", 22);
   sfx("bossIn");
 }
 
@@ -3969,7 +4098,7 @@ function dungeonStep(dt, bossAlive) {
     }
     return;
   }
-  if (d.stage >= DUNGEON.bosses.length) {
+  if (d.stage >= run.zone.bosses.length) {
     if (!d.cleared) { d.cleared = true; d.clearT = 1.5; dungeonClear(); }
     d.clearT -= dt;
     if (d.clearT <= 0) endRun("clear");
@@ -3987,10 +4116,11 @@ function dungeonReward(m) {
     return;
   }
   // 보상은 보스마다 주지 않고, 9마리를 모두 잡았을 때 한꺼번에 준다
-  lootFx(m, `${d.stage}/${DUNGEON.bosses.length} 처치!`, "#ffd24a", 16);
+  const DG = run.zone;
+  lootFx(m, `${d.stage}/${DG.bosses.length} 처치!`, "#ffd24a", 16);
   run.loot.bosses++;
-  state.dungeonBest = Math.max(state.dungeonBest, d.stage);
-  state.log.unshift({ text: `던전 ${d.stage}/${DUNGEON.bosses.length} ${m.name} 처치`, delta: "보상은 클리어 때" });
+  if (DG.w2) state.dungeon2Best = Math.max(state.dungeon2Best, d.stage); else state.dungeonBest = Math.max(state.dungeonBest, d.stage);
+  state.log.unshift({ text: `${DG.name} ${d.stage}/${DG.bosses.length} ${m.name} 처치`, delta: "보상은 클리어 때" });
   run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * DUNGEON_HEAL);
   d.wait = 2.5;
 }
@@ -4007,15 +4137,23 @@ const DUNGEON_PRIZE = (() => {
   return { gold: DUNGEON_GOLD * sum, xp: 150 * sum, runes: 3 * n + sum + 30, mats };
 })();
 
+// 별의 던전 보상: 월드 2 보스 재료 각 3개 + 별의 핵 5개
+const DUNGEON2_PRIZE = (() => {
+  const mats = { star: 300 };
+  for (const z of ZONES2) mats[z.boss.mat] = (mats[z.boss.mat] || 0) + 3;
+  mats.score += 2;
+  return { gold: 5e10, xp: 60000, runes: 300, mats };
+})();
+
 function dungeonClear() {
-  const P = DUNGEON_PRIZE;
+  const P = run.zone.w2 ? DUNGEON2_PRIZE : DUNGEON_PRIZE;
   state.gold += P.gold;
   run.loot.gold += P.gold;
   gainXp(P.xp);
   state.runes += P.runes;
   run.loot.runes += P.runes;
   for (const [k, n] of Object.entries(P.mats)) gainMat(k, n);
-  state.dungeonClears++;
+  if (run.zone.w2) state.dungeon2Clears++; else state.dungeonClears++;
   fx(W / 2, H / 2 - 70, "던전 클리어!", "#ffd24a", 26, 20, 2.2);
   fx(W / 2, H / 2 - 38, "+" + won(P.gold), "#f0c35a", 18, 20, 2.2);
   fx(W / 2, H / 2 - 14, `${matName("star")} +${P.mats.star} · 룬석 +${P.runes}`, "#ffc6f0", 15, 20, 2.2);
@@ -4047,6 +4185,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
       return;
     }
   }
+  if (m.kind === "obsidian" && !(m.open > 0)) { mult *= 0.3; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "단단함", "#8a8a9a", 11); }
   const critLv = passiveLv("crit");
   const crit = critLv && Math.random() * 100 < SK.crit.chance(critLv);
   if (isChar("hunter") && m.boss) mult *= 2;
@@ -4070,6 +4209,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   if (run.buff.drain > 0 && run.time - (run.drainAt ?? -9) >= 0.3) { heal += run.buff.drainHeal; run.drainAt = run.time; }
   if (heal) run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * heal);
   if (m.hp <= 0) {
+    if (twinDown(m)) return;
     m.dead = true;
     kill(m);
   }
@@ -4311,6 +4451,18 @@ function update(dt) {
 
   // 적의 화살
   for (const sh of r.shots) {
+    if (sh.home) {
+      const sp = Math.hypot(sh.vx, sh.vy), cur = Math.atan2(sh.vy, sh.vx);
+      let da = Math.atan2(p.y - sh.y, p.x - sh.x) - cur; da = Math.atan2(Math.sin(da), Math.cos(da));
+      const na = cur + clamp(da, -sh.home * dt, sh.home * dt);
+      sh.vx = Math.cos(na) * sp; sh.vy = Math.sin(na) * sp;
+    }
+    if (sh.split != null && (sh.split -= dt) <= 0) {
+      sh.t = 0;
+      const a0 = Math.atan2(sh.vy, sh.vx);
+      for (let k = -2; k <= 2; k++) r.adds2 = (r.adds2 || []).concat({ x: sh.x, y: sh.y, vx: Math.cos(a0 + k * 0.35) * 230, vy: Math.sin(a0 + k * 0.35) * 230, dmg: Math.round(sh.dmg * 0.6), t: 2, ball: "#e8e0ff", owner: sh.owner });
+      continue;
+    }
     sh.x += sh.vx * dt;
     sh.y += sh.vy * dt;
     sh.t -= dt;
@@ -4327,6 +4479,7 @@ function update(dt) {
     }
   }
   r.shots = r.shots.filter(sh => sh.t > 0);
+  if (r.adds2) { r.shots.push(...r.adds2); r.adds2 = null; }
 
   // 하늘에서 떨어지는 고드름 (얼음 드래곤)
   for (const h of r.hazards) {
@@ -4503,7 +4656,7 @@ function dotHit(m, dmg) {
   if (m.dead || m.mode === "ascend" || m.mode === "blinkOut" || m.ghost > 0) return;
   m.hp -= dmg;
   m.dotAcc = (m.dotAcc || 0) + dmg;
-  if (m.hp <= 0) { m.dead = true; kill(m); }
+  if (m.hp <= 0) { if (twinDown(m)) return; m.dead = true; kill(m); }
 }
 
 function armorMobTick(m, dt) {
@@ -6000,11 +6153,12 @@ const DRAW = {
   thunderDragon: (m, t) => { drawDragon(m, t, DRAGON_THUNDER); sparks(m, t); },
   scorpion: drawScorpion, bandit: drawBandit, crystalBat: drawCrystalBat, crystalGolem: drawCrystalGolem,
   jelly: drawJelly, merman: drawMerman, sporeShroom: drawSporeShroom, leech: drawLeech, windSprite: drawWindSprite, gryphling: drawGryphling,
-  clockSoldier: drawClockSoldier, turret: drawTurret, mushKing: drawMushKing, griffon: drawGriffon, timeKnight: drawTimeKnight, qclone: (m, t) => { ctx.globalAlpha = 0.6 + 0.2 * Math.sin(t * 6); drawCrystalQueen(m, t); ctx.globalAlpha = 1; }, sandWorm: drawSandWorm, crystalQueen: drawCrystalQueen, kraken: drawKraken,
+  clockSoldier: drawClockSoldier, turret: drawTurret, assassin: drawAssassin, specter: drawSpecter, lavaSprite: drawLavaSprite,
+  obsidian: drawObsidian, voidTentacle: drawVoidTentacle, starSentinel: drawStarSentinel, shadowTwin: drawShadowTwin, colossus: drawColossus, devourer: drawDevourer, mushKing: drawMushKing, griffon: drawGriffon, timeKnight: drawTimeKnight, qclone: (m, t) => { ctx.globalAlpha = 0.6 + 0.2 * Math.sin(t * 6); drawCrystalQueen(m, t); ctx.globalAlpha = 1; }, sandWorm: drawSandWorm, crystalQueen: drawCrystalQueen, kraken: drawKraken,
 };
 // 위아래가 있는 몹(슬라임, 박쥐, 골렘)은 회전하지 않고, 나머지는 바라보는 방향으로 돌린다
 const UPRIGHT = new Set(["slime", "slimeKing", "bat", "golem", "iceGolem", "iceBomb", "reaper", "dokkaebi", "wraith", "spark", "imp", "grunt",
-  "crystalBat", "crystalGolem", "jelly", "crystalQueen", "kraken", "sandWorm", "qclone", "sporeShroom", "windSprite", "mushKing", "timeKnight"]);
+  "crystalBat", "crystalGolem", "jelly", "crystalQueen", "kraken", "sandWorm", "qclone", "sporeShroom", "windSprite", "mushKing", "timeKnight", "specter", "lavaSprite", "obsidian", "voidTentacle", "shadowTwin", "colossus", "devourer"]);
 
 // ── 월드 2 몹 그림 ──
 function drawScorpion(m, t) {
@@ -6161,6 +6315,95 @@ function drawTimeKnight(m, t) {
   ctx.fillStyle = "#16130f"; ctx.fillRect(-r * 0.25, -r * 0.5, r * 0.5, r * 0.08);
   ctx.strokeStyle = "#e8eef5"; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(r * 0.5, r * 0.4); ctx.lineTo(r * 1.3, -r * 0.6); ctx.stroke();
 }
+function drawAssassin(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  ctx.globalAlpha = m.seen ? 1 : 0.18 + 0.08 * Math.sin(t * 5 + m.phase);
+  blob(0, 0, r * 0.9, r * 0.8, c);
+  poly([[r * 0.2, -r * 0.8], [r * 1.0, 0], [r * 0.2, r * 0.8]], shade(m.color, 0.15));
+  blob(r * 0.35, -r * 0.2, r * 0.1, r * 0.06, "#ff5f8a"); blob(r * 0.35, r * 0.2, r * 0.1, r * 0.06, "#ff5f8a");
+  ctx.strokeStyle = "#d8dce6"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(r * 0.5, r * 0.6); ctx.lineTo(r * 1.5, r * 0.75); ctx.stroke();
+  ctx.globalAlpha = 1;
+}
+function drawSpecter(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, bob = Math.sin(t * 2.5 + m.phase) * 3;
+  ctx.save(); ctx.globalAlpha = 0.8; ctx.shadowColor = "#9fb0d8"; ctx.shadowBlur = 12;
+  ctx.fillStyle = c; ctx.beginPath(); ctx.arc(0, bob - r * 0.2, r, Math.PI, 0);
+  for (let k = 0; k <= 4; k++) ctx.lineTo(r - k * r * 0.5, bob + r * 0.9 + (k % 2 ? -r * 0.3 : 0));
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  blob(-r * 0.3, bob - r * 0.25, r * 0.15, r * 0.2, "#1a1626"); blob(r * 0.3, bob - r * 0.25, r * 0.15, r * 0.2, "#1a1626");
+  // 손에 든 등불
+  blob(r * 0.9, bob + r * 0.2, r * 0.22, r * 0.25, "rgba(160,140,255,.9)");
+}
+function drawLavaSprite(m, t) {
+  const r = m.r;
+  ctx.save(); ctx.shadowColor = "#ff5a1a"; ctx.shadowBlur = 14;
+  for (let k = 0; k < 3; k++) poly([[-r * 0.6 + k * r * 0.6, -r * 0.2], [-r * 0.3 + k * r * 0.6, -r * (1.3 + Math.sin(t * 9 + k + m.phase) * 0.3)], [k * r * 0.6, -r * 0.2]], "#ffb03d");
+  blob(0, 0, r, r * 0.9, m.flash > 0 ? "#ffffff" : m.color);
+  ctx.restore();
+  blob(0, r * 0.1, r * 0.55, r * 0.45, "#ffd24a");
+  blob(-r * 0.25, -r * 0.1, r * 0.09, r * 0.12, "#3a1206"); blob(r * 0.25, -r * 0.1, r * 0.09, r * 0.12, "#3a1206");
+}
+function drawObsidian(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, raise = m.atk > 0 ? -r * 0.6 * (1 - m.atk) : 0;
+  blob(0, 0, r, r * 0.9, c);
+  poly([[-r * 0.8, -r * 0.6], [-r * 0.3, -r * 1.1], [r * 0.1, -r * 0.6]], "#4a4458"); poly([[r * 0.1, -r * 0.6], [r * 0.5, -r * 1.2], [r * 0.85, -r * 0.5]], "#4a4458");
+  ctx.strokeStyle = m.open > 0 ? "#ffd24a" : "rgba(255,110,40,.8)"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.1); ctx.lineTo(0, r * 0.25); ctx.lineTo(r * 0.45, -r * 0.05); ctx.stroke();
+  ctx.fillStyle = "#6a6070"; ctx.fillRect(r * 0.7, -r * 0.2 + raise, r * 0.9, r * 0.4);
+  if (!(m.open > 0)) { ctx.strokeStyle = "rgba(180,180,200,.35)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r * 1.15, 0, Math.PI * 2); ctx.stroke(); }
+}
+function drawVoidTentacle(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, sw = m.swing > 0 ? Math.sin(m.swing * 10) * 0.6 : Math.sin(t * 2 + m.phase) * 0.2;
+  blob(0, r * 0.5, r * 1.1, r * 0.5, "#1a1028");
+  ctx.strokeStyle = c; ctx.lineCap = "round";
+  for (let k = 0; k < 3; k++) { ctx.lineWidth = r * (0.5 - k * 0.12); ctx.beginPath(); ctx.moveTo(0, r * 0.4); ctx.quadraticCurveTo(Math.sin(sw + k) * r, -r * 0.5, Math.sin(sw * 2 + k) * r * 0.8, -r * (1.3 + k * 0.2)); ctx.stroke(); }
+  blob(0, -r * 0.2, r * 0.18, r * 0.18, "#ff9fe0");
+}
+function drawStarSentinel(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  ctx.save(); ctx.shadowColor = "#e8e0ff"; ctx.shadowBlur = 12;
+  poly([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(k => [Math.cos(k * 0.628 + t) * (k % 2 ? r * 0.45 : r), Math.sin(k * 0.628 + t) * (k % 2 ? r * 0.45 : r)]), c);
+  ctx.restore();
+  blob(0, 0, r * 0.3, r * 0.3, "#3a2a6a"); blob(r * 0.05, 0, r * 0.12, r * 0.12, "#ffffff");
+}
+function drawShadowTwin(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  if (m.mode === "downed") { ctx.globalAlpha = 0.35; ctx.rotate(Math.PI / 2); }
+  ctx.save(); ctx.shadowColor = m.side ? "#a090d0" : "#5a4a90"; ctx.shadowBlur = 16;
+  poly([[-r * 0.9, r * 1.0], [-r * 0.6, -r * 0.3], [r * 0.6, -r * 0.3], [r * 0.9, r * 1.0]], shade(m.color, -0.3));
+  ctx.restore();
+  blob(0, -r * 0.55, r * 0.5, r * 0.5, c);
+  // 반쪽짜리 가면 (서로 반대쪽)
+  ctx.fillStyle = "#f3ecff"; ctx.beginPath(); ctx.arc(0, -r * 0.55, r * 0.42, m.side ? -Math.PI / 2 : Math.PI / 2, m.side ? Math.PI / 2 : Math.PI * 1.5); ctx.fill();
+  blob(m.side ? r * 0.18 : -r * 0.18, -r * 0.6, r * 0.08, r * 0.1, "#1a1626");
+  ctx.globalAlpha = 1;
+}
+function drawColossus(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  ctx.save(); ctx.shadowColor = "#ff5a1a"; ctx.shadowBlur = 20;
+  blob(-r * 1.0, r * 0.1, r * 0.4, r * 0.5, shade(m.color, -0.2)); blob(r * 1.0, r * 0.1, r * 0.4, r * 0.5, shade(m.color, -0.2));
+  blob(0, 0, r, r * 0.95, c);
+  ctx.restore();
+  ctx.strokeStyle = "#ffb03d"; ctx.lineWidth = 3;
+  for (const [x1, y1, x2, y2] of [[-0.6, -0.4, -0.1, 0.2], [0.1, -0.6, 0.5, 0.1], [-0.3, 0.4, 0.3, 0.6]]) { ctx.beginPath(); ctx.moveTo(r * x1, r * y1); ctx.lineTo(r * x2, r * y2); ctx.stroke(); }
+  blob(0, -r * 0.55, r * 0.45, r * 0.35, shade(m.color, -0.3));
+  blob(-r * 0.18, -r * 0.55, r * 0.1, r * 0.08, "#ffd24a"); blob(r * 0.18, -r * 0.55, r * 0.1, r * 0.08, "#ffd24a");
+  for (let k = 0; k < 3; k++) poly([[-r * 0.3 + k * r * 0.3, -r * 0.85], [-r * 0.2 + k * r * 0.3, -r * (1.25 + Math.sin(t * 6 + k) * 0.15)], [-r * 0.1 + k * r * 0.3, -r * 0.85]], "#ff8a3d");
+}
+function drawDevourer(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, st = m.stage || 0;
+  if (m.ghost > 0 && m.mode !== "howl") ctx.globalAlpha = 0.3;
+  // 소용돌이치는 몸
+  for (let k = 0; k < 3; k++) { ctx.strokeStyle = ["rgba(255,159,224,.5)", "rgba(143,216,255,.45)", "rgba(255,246,255,.4)"][k]; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(0, 0, r * (1.1 + k * 0.2), t * (1 + k) + k, t * (1 + k) + k + 4.2); ctx.stroke(); }
+  ctx.save(); ctx.shadowColor = st === 2 ? "#ff5f8a" : "#b8a8ff"; ctx.shadowBlur = 24;
+  blob(0, 0, r, r, c);
+  ctx.restore();
+  blob(0, 0, r * 0.62, r * 0.62, "#08060f");
+  for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2 + t * 0.6; blob(Math.cos(a) * r * 0.45, Math.sin(a) * r * 0.45, 2, 2, "#ffffff"); }
+  for (let k = 0; k <= st; k++) blob((k - st / 2) * r * 0.35, -r * 0.15, r * 0.12, r * 0.16, st === 2 ? "#ff5f8a" : "#fff3a0");
+  ctx.globalAlpha = 1;
+}
 // ── 월드 2 보스 그림 ──
 function drawSandWorm(m, t) {
   const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
@@ -6213,7 +6456,13 @@ function drawKraken(m, t) {
 }
 
 // ── 월드 2 보스 행동 ── 체력 50% 아래에서 분노: 기술이 강해지고 더 자주 씀. 같은 기술은 연달아 쓰지 않음
-const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken", "mushKing", "griffon", "timeKnight"]);
+const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken", "mushKing", "griffon", "timeKnight", "shadowTwin", "colossus", "devourer"]);
+// 별을 삼킨 자: 체력에 따라 3단계, 단계마다 앞의 보스들 기술을 섞어 씀
+const DEVOURER_PHASES = [
+  ["charge", "prism", "slam", "wave", "starfall"],
+  ["sporeRain", "dive", "hands", "gearRain", "blackhole", "starfall"],
+  ["meteor", "fissure", "blackhole", "starfall", "heatwave", "orbs"],
+];
 const W2_PATTERNS = {
   sandWorm: ["burrow", "charge", "tornado", "spit", "quicksand", "spit", "tornado"],   // 땅속 기술 2/7
   crystalQueen: ["prism", "sweep", "rain", "prison", "clones", "shards"],
@@ -6221,6 +6470,8 @@ const W2_PATTERNS = {
   mushKing: ["sporeRain", "bounce", "toxicAura", "sprouts", "spiral"],
   griffon: ["dive", "gale", "feathers", "featherBombs", "screech"],
   timeKnight: ["slowField", "echoDash", "hands", "gearRain", "rewind", "timeBombs"],
+  shadowTwin: ["echoDash", "orbs", "crossfire", "shadowPools"],
+  colossus: ["meteor", "fissure", "stomp", "magmaWave", "heatwave"],
 };
 const segDist = (px, py, x1, y1, x2, y2) => {
   const dx = x2 - x1, dy = y2 - y1, l = dx * dx + dy * dy || 1, k = clamp(((px - x1) * dx + (py - y1) * dy) / l, 0, 1);
@@ -6255,6 +6506,11 @@ function laneThrough(px, py, horizontal) {
 function hitBy(m, dmg, el) { curMob = m; const got = hurtPlayer(Math.round(dmg), el); curMob = null; return got; }
 
 function w2Pick(m) {
+  if (m.kind === "devourer") {
+    let list = DEVOURER_PHASES[m.stage || 0].filter(v => v !== m.last);
+    if (!list.length) list = DEVOURER_PHASES[m.stage || 0].slice(0, 1);
+    return (m.last = list[Math.floor(Math.random() * list.length)]);
+  }
   const clonesUp = run.mobs.some(o => o.kind === "qclone" && !o.dead);
   let moves = W2_PATTERNS[m.kind].filter(v => v !== m.last && !(v === "clones" && clonesUp));
   if (!moves.length) moves = W2_PATTERNS[m.kind].filter(v => v !== "clones");
@@ -6265,6 +6521,22 @@ function w2Pick(m) {
 function w2BossAI(m, dt) {
   const p = run.p, w = run.w2, toP = () => Math.atan2(p.y - m.y, p.x - m.x), E = !!m.enraged;
   if (m.kind === "kraken" && !m.placed) { m.placed = true; m.x = W / 2; m.y = 96; m.face = Math.PI / 2; }
+  if (m.mode === "downed") {
+    m.downed -= dt;
+    if (m.downed <= 0) { m.hp = m.max * 0.4; m.ghost = 0; m.mode = "chase"; m.cd = 0.8; ring(m.x, m.y, 50, "#b8a8ff"); fx(m.x, m.y - m.r - 18, "부활!", "#b8a8ff", 16); }
+    return;
+  }
+  if (m.kind === "devourer") {
+    const st = m.hp < m.max / 3 ? 2 : m.hp < m.max * 2 / 3 ? 1 : 0;
+    if (st > (m.stage || 0)) {
+      m.stage = st; m.enraged = st === 2;
+      m.mode = "howl"; m.timer = 1.2; m.ghost = 1.2; w.beams = []; w.sweep = null; w.hands = null;
+      ring(m.x, m.y, 120, "#ff9fe0"); ring(m.x, m.y, 80, "#ffffff"); sfx("bossIn"); run.quake = 0.4;
+      fx(m.x, m.y - m.r - 24, st === 1 ? "2단계: 하늘과 시간을 삼킨다" : "3단계: 모든 것을 삼킨다", "#ff9fe0", 16);
+      return;
+    }
+    if (m.ghost > 0 && m.mode === "howl") { m.ghost -= dt; if (m.ghost <= 0) m.ghost = 0; }
+  }
   if (!m.enraged && m.hp < m.max * 0.5) {
     m.enraged = true;
     fx(m.x, m.y - m.r - 20, "분노! 패턴이 강해집니다", "#ff5f56", 17);
@@ -6425,6 +6697,17 @@ function w2BossAI(m, dt) {
       if (m.timer > 0) return;
       if (--m.dives > 0) W2_START.echoDash(m, p, w, toP, E, true);
       else done();
+      return;
+    }
+    case "blackhole": {
+      // 블랙홀: 보스 쪽으로 강하게 끌어당기며 별 조각이 돎
+      if (!p.dash && Math.hypot(m.x - p.x, m.y - p.y) > m.r + 30) {
+        const a = Math.atan2(m.y - p.y, m.x - p.x), pull = (E ? 110 : 85) * dt;
+        p.x = clamp(p.x + Math.cos(a) * pull, P_R, W - P_R); p.y = clamp(p.y + Math.sin(a) * pull, P_R, H - P_R);
+      }
+      m.spinCd -= dt;
+      if (m.spinCd <= 0) { m.spinCd = 0.22; m.spinA += 0.5; for (let k = 0; k < 3; k++) w2Shot(m, m.spinA + k * 2.09, 150, m.dmg * 0.35, "#e8e0ff"); }
+      if (m.timer <= 0) done();
       return;
     }
     // 심해 크라켄
@@ -6652,6 +6935,69 @@ const W2_START = {
     for (let k = 0; k < n; k++) { const a = Math.random() * Math.PI * 2, d = k ? 60 + Math.random() * 80 : 0; w2Boom(p.x + Math.cos(a) * d, p.y + Math.sin(a) * d, 70, 1.0 + k * 0.5, m.dmg * 0.8, "255,95,86", m, "slow"); }
     fx(p.x, p.y - 40, "시한 폭탄!", "#ff5f56", 15);
   },
+  // ── 그림자 쌍둥이 ──
+  orbs(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.8;
+    const n = E ? 7 : 5;
+    for (let k = 0; k < n; k++) w2Shot(m, toP() + (k - (n - 1) / 2) * 0.5, 150, m.dmg * 0.5, "#6a5aa0", { home: 1.6, t: 4.5 });
+    fx(m.x, m.y - m.r - 18, "어둠의 구슬 (따라와요)", "#b8a8ff", 13);
+  },
+  crossfire(m, p, w, toP, E) {
+    // 둘이 동시에 나를 가로지르는 그림자 베기
+    m.mode = "howl"; m.timer = 1.0;
+    for (const t of [m, m.partner].filter(o => o && !o.dead && !(o.downed > 0))) {
+      const a = Math.atan2(p.y - t.y, p.x - t.x);
+      w2Lane([t.x, t.y, t.x + Math.cos(a) * 800, t.y + Math.sin(a) * 800], 48, E ? 0.7 : 0.9, m.dmg, m, "time");
+      if (E) for (const o of [-0.3, 0.3]) w2Lane([t.x, t.y, t.x + Math.cos(a + o) * 800, t.y + Math.sin(a + o) * 800], 40, 1.0, m.dmg * 0.8, m, "time");
+    }
+  },
+  shadowPools(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6;
+    const n = E ? 7 : 5;
+    for (let k = 0; k < n; k++) w2Later(k * 0.35, () => { if (!m.dead) w2Boom(run.p.x, run.p.y, 46, 0.8, m.dmg * 0.7, "106,90,160", m, "slow"); });
+  },
+  // ── 화산 거신 ──
+  meteor(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.8;
+    const n = E ? 12 : 8;
+    w2Boom(p.x, p.y, 58, 1.1, m.dmg * 0.9, "255,110,40", m, null, "fire");
+    for (let k = 1; k < n; k++) w2Boom(p.x + (Math.random() - 0.5) * 340, p.y + (Math.random() - 0.5) * 340, 58, 1.0 + k * 0.08, m.dmg * 0.9, "255,110,40", m, null, "fire");
+    for (const b of w.booms.slice(-n)) b.fire = true;
+    fx(m.x, m.y - m.r - 20, "운석!", "#ff8a3d", 16);
+  },
+  fissure(m, p, w, toP, E) {
+    // 거신을 중심으로 사방으로 갈라지는 땅
+    m.mode = "howl"; m.timer = 1.2;
+    const a0 = toP(), n = E ? 8 : 4;
+    for (let k = 0; k < n; k++) { const a = a0 + k / n * Math.PI * 2; w2Lane([m.x, m.y, m.x + Math.cos(a) * 800, m.y + Math.sin(a) * 800], 44, 0.9, m.dmg, m, "lava"); }
+    if (E) w2Later(1.0, () => { if (m.dead) return; const b0 = Math.atan2(run.p.y - m.y, run.p.x - m.x) + Math.PI / 8; for (let k = 0; k < 8; k++) { const a = b0 + k / 8 * Math.PI * 2; w2Lane([m.x, m.y, m.x + Math.cos(a) * 800, m.y + Math.sin(a) * 800], 44, 0.8, m.dmg, m, "lava"); } });
+  },
+  stomp(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 1.2;
+    w2Boom(m.x, m.y, E ? 170 : 145, 1.0, m.dmg * 1.2, "255,110,40", m, "knock", "fire");
+    fx(m.x, m.y - m.r - 20, "발 구르기! 멀어지세요", "#ff8a3d", 15);
+  },
+  magmaWave(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 1.2;
+    const one = () => w.waves.push({ y: 150, gap: 50 + Math.random() * (W - 100), gw: 96, dmg: m.dmg, hit: false, warn: 0.8, owner: m, lava: true });
+    one(); if (E) w2Later(1.2, () => !m.dead && one());
+  },
+  heatwave(m, p, w, toP, E) {
+    // 열파: 파란 안전지대 안에 있어야 함 (분노 전에는 발 구르기로 대신)
+    if (!E && m.kind === "colossus") return W2_START.stomp(m, p, w, toP, E);
+    m.mode = "howl"; m.timer = 2.4;
+    w.safe = { t: 2.2, max: 2.2, dmg: m.dmg * 1.5, owner: m,
+      zones: [0, 1].map(() => ({ x: 70 + Math.random() * (W - 140), y: 190 + Math.random() * (H - 260), r: 55 })) };
+    fx(W / 2, 150, "열파! 파란 원 안으로", "#8fd8ff", 18); sfx("bossIn");
+  },
+  // ── 별을 삼킨 자 ──
+  starfall(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.8;
+    const n = E ? 16 : 11;
+    for (let k = 0; k < n; k++) w2Boom(k ? 40 + Math.random() * (W - 80) : p.x, k ? 160 + Math.random() * (H - 220) : p.y, 44, 0.9 + k * 0.06, m.dmg * 0.75, "255,159,224", m);
+    fx(m.x, m.y - m.r - 20, "별똥별!", "#ff9fe0", 16);
+  },
+  blackhole(m, p, w, toP, E) { m.mode = "blackhole"; m.timer = 3; m.spinCd = 0; m.spinA = 0; fx(m.x, m.y - m.r - 20, "블랙홀! 버티세요", "#e8e0ff", 16); sfx("whirl"); },
   summon(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.6;
     if (run.mobs.filter(o => !o.dead).length < 6) for (const s of [-1, 1]) {
@@ -6816,6 +7162,66 @@ const W2AI = {
     }
     if (m.charge > 0) m.charge -= dt;
   },
+  // 그림자 암살자: 멀리서는 거의 안 보이고, 가까이 오면 드러나며 찌르기
+  assassin(m, ax, ay, d, slow, dt) {
+    m.cd2 = (m.cd2 ?? 1.5) - dt;
+    m.seen = d < 120 || m.lunge;
+    if (m.lunge) {
+      const L = m.lunge; L.t -= dt;
+      if (L.t > 0.3) return;
+      m.x = clamp(m.x + Math.cos(L.a) * 480 * dt, m.r, W - m.r); m.y = clamp(m.y + Math.sin(L.a) * 480 * dt, m.r, H - m.r);
+      if (!L.hit && Math.hypot(run.p.x - m.x, run.p.y - m.y) < m.r + P_R + 4 && hitBy(m, m.dmg * 1.1)) L.hit = true;
+      if (L.t <= 0) { m.lunge = null; m.cd2 = 2.4; }
+      return;
+    }
+    if (d < 110 && m.cd2 <= 0) { m.lunge = { a: Math.atan2(ay, ax), t: 0.7, hit: false }; m.face = m.lunge.a; return; }
+    m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt; m.face = Math.atan2(ay, ax);
+  },
+  // 망령: 거리를 두고 떠다니며 따라오는 어둠 구슬
+  specter(m, ax, ay, d, slow, dt) {
+    const go = d > 190 ? 1 : d < 130 ? -0.6 : 0;
+    m.x = clamp(m.x + ax / d * m.speed * slow * dt * go + Math.sin(run.time * 1.5 + m.phase) * 15 * dt, m.r, W - m.r);
+    m.y = clamp(m.y + ay / d * m.speed * slow * dt * go, m.r, H - m.r);
+    m.cd2 = (m.cd2 ?? 2) - dt;
+    if (m.cd2 <= 0) { m.cd2 = 3.2; w2Shot(m, Math.atan2(ay, ax), 140, m.dmg * 0.7, "#6a5aa0", { home: 1.3, t: 4 }); }
+  },
+  // 용암 정령: 지나간 자리에 불길
+  lavaSprite(m, ax, ay, d, slow, dt) {
+    m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt;
+    m.cd2 = (m.cd2 ?? 0.4) - dt;
+    if (m.cd2 <= 0) { m.cd2 = 0.45; run.fires.push({ x: m.x, y: m.y, r: 18, t: 2.2, max: 2.2, dps: m.dmg * 0.3 }); }
+    if (d < m.r + P_R + 2 && (m.hitCd2 = (m.hitCd2 || 0) - dt) <= 0) { m.hitCd2 = 0.8; hitBy(m, m.dmg * 0.6, "fire"); }
+  },
+  // 흑요석 기사: 단단해서 피해 70% 막음. 땅을 찍은 뒤 1.5초 동안만 약해짐
+  obsidian(m, ax, ay, d, slow, dt) {
+    m.face = Math.atan2(ay, ax);
+    if (m.open > 0) m.open -= dt;
+    if (m.atk > 0) { m.atk -= dt; if (m.atk <= 0) { m.open = 1.5; fx(m.x, m.y - m.r - 10, "빈틈!", "#ffd24a", 12); } return; }
+    m.cd2 = (m.cd2 ?? 1.5) - dt;
+    if (d < 120 && m.cd2 <= 0) { m.cd2 = 4.2; m.atk = 1.0; w2Boom(m.x, m.y, 80, 1.0, m.dmg, "255,110,40", m, "knock", "fire"); return; }
+    if (d > m.r + P_R + 6) { m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt; }
+  },
+  // 공허 촉수: 땅에서 솟아 근처를 내려침, 가끔 자리를 옮김
+  voidTentacle(m, ax, ay, d, slow, dt) {
+    const p = run.p;
+    if (!m.placed || (m.move = (m.move ?? 9) - dt) <= 0) {
+      m.placed = true; m.move = 9;
+      ring(m.x, m.y, 26, "#5a3a8a");
+      m.x = clamp(p.x + (Math.random() - 0.5) * 300, 40, W - 40); m.y = clamp(p.y + (Math.random() - 0.5) * 300, 140, H - 40);
+      ring(m.x, m.y, 26, "#b8a8ff");
+    }
+    m.cd2 = (m.cd2 ?? 1.5) - dt;
+    if (m.cd2 <= 0) { m.cd2 = 2.8; m.swing = 0.6; const near = d < 230; w2Boom(near ? p.x : m.x, near ? p.y : m.y, 62, 0.9, m.dmg, "138,106,200", m, "slow"); }
+    if (m.swing > 0) m.swing -= dt;
+  },
+  // 별의 파수꾼: 날아가다 다섯 갈래로 갈라지는 별 화살
+  starSentinel(m, ax, ay, d, slow, dt) {
+    const go = d > 200 ? 1 : d < 140 ? -0.8 : 0;
+    m.x = clamp(m.x + ax / d * m.speed * slow * dt * go, m.r, W - m.r); m.y = clamp(m.y + ay / d * m.speed * slow * dt * go, m.r, H - m.r);
+    m.face = Math.atan2(ay, ax);
+    m.cd2 = (m.cd2 ?? 2) - dt;
+    if (m.cd2 <= 0) { m.cd2 = 3; w2Shot(m, m.face, 200, m.dmg * 0.8, "#fff6ff", { split: 0.55 }); }
+  },
   qclone(m, ax, ay, d, slow, dt) { m.life -= dt; if (m.life <= 0) { m.dead = true; ring(m.x, m.y, 30, "#e4ccff"); } },
 };
 
@@ -6850,6 +7256,7 @@ function w2Update(dt) {
     if (b.t > 0) continue;
     ring(b.x, b.y, b.r, `rgb(${b.col})`);
     if (b.cloud) w.clouds.push({ x: b.x, y: b.y, r: b.r, t: 3, max: 3, dps: b.dmg * 0.3 });
+    if (b.fire) run.fires.push({ x: b.x, y: b.y, r: b.r * 0.8, t: 2.5, max: 2.5, dps: b.dmg * 0.25 });
     if (Math.hypot(p.x - b.x, p.y - b.y) < b.r + P_R * 0.6 && hitBy(b.owner, b.dmg, b.el)) {
       if (b.eff === "slow") slowPlayer(1.5, 0.45);
       else if (b.eff === "stun") stunPlayer(0.5);
@@ -6873,7 +7280,7 @@ function w2Update(dt) {
     wv.y += 240 * dt;
     if (!wv.hit && Math.abs(p.y - wv.y) < 20 + P_R && Math.abs(p.x - wv.gap) > wv.gw / 2 - P_R * 0.5) {
       wv.hit = true;
-      if (hitBy(wv.owner, wv.dmg) && !p.dash) p.knock = { vx: 0, vy: 300, t: 0.18 };
+      if (hitBy(wv.owner, wv.dmg, wv.lava ? "fire" : null) && !p.dash) p.knock = { vx: 0, vy: 300, t: 0.18 };
     }
   }
   w.waves = w.waves.filter(wv => wv.y < H + 40);
@@ -6918,6 +7325,34 @@ function w2Update(dt) {
     sw.x += sw.v * dt; sw.cd -= dt;
     if (sw.x < 20 || sw.x > W - 20) { sw.v = -sw.v; sw.x = clamp(sw.x, 20, W - 20); }
     if (sw.cd <= 0 && Math.hypot(p.x - sw.x, p.y - sw.y) < 16 + P_R) { sw.cd = 0.8; hurtPlayer(Math.round((r.zone.mob?.dmg ?? 0) * 0.6)); }
+  }
+  // 용암 심연: 바닥이 주기적으로 용암으로 변함 (빨간 예고 1.2초 → 3초)
+  if (r.zone.key === "abyss") {
+    if ((w.lavaT -= dt) <= 0) {
+      w.lavaT = 3.2;
+      const lw = 110 + Math.random() * 60, lh = 80 + Math.random() * 50;
+      w.lavas.push({ x: clamp(p.x - lw / 2 + (Math.random() - 0.5) * 220, 0, W - lw), y: clamp(p.y - lh / 2 + (Math.random() - 0.5) * 220, 140, H - lh), w: lw, h: lh, warn: 1.2, t: 3 });
+    }
+    for (const L of w.lavas) {
+      if (L.warn > 0) { L.warn -= dt; continue; }
+      L.t -= dt;
+      if (p.x > L.x && p.x < L.x + L.w && p.y > L.y && p.y < L.y + L.h && !(p.invuln > 0)) { p.hp -= (r.zone.mob?.dmg ?? 0) * 0.6 * resistMul("fire") * dt; p.burnVis = 0.15; }
+    }
+    w.lavas = w.lavas.filter(L => L.warn > 0 || L.t > 0);
+  }
+  // 별의 균열: 두 중력장이 끌어당김
+  if (r.zone.key === "rift" && !p.dash) for (const [gx, gy] of RIFT_WELLS) {
+    const d = Math.hypot(gx - p.x, gy - p.y);
+    if (d < 210 && d > 8) { p.x += (gx - p.x) / d * 26 * dt; p.y += (gy - p.y) / d * 26 * dt; }
+  }
+  // 열파: 안전지대 밖이면 큰 피해
+  if (w.safe) {
+    w.safe.t -= dt;
+    if (w.safe.t <= 0) {
+      const ok = w.safe.zones.some(z => Math.hypot(p.x - z.x, p.y - z.y) < z.r);
+      if (!ok) hitBy(w.safe.owner, w.safe.dmg, "fire");
+      run.quake = 0.4; sfx("boom"); w.safe = null;
+    }
   }
   // 시간 감속 장판
   for (const f of w.fields) { f.t -= dt; if (Math.hypot(p.x - f.x, p.y - f.y) < f.r) { p.slowT = Math.max(p.slowT || 0, 0.1); p.slowAmt = Math.max(p.slowAmt || 0, 0.5); } }
@@ -6968,6 +7403,10 @@ function drawW2Under(r, t) {
         : ln.look === "echo" ? `rgba(224,192,112,${0.06 + 0.12 * k})` : `rgba(255,95,86,${0.1 + 0.18 * k})`;
       ctx.fillRect(0, -ln.w / 2, len, ln.w);
       ctx.strokeStyle = ln.look === "sand" ? "rgba(232,201,138,.8)" : "rgba(255,95,86,.7)"; ctx.setLineDash([8, 6]); ctx.lineWidth = 2; ctx.strokeRect(0, -ln.w / 2, len, ln.w);
+    } else if (ln.look === "lava") {
+      ctx.save(); ctx.shadowColor = "#ff5a1a"; ctx.shadowBlur = 12;
+      ctx.fillStyle = "rgba(255,110,40,.85)"; ctx.fillRect(0, -ln.w * 0.3, len, ln.w * 0.6);
+      ctx.fillStyle = "#ffd24a"; ctx.fillRect(0, -ln.w * 0.08, len, ln.w * 0.16); ctx.restore();
     } else if (ln.look === "time" || ln.look === "echo") {
       const al = ln.look === "echo" ? 0.45 : 0.85;
       ctx.fillStyle = `rgba(255,243,160,${al})`; ctx.fillRect(0, -ln.w * 0.2, len, ln.w * 0.4);
@@ -7021,7 +7460,7 @@ function drawW2Under(r, t) {
   // 해일
   for (const wv of w.waves) {
     const warn = wv.warn > 0, al = warn ? 0.35 + 0.3 * Math.sin(t * 20) : 0.85;
-    ctx.fillStyle = `rgba(80,190,220,${al})`;
+    ctx.fillStyle = wv.lava ? `rgba(255,100,30,${al})` : `rgba(80,190,220,${al})`;
     ctx.fillRect(0, wv.y - 18, wv.gap - wv.gw / 2, 36);
     ctx.fillRect(wv.gap + wv.gw / 2, wv.y - 18, W - wv.gap - wv.gw / 2, 36);
     ctx.fillStyle = `rgba(230,255,255,${al})`;
@@ -7035,6 +7474,28 @@ function drawW2Under(r, t) {
     ctx.beginPath(); ctx.moveTo(a.x, a.y);
     for (let k = 1; k < 6; k++) ctx.lineTo(a.x + (b.x - a.x) * k / 6 + (Math.random() - 0.5) * 10, a.y + (b.y - a.y) * k / 6 + (Math.random() - 0.5) * 10);
     ctx.lineTo(b.x, b.y); ctx.stroke(); ctx.restore();
+  }
+  // 용암으로 변하는 바닥
+  for (const L of w.lavas) {
+    if (L.warn > 0) {
+      ctx.fillStyle = `rgba(255,95,86,${0.12 + 0.2 * (1 - L.warn / 1.2)})`; ctx.fillRect(L.x, L.y, L.w, L.h);
+      ctx.strokeStyle = "rgba(255,95,86,.8)"; ctx.setLineDash([6, 5]); ctx.lineWidth = 2; ctx.strokeRect(L.x, L.y, L.w, L.h); ctx.setLineDash([]);
+    } else {
+      const k = Math.min(1, L.t / 0.4);
+      const g = ctx.createLinearGradient(L.x, L.y, L.x + L.w, L.y + L.h);
+      g.addColorStop(0, `rgba(255,90,20,${0.85 * k})`); g.addColorStop(0.5, `rgba(255,190,60,${0.9 * k})`); g.addColorStop(1, `rgba(255,90,20,${0.85 * k})`);
+      ctx.fillStyle = g; ctx.fillRect(L.x, L.y, L.w, L.h);
+    }
+  }
+  // 중력장
+  if (r.zone.key === "rift") for (const [gx, gy] of RIFT_WELLS) {
+    for (let k = 0; k < 4; k++) { ctx.strokeStyle = `rgba(184,168,255,${0.35 - k * 0.07})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gx, gy, 30 + ((t * 40 + k * 45) % 180), 0, Math.PI * 2); ctx.stroke(); }
+    blob(gx, gy, 14, 14, "#08060f"); ctx.strokeStyle = "#b8a8ff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gx, gy, 16, t * 3, t * 3 + 4); ctx.stroke();
+  }
+  // 열파 안전지대
+  if (w.safe) for (const z of w.safe.zones) {
+    ctx.fillStyle = "rgba(143,216,255,.25)"; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#8fd8ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(z.x, z.y, z.r, 0, Math.PI * 2); ctx.stroke();
   }
   // 독구름
   for (const c of w.clouds) {
@@ -7098,6 +7559,14 @@ function drawW2Over(r, t) {
     ctx.strokeStyle = `rgba(240,210,160,${0.5 * k})`; ctx.lineWidth = 1.5;
     for (let i = 0; i < 40; i++) { const x = ((i * 97 + t * 420) % (W + 60)) - 30, y = (i * 53) % H; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 22, y + 3); ctx.stroke(); }
   }
+  // 그림자 미궁: 주변만 보임
+  if (r.zone.key === "shadow") {
+    const g = ctx.createRadialGradient(p.x, p.y, 90, p.x, p.y, 210);
+    g.addColorStop(0, "rgba(8,6,14,0)"); g.addColorStop(1, "rgba(8,6,14,.88)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  // 열파 경고: 화면이 붉게 달아오름
+  if (w.safe) { ctx.fillStyle = `rgba(255,80,20,${0.12 + 0.12 * Math.sin(t * 12)})`; ctx.fillRect(0, 0, W, H); }
   // 하늘 정원 돌풍
   if (w.gust) {
     ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.lineWidth = 2;
@@ -7670,7 +8139,7 @@ function draw() {
   const boss = r.mobs.find(m => m.boss);
   const hudRight = r.dungeon
     ? r.dungeon.only ? "보스 연습"
-      : boss ? `던전 ${r.dungeon.stage}/${DUNGEON.bosses.length}` : r.dungeon.cleared ? "클리어!" : "다음 보스 준비…"
+      : boss ? `던전 ${r.dungeon.stage}/${r.zone.bosses.length}` : r.dungeon.cleared ? "클리어!" : "다음 보스 준비…"
     : boss ? "보스 등장!" : `보스까지 ${bossEvery() - r.kills}마리`;
   ctx.fillText(hudRight, W - 10, 19);
   if (boss) {
@@ -7730,7 +8199,7 @@ function endRun(dead) {
   $("result-title").textContent = dead === "clear" ? "던전 클리어!" : dead === "practice" ? "연습 완료" : dead ? "쓰러졌습니다" : "사냥을 마쳤습니다";
   $("result-loot").innerHTML =
     (run.dungeon?.only ? `${DUNGEON.bosses[run.zone.practice].name} ${l.bosses ? "처치" : "도전 실패"} · 연습이라 보상은 없어요`
-      : run.dungeon ? `보스 ${l.bosses}/${DUNGEON.bosses.length} 처치` : `몹 ${l.kills}마리 · 보스 ${l.bosses}마리`) +
+      : run.dungeon ? `보스 ${l.bosses}/${run.zone.bosses.length} 처치` : `몹 ${l.kills}마리 · 보스 ${l.bosses}마리`) +
     (run.dungeon?.only ? "" :
       `<br>골드 +${won(l.gold)}` +
       (mats.length ? `<br>${mats.join(" · ")}` : "") +
@@ -7817,7 +8286,7 @@ let saving = false;
 let dirty = false;
 
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
-                       mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0,
+                       mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
                        best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER });
 
@@ -7840,6 +8309,8 @@ function normalize(s) {
     lastTick: s.lastTick ?? 0,
     dungeonBest: s.dungeonBest ?? 0,
     dungeonClears: s.dungeonClears ?? 0,
+    dungeon2Best: s.dungeon2Best ?? 0,
+    dungeon2Clears: s.dungeon2Clears ?? 0,
     xp: s.xp ?? 0,
     mlv: Math.max(1, s.mlv ?? 1),
     traits: { str: 0, vit: 0, dex: 0, luck: 0, ...(s.traits || {}) },
