@@ -462,6 +462,9 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .dv-kills { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; }
 .dv-kills label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
 .mined.ac-lock { color: var(--bad); font-weight: 700; }
+#update-bar { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;
+  margin: -24px -16px 12px; padding: max(10px, env(safe-area-inset-top)) 12px 10px; background: #2a5a3a; color: #e8ffe8; font-size: 14px; }
+#update-bar button { border: 1px solid #7dffb2; background: #7dffb2; color: #102a18; border-radius: 8px; padding: 6px 14px; font-weight: 700; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; }
 .seg button { border: 0; border-radius: 7px; padding: 8px; font-size: 14px; color: var(--muted); }
 .seg button[aria-selected="true"] { background: var(--panel); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ember); }
@@ -627,6 +630,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
         <button id="coupon-btn">사용</button></div>
       <p class="hint" id="coupon-msg" role="status"></p>
     </div>
+    <p class="hint" id="version-line">게임 버전 </p>
     <div class="sound-row install-row" id="install-row" hidden>
       <span id="install-text">휴대폰 홈 화면에 앱으로 설치할 수 있어요.</span>
       <button id="install-btn">설치</button>
@@ -774,6 +778,8 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 </main>
 
 <script>
+// 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
+const GAME_VERSION = "v70";
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
 const dev = { god: false, atkMul: 1 };
@@ -2301,6 +2307,25 @@ function devClick(e) {
   devRender();
   $("dv-msg").textContent = msg;
 }
+
+// ── 새 버전 알림 ── 앱을 켜 둔 채로 업데이트가 올라오면 위에 새로고침 버튼을 띄운다 (GitHub 사이트·설치한 앱)
+$("version-line").textContent = "게임 버전 " + GAME_VERSION;
+async function checkUpdate() {
+  if (typeof window.claude?.use === "function" || !navigator.onLine) return;
+  try {
+    const html = await (await fetch(location.pathname, { cache: "no-store" })).text();
+    const v = html.match(/GAME_VERSION = "(v\d+)"/)?.[1];
+    if (!v || v === GAME_VERSION || $("update-bar")) return;
+    const bar = document.createElement("div");
+    bar.id = "update-bar";
+    bar.innerHTML = `<span>새 버전(${v})이 나왔어요</span><button type="button">새로고침</button>`;
+    bar.querySelector("button").onclick = () => { persist(); location.reload(); };
+    document.body.prepend(bar);
+  } catch {}
+}
+setTimeout(checkUpdate, 4000);
+setInterval(checkUpdate, 10 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") checkUpdate(); });
 
 // ── 앱 설치 (GitHub Pages 주소에서만) ──
 // 오프라인 파일을 등록하고, 설치할 수 있는 브라우저면 설정 창에 설치 버튼을 보여 준다.
