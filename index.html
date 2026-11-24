@@ -786,7 +786,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v81";
+const GAME_VERSION = "v82";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -3998,8 +3998,12 @@ function dungeonReward(m) {
 // 던전 클리어 보상 (예전 보스별 보상을 모두 합친 것 + 클리어 보너스)
 const DUNGEON_PRIZE = (() => {
   const n = DUNGEON.bosses.length, sum = n * (n + 1) / 2;
-  const mats = { star: 2 * sum + 5, frost: 2 };
-  for (const b of DUNGEON.bosses) mats[b.mat] = (mats[b.mat] || 0) + 2;
+  // 9마리 모두 자기 사냥터 보스 재료를 2개씩 (암흑사신부터는 예전에 별의 파편으로 대신 주던 것을 바로잡음)
+  const mats = { star: 2 * sum + 5 + 8, frost: 2 };
+  for (const b of DUNGEON.bosses) {
+    const mat = ZONES.find(z => z.boss.kind === b.kind)?.boss.mat ?? b.mat;
+    mats[mat] = (mats[mat] || 0) + 2;
+  }
   return { gold: DUNGEON_GOLD * sum, xp: 150 * sum, runes: 3 * n + sum + 30, mats };
 })();
 
