@@ -100,7 +100,7 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
 
 <main>
   <header>
-    <div class="eyebrow">대장간 강화소 · 현재 버전 v67</div>
+    <div class="eyebrow">대장간 강화소 · 현재 버전 v68</div>
     <h1>대장간 강화소 패치노트</h1>
     <p class="lede">검 하나를 강화하는 게임에서 시작해 광산, 상점, 사냥터 다섯 곳, 캐릭터와 스킬, 보스 9마리의 던전까지 커진 과정을 버전별로 정리했어요. 버전 번호는 게임 링크에 올라간 순서예요.</p>
     <nav class="jump" aria-label="바로 가기">
@@ -120,7 +120,17 @@ footer { color: var(--muted); font-size: 13px; border-top: 1px solid var(--line)
     </div>
     <div class="history">
 
-      <article class="ver latest"><div class="vnum">v67</div><div class="vbody">
+      <article class="ver latest"><div class="vnum">v68</div><div class="vbody">
+        <div class="vhead"><h3>광산 자동 클릭 막기</h3><span class="chip fix">수정</span></div>
+        <ul>
+          <li>1초에 15번이 넘는 클릭은 넘친 만큼 무시</li>
+          <li>간격이 기계처럼 일정하거나, 30번 연속 정확히 같은 점을 누르면 자동 클릭으로 보고 광산 잠금</li>
+          <li>잠금 시간: 30초 → 60초 → 120초… (걸릴 때마다 두 배)</li>
+          <li>코드로 만든 클릭(스크립트)은 인정하지 않음</li>
+        </ul>
+      </div></article>
+
+      <article class="ver"><div class="vnum">v67</div><div class="vbody">
         <div class="vhead"><h3>월드 2 (2부): 독버섯 늪 · 하늘 정원 · 태엽 시계탑</h3><span class="chip new">신규</span></div>
         <ul>
           <li>새 피해 종류 <b>독</b>: 지속 피해 + 중독 중에는 체력 회복 절반</li>

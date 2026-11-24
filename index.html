@@ -461,6 +461,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 #dev button { border: 1px solid #3fbf7f; color: #7dffb2; border-radius: 8px; padding: 6px 10px; background: rgba(63,191,127,.08); }
 .dv-kills { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 4px; }
 .dv-kills label { display: flex; gap: 4px; align-items: center; font-size: 12px; }
+.mined.ac-lock { color: var(--bad); font-weight: 700; }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; }
 .seg button { border: 0; border-radius: 7px; padding: 8px; font-size: 14px; color: var(--muted); }
 .seg button[aria-selected="true"] { background: var(--panel); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ember); }
@@ -1439,7 +1440,7 @@ function render() {
 
   $("per-rock").textContent = won(perRock());
   $("rock").setAttribute("aria-label", `돌 캐기 (+${perRock()} G)`);
-  $("mined").textContent = `지금까지 ${state.mined.toLocaleString("ko-KR")}번 캤습니다`;
+  if (!$("mined").classList.contains("ac-lock")) $("mined").textContent = `지금까지 ${state.mined.toLocaleString("ko-KR")}번 캤습니다`;
   $("oil-left").hidden = state.oil <= 0;
   $("oil-left").textContent = `곡괭이 기름 효과: ${state.oil}번 남음`;
   $("mats").innerHTML = MATS.map(m => {
@@ -1682,7 +1683,51 @@ function sell() {
   commit();
 }
 
+// ── 자동 클릭 막기 ── 사람이 누르면 간격과 위치가 조금씩 흔들린다.
+// 1초에 15번 넘게 누르면 넘친 만큼 무시, 간격이 기계처럼 일정하거나 계속 같은 점을 누르면 잠시 잠금
+const AC = { times: [], spots: [], lockUntil: 0, strikes: 0 };
+const AC_MAX_PER_SEC = 15, AC_SAMPLE = 30;
+function autoClickCheck(e) {
+  const now = performance.now();
+  if (!e.isTrusted) return false;                       // 코드로 만든 클릭
+  if (now < AC.lockUntil) return false;
+  AC.times = AC.times.filter(t => now - t < 1000);
+  if (AC.times.length >= AC_MAX_PER_SEC) return false;  // 너무 빠름: 조용히 무시
+  AC.times.push(now);
+  (AC.hist ||= []).push(now);
+  if (AC.hist.length > AC_SAMPLE + 1) AC.hist.shift();
+  AC.spots.push(`${Math.round(e.clientX)},${Math.round(e.clientY)}`);
+  if (AC.spots.length > AC_SAMPLE) AC.spots.shift();
+  let robot = false;
+  if (AC.hist.length > AC_SAMPLE) {
+    const gaps = AC.hist.slice(1).map((t, i) => t - AC.hist[i]);
+    const mean = gaps.reduce((a, b) => a + b, 0) / gaps.length;
+    const sd = Math.sqrt(gaps.reduce((a, b) => a + (b - mean) ** 2, 0) / gaps.length);
+    if (mean < 400 && sd < 6) robot = true;              // 간격이 기계처럼 일정
+  }
+  // 터치·마우스로 30번 연속 정확히 같은 점 (키보드로 누른 클릭은 좌표가 없어서 제외)
+  if (AC.spots.length >= AC_SAMPLE && e.detail > 0 && AC.spots.every(s => s === AC.spots[0])) robot = true;
+  if (robot) {
+    AC.strikes++;
+    const sec = 30 * 2 ** (AC.strikes - 1);
+    AC.lockUntil = now + sec * 1000;
+    AC.hist = []; AC.spots = [];
+    acLockMsg(sec);
+    sfx("fail");
+    return false;
+  }
+  return true;
+}
+function acLockMsg(sec) {
+  const el = $("mined");
+  el.classList.add("ac-lock");
+  el.textContent = `자동 클릭이 감지돼서 ${sec}초 동안 캘 수 없어요`;
+  clearTimeout(AC.msgT);
+  AC.msgT = setTimeout(() => { el.classList.remove("ac-lock"); render(); }, sec * 1000);
+}
+
 function mine(e) {
+  if (e && !autoClickCheck(e)) return;
   const vein = Math.random() * 100 < VEIN_CHANCE;
   const g = perRock() * (vein ? VEIN_MULT : 1);
   state.gold += g;
