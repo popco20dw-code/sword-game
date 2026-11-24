@@ -780,7 +780,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v77";
+const GAME_VERSION = "v78";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
@@ -6449,7 +6449,7 @@ const W2_START = {
   },
   tornado(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.6;
-    for (let k = 0; k < (E ? 5 : 3); k++) { const a = Math.random() * Math.PI * 2; w.torn.push({ x: m.x + Math.cos(a) * 50, y: m.y + Math.sin(a) * 50, t: 6, cd: 0, ph: Math.random() * 6, dmg: m.dmg * 0.35, owner: m }); }
+    for (let k = 0; k < (E ? 5 : 3); k++) { const a = Math.random() * Math.PI * 2; w.torn.push({ x: m.x + Math.cos(a) * 50, y: m.y + Math.sin(a) * 50, t: 3.5, cd: 0, ph: Math.random() * 6, dmg: m.dmg * 0.35, owner: m }); }
     sfx("whirl");
   },
   spit(m, p, w, toP, E) {
@@ -6460,7 +6460,7 @@ const W2_START = {
   },
   quicksand(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.6;
-    w.pits.push({ x: p.x, y: p.y, r: E ? 105 : 85, t: 6, max: 6, dmg: m.dmg * 0.5, owner: m });
+    w.pits.push({ x: p.x, y: p.y, r: E ? 105 : 85, t: 4.5, max: 4.5, dmg: m.dmg * 0.5, owner: m });
     fx(p.x, p.y - 40, "유사! 빨려 들어가요", "#e8c98a", 14);
   },
   prism(m, p, w, toP, E) {
@@ -6825,8 +6825,8 @@ function w2Update(dt) {
   for (const tn of w.torn) {
     tn.t -= dt; tn.cd -= dt;
     const a = Math.atan2(p.y - tn.y, p.x - tn.x);
-    tn.x += Math.cos(a) * 70 * dt + Math.cos(tn.ph + r.time * 2) * 30 * dt;
-    tn.y += Math.sin(a) * 70 * dt + Math.sin(tn.ph + r.time * 2) * 30 * dt;
+    tn.x += Math.cos(a) * 60 * dt + Math.cos(tn.ph + r.time * 2) * 30 * dt;
+    tn.y += Math.sin(a) * 60 * dt + Math.sin(tn.ph + r.time * 2) * 30 * dt;
     if (tn.cd <= 0 && Math.hypot(p.x - tn.x, p.y - tn.y) < 22 + P_R) {
       tn.cd = 0.8;
       if (hitBy(tn.owner, tn.dmg) && !p.dash) p.knock = { vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, t: 0.18 };
@@ -6871,8 +6871,8 @@ function w2Update(dt) {
     pit.t -= dt;
     const d = Math.hypot(p.x - pit.x, p.y - pit.y);
     if (d < pit.r && !p.dash) {
-      p.slowT = Math.max(p.slowT || 0, 0.1); p.slowAmt = Math.max(p.slowAmt || 0, 0.45);
-      if (d > 4) { p.x -= (p.x - pit.x) / d * 45 * dt; p.y -= (p.y - pit.y) / d * 45 * dt; }
+      p.slowT = Math.max(p.slowT || 0, 0.1); p.slowAmt = Math.max(p.slowAmt || 0, 0.3);
+      if (d > 4) { p.x -= (p.x - pit.x) / d * 22 * dt; p.y -= (p.y - pit.y) / d * 22 * dt; }
       if (d < 28 && !(p.invuln > 0)) p.hp -= pit.dmg * resistMul(null) * dt;
     }
   }
