@@ -779,7 +779,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v72";
+const GAME_VERSION = "v73";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
@@ -6861,7 +6861,7 @@ function w2Update(dt) {
   w.pits = w.pits.filter(q => q.t > 0);
   // 해파리끼리 전기 연결: 그 사이를 지나가면 감전
   // 독 웅덩이 · 독구름 · 버섯왕 독 안개
-  const tox = r.zone.mob.dmg * 0.2;
+  const tox = (r.zone.mob?.dmg ?? 0) * 0.2;
   if (r.floor.toxic?.some(q => ((p.x - q.x) / q.rx) ** 2 + ((p.y - q.y) / q.ry) ** 2 < 1)) poisonPlayer(1, tox);
   for (const c of w.clouds) { c.t -= dt; if (Math.hypot(p.x - c.x, p.y - c.y) < c.r) poisonPlayer(1.2, c.dps); }
   w.clouds = w.clouds.filter(c => c.t > 0);
@@ -6888,7 +6888,7 @@ function w2Update(dt) {
   if (r.zone.key === "clock") for (const sw of w.saws) {
     sw.x += sw.v * dt; sw.cd -= dt;
     if (sw.x < 20 || sw.x > W - 20) { sw.v = -sw.v; sw.x = clamp(sw.x, 20, W - 20); }
-    if (sw.cd <= 0 && Math.hypot(p.x - sw.x, p.y - sw.y) < 16 + P_R) { sw.cd = 0.8; hurtPlayer(Math.round(r.zone.mob.dmg * 0.6)); }
+    if (sw.cd <= 0 && Math.hypot(p.x - sw.x, p.y - sw.y) < 16 + P_R) { sw.cd = 0.8; hurtPlayer(Math.round((r.zone.mob?.dmg ?? 0) * 0.6)); }
   }
   // 시간 감속 장판
   for (const f of w.fields) { f.t -= dt; if (Math.hypot(p.x - f.x, p.y - f.y) < f.r) { p.slowT = Math.max(p.slowT || 0, 0.1); p.slowAmt = Math.max(p.slowAmt || 0, 0.5); } }
