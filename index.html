@@ -3071,8 +3071,8 @@ const BOSS_AOE = 0.3;   // 폭탄·낙뢰는 보스에게 피해의 30%만 준�
 const fmt = n => +n.toFixed(1);
 const SKILLS = [
   { key: "dash", name: "돌진 베기", glyph: "돌", color: "#ff8a3d", active: true, price: 5,
-    cd: lv => 6 - 0.4 * (lv - 1), mult: lv => 2 + 0.5 * (lv - 1),
-    desc(lv) { return `움직이는 방향으로 돌진하며 지나친 적에게 공격력 ×${fmt(this.mult(lv))} 피해. 돌진 중 무적 · 재사용 ${fmt(this.cd(lv))}초`; } },
+    cd: lv => 6 - 0.4 * (lv - 1), mult: lv => 2 + 0.5 * (lv - 1), guard: lv => 40 + 5 * (lv - 1),
+    desc(lv) { return `움직이는 방향으로 돌진하며 지나친 적에게 공격력 ×${fmt(this.mult(lv))} 피해. 돌진 중 받는 피해 ${this.guard(lv)}% 감소 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "guard", name: "수호의 장막", glyph: "막", color: "#f0c35a", active: true, price: 5,
     cd: lv => 12 - (lv - 1), dur: lv => 1 + 0.2 * (lv - 1),
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 어떤 피해도 받지 않음 · 재사용 ${fmt(this.cd(lv))}초`; } },
@@ -3086,8 +3086,8 @@ const SKILLS = [
     cd: lv => 7 - 0.4 * (lv - 1), mult: lv => 3 + (lv - 1), radius: () => 90,
     desc(lv) { return `제자리에서 회전하며 반경 90 안의 모든 적에게 공격력 ×${this.mult(lv)} 피해 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "drain", name: "피의 갈증", glyph: "흡", color: "#d9475b", active: true, price: 8,
-    cd: lv => 15 - (lv - 1), dur: lv => 5 + 0.5 * (lv - 1), heal: lv => 3 + (lv - 1),
-    desc(lv) { return `${fmt(this.dur(lv))}초 동안 적을 벨 때마다 최대 체력의 ${this.heal(lv)}% 회복 · 재사용 ${fmt(this.cd(lv))}초`; } },
+    cd: lv => 15 - (lv - 1), dur: lv => 5 + 0.5 * (lv - 1), heal: lv => 1 + 0.25 * (lv - 1),
+    desc(lv) { return `${fmt(this.dur(lv))}초 동안 적을 벨 때 최대 체력의 ${fmt(this.heal(lv))}% 회복 (0.3초에 한 번까지) · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "frenzy", name: "광폭화", glyph: "광", color: "#ffb347", active: true, price: 8,
     cd: lv => 14 - (lv - 1), dur: lv => 3.5 + 0.5 * (lv - 1),
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 공격 사거리 1.5배, 공격 속도 2배 · 재사용 ${fmt(this.cd(lv))}초`; } },
@@ -3621,7 +3621,7 @@ function useSkill(slot) {
   run.cds[slot] = run.cdMax[slot] = s.cd(lv);
   sfx({ dash: "dash", guard: "shield", bomb: "click", whirl: "whirl", drain: "buff", frenzy: "buff", thunder: "click" }[key]);
   if (key === "dash") {
-    p.dash = { t: 0.2, dx: p.dir.x, dy: p.dir.y, mult: s.mult(lv), hit: new Set() };
+    p.dash = { t: 0.2, dx: p.dir.x, dy: p.dir.y, mult: s.mult(lv), hit: new Set(), red: s.guard(lv) / 100 };
   } else if (key === "guard") {
     p.invuln = Math.max(p.invuln, s.dur(lv));
   } else if (key === "bomb") {
@@ -3850,7 +3850,9 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   sparksAt(m.x, m.y, crit ? "#ffd24a" : "#ffffff", crit ? 6 : 2, 90);
   fx(m.x + (Math.random() - 0.5) * 16, m.y - m.r, dmg.toLocaleString("ko-KR"),
      crit ? "#ffd24a" : "#efe6d8", crit ? 16 : 12);
-  const heal = (run.buff.drain > 0 ? run.buff.drainHeal : 0) + (isChar("vampire") ? 0.01 : 0);
+  // 피의 갈증은 여러 마리를 한 번에 베어도 0.3초에 한 번만 회복
+  let heal = isChar("vampire") ? 0.01 : 0;
+  if (run.buff.drain > 0 && run.time - (run.drainAt ?? -9) >= 0.3) { heal += run.buff.drainHeal; run.drainAt = run.time; }
   if (heal) run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * heal);
   if (m.hp <= 0) {
     m.dead = true;
@@ -4207,12 +4209,13 @@ function zapAt(x0, y0, rad) {
 
 function hurtPlayer(dmg, el = null) {
   const p = run.p;
-  if (p.invuln > 0 || p.dash) {
+  if (p.invuln > 0) {
     fx(p.x, p.y - 22, "막음", "#f0c35a", 12);
     sfx("block");
     return false;
   }
-  dmg = Math.max(1, Math.round(dmg * resistMul(el)));
+  // 돌진 베기 중에는 무적이 아니라 피해 감소
+  dmg = Math.max(1, Math.round(dmg * resistMul(el) * (p.dash ? 1 - (p.dash.red || 0) : 1)));
   p.hp -= dmg;
   armorRetaliate(curMob);
   p.hurt = 0.2;
