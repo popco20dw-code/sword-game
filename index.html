@@ -569,29 +569,38 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .tsum { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 8px 0; }
 .tsum span { font-size: 11px; padding: 2px 7px; border-radius: 999px; background: rgba(255,255,255,.06); color: var(--fg); }
 .tsum span.neg { color: #ff8a80; }
-.tree { position: relative; padding: 6px 0; }
-.tree::before { content: ""; position: absolute; left: 50%; top: 30px; bottom: 30px; width: 3px; margin-left: -1.5px; background: color-mix(in srgb, var(--bc) 35%, transparent); border-radius: 2px; }
-.trow { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; min-height: 78px; }
-.trow .hl { position: absolute; top: 50%; height: 3px; margin-top: -1.5px; width: 22%; background: rgba(255,255,255,.12); }
-.trow .hl.l { left: 28%; } .trow .hl.r { right: 28%; }
-.trow .hl.on { background: var(--bc); }
-.tc { display: grid; place-items: center; position: relative; z-index: 1; }
-.tn { width: 66px; height: 66px; border-radius: 50%; padding: 4px; border: 2px solid rgba(255,255,255,.16); background: #1d1914;
-  color: var(--muted); display: grid; place-content: center; gap: 1px; font-size: 10.5px; line-height: 1.2; text-align: center; word-break: keep-all; }
-.tn small { font-family: var(--mono); font-size: 10px; color: #b8a8ff; }
-.tn.open { border-color: var(--bc); color: var(--fg); box-shadow: 0 0 10px color-mix(in srgb, var(--bc) 45%, transparent); }
-.tn.own { background: var(--bc); border-color: var(--bc); color: #1a140c; font-weight: 700; }
-.tn.lock { opacity: .45; }
-.tn.major { width: 80px; height: 80px; font-size: 12px; font-weight: 700; border-width: 3px; border-radius: 22px; transform: rotate(0deg); }
-.tn.major.open, .tn.major.own { box-shadow: 0 0 18px var(--bc); }
-.tn.curse { border-style: dashed; border-color: #a8433a; color: #ff9a8f; }
-.tn.curse.own { background: #5a1f1a; color: #ffd0c8; border-color: #ff6b5a; }
-.tn.sel { outline: 3px solid #fff; outline-offset: 2px; }
-.tdetail { position: sticky; bottom: 8px; margin-top: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--bc, var(--line)); background: rgba(22,19,15,.96); z-index: 3; }
+.tview { position: relative; height: min(62vh, 560px); border-radius: 14px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+  background: radial-gradient(circle at 50% 50%, #241e17 0%, #15110d 70%); border: 1px solid var(--line); }
+.tview svg { width: 100%; height: 100%; display: block; cursor: grab; }
+.tring { fill: none; stroke: rgba(255,255,255,.05); stroke-width: 2; stroke-dasharray: 6 8; }
+.tlab { font-family: var(--display); font-size: 34px; text-anchor: middle; dominant-baseline: middle; opacity: .35; }
+.te { stroke: #3a3228; stroke-width: 4; stroke-linecap: round; }
+.te.open { stroke: #74674f; }
+.te.own { stroke-width: 6; }
+.tn text { font-size: 10px; fill: #c9bda8; text-anchor: middle; pointer-events: none; font-weight: 700; }
+.tn .body { fill: #1b1712; stroke: #4a4033; stroke-width: 3; }
+.tn .halo { fill: none; stroke: #4a4033; stroke-width: 2; stroke-dasharray: 4 4; }
+.tn.lock { opacity: .55; }
+.tn.open .body { stroke: var(--c); fill: #2a231a; }
+.tn.open .halo { stroke: var(--c); }
+.tn.open text { fill: #fff; }
+.tn.own .body { fill: var(--c); stroke: #fff6dc; }
+.tn.own text { fill: #1a140c; }
+.tn.own .halo { stroke: var(--c); stroke-dasharray: none; stroke-width: 3; }
+.tn.major text { font-size: 12px; }
+.tn.curse .body { stroke: #b0473c; stroke-dasharray: 5 3; }
+.tn.curse text { fill: #ff9a8f; }
+.tn.curse.own .body { fill: #6a221c; stroke: #ff6b5a; }
+.tn.curse.own text { fill: #ffd0c8; }
+.tn.start .body { fill: #e8d9b0; stroke: #fff; }
+.tn.start text { fill: #1a140c; font-size: 12px; }
+.tn.sel .body { stroke: #fff; stroke-width: 5; }
+.tzoom { position: absolute; right: 8px; top: 8px; display: grid; gap: 6px; }
+.tzoom button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: rgba(22,19,15,.85); color: var(--fg); font-size: 18px; padding: 0; }
+.tdetail { margin-top: 8px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(22,19,15,.96); min-height: 64px; }
 .tdetail b { color: var(--bc, var(--fg)); } .tdetail p { margin: 4px 0 8px; font-size: 13px; color: var(--fg); }
 .tdetail button { width: 100%; }
 .tfoot { margin: 12px 0; } .tfoot button { width: 100%; opacity: .85; }
-
 /* 사냥터 캐릭터 고르기 */
 .char-pick-head { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
 .char-pick-head h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 18px; }
@@ -888,7 +897,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v93";
+const GAME_VERSION = "v94";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -3671,9 +3680,9 @@ const SKILLS = [
 const SK = Object.fromEntries(SKILLS.map(s => [s.key, s]));
 const skillCost = key => SK[key].price * ((state.skills[key] || 0) + 1);
 
-// ── 스킬 트리 ── 룬석으로 배우는 영구 능력. 가지 5개 × 노드 20개 = 100개.
-// 가지마다 가운데 줄(1~14단계)을 따라 내려가고, 옆에 곁가지가 붙는다. 7·14단계는 큰 능력,
-// 그 바로 앞(6·13단계)은 약한 대가(디버프)라서 큰 능력을 얻으려면 대가도 함께 짊어져야 한다.
+// ── 스킬 트리 ── 하나로 이어진 거대한 그물 트리. 가운데 '시작'에서 다섯 방향(공격·방어·기동·사냥·행운)으로 뻗고,
+// 이웃한 방향끼리 다리로 이어져 있어 어느 길로든 돌아갈 수 있다. 이미 배운 노드와 이어진 노드만 배울 수 있다.
+// 방향마다 큰 능력(★) 2개, 그 바로 앞에는 반드시 지나야 하는 대가(⚠ 약한 디버프)가 있다.
 const TSTAT = {
   atk: ["공격력", "공격"], crit: ["치명타 확률", "치명"], critDmg: ["치명타 피해", "치명 피해"], range: ["공격 사거리", "사거리"],
   atkSpd: ["공격 속도", "공속"], hp: ["최대 체력", "체력"], red: ["받는 피해 감소", "피해 감소"], regen: ["3초마다 최대 체력 회복", "재생"],
@@ -3709,28 +3718,51 @@ const TREE_BRANCHES = [
             { major: "황금손", eff: [["gold", 50], ["rune", 20]] }],
     side: [["xp", 5], ["drop", 3], ["gold", 4], ["rune", 8], ["xp", 5], ["drop", 4]] },
 ];
-const TREE_SIDE_AT = [1, 3, 5, 8, 10, 12];   // 곁가지가 붙는 가운데 줄 단계 (왼쪽·오른쪽 번갈아)
-const TREE = {};   // id → 노드
-for (const br of TREE_BRANCHES) {
-  br.spine.forEach((n, i) => {
-    const d = i + 1, o = Array.isArray(n) ? { eff: [n] } : n;
-    TREE[br.key + d] = { id: br.key + d, br, d, kind: o.major ? "major" : o.curse ? "curse" : "minor", ...o, req: d > 1 ? br.key + (d - 1) : null };
-  });
-  br.side.forEach((n, j) => {
-    const d = TREE_SIDE_AT[j];
-    TREE[br.key + "s" + j] = { id: br.key + "s" + j, br, d, kind: "minor", side: j % 2 ? "R" : "L", eff: [n], req: br.key + d };
-  });
-}
-// 값: 단계가 깊을수록 비싸다. 큰 능력은 4배, 대가는 절반
-const treeCost = n => Math.ceil(8 * Math.pow(1.25, n.d - 1) * (n.kind === "major" ? 4 : n.kind === "curse" ? 0.5 : 1));
+
+const T_UNIT = 78;   // 고리 하나의 반지름 간격
+// [이름, 고리, 각도(도, 방향 기준), 능력 칸, 이어진 노드]. 능력 칸: s=가운데 줄 목록 번호, x=곁가지 목록 번호, c1/m1/c2/m2=대가·큰 능력
+const T_TPL = [
+  ["n1", 1, 0, "s0", ["@"]],
+  ["n2L", 2, -14, "s1", ["n1"]], ["n2R", 2, 14, "x0", ["n1"]],
+  ["n3L", 3, -22, "s2", ["n2L"]], ["n3R", 3, 22, "x1", ["n2R"]],
+  ["c1", 3, 0, "c1", ["n2L", "n2R"]], ["m1", 4, 0, "m1", ["c1"]],
+  ["n4L", 4, -25, "s3", ["n3L"]], ["n4R", 4, 25, "x2", ["n3R"]],
+  ["n5L", 5, -20, "s4", ["n4L"]], ["n5R", 5, 20, "x3", ["n4R"]], ["n5C", 5, 0, "s7", ["n5L", "n5R"]],
+  ["n6L", 6, -12, "s8", ["n5L", "n5C"]], ["n6R", 6, 12, "x4", ["n5R", "n5C"]],
+  ["c2", 7, 0, "c2", ["n6L", "n6R"]], ["m2", 8, 0, "m2", ["c2"]],
+  ["n7L", 7, -24, "s9", ["n6L"]], ["n7R", 7, 24, "s10", ["n6R"]],
+  ["n8L", 8, -17, "s11", ["n7L"]], ["n8R", 8, 17, "x5", ["n7R"]],
+];
+const T_BRIDGE = [["n2R", "n2L"], ["n4R", "n4L"], ["n7R", "n7L"]];   // 이웃 방향끼리 잇는 다리
+const TREE = {}, T_EDGES = [], T_ADJ = { "@": [] };
+const tEdge = (a, b) => { T_EDGES.push([a, b]); (T_ADJ[a] ??= []).push(b); (T_ADJ[b] ??= []).push(a); };
+TREE_BRANCHES.forEach((br, bi) => {
+  const base = -90 + bi * 72;
+  for (const [nm, ring, off, slot, links] of T_TPL) {
+    const src = slot === "c1" ? br.spine[5] : slot === "m1" ? br.spine[6] : slot === "c2" ? br.spine[12] : slot === "m2" ? br.spine[13]
+      : slot[0] === "s" ? br.spine[+slot.slice(1)] : br.side[+slot.slice(1)];
+    const o = Array.isArray(src) ? { eff: [src] } : src;
+    const ang = (base + off) * Math.PI / 180;
+    const id = br.key + "." + nm;
+    TREE[id] = { id, br, d: ring, x: Math.cos(ang) * ring * T_UNIT, y: Math.sin(ang) * ring * T_UNIT,
+                 kind: o.major ? "major" : o.curse ? "curse" : "minor", ...o };
+    for (const l of links) tEdge(id, l === "@" ? "@" : br.key + "." + l);
+  }
+});
+TREE_BRANCHES.forEach((br, bi) => {
+  const nx = TREE_BRANCHES[(bi + 1) % TREE_BRANCHES.length];
+  for (const [r, l] of T_BRIDGE) tEdge(br.key + "." + r, nx.key + "." + l);
+});
+// 값: 가운데에서 멀수록 비싸다. 큰 능력은 4배, 대가는 절반
+const treeCost = n => Math.ceil(16 * Math.pow(1.3, n.d - 1) * (n.kind === "major" ? 4 : n.kind === "curse" ? 0.5 : 1));
 const effTxt = ([k, v]) => {
   if (k === "red") return v >= 0 ? `받는 피해 −${fmt(v)}%` : `받는 피해 +${fmt(-v)}%`;
   return `${TSTAT[k][0]} ${v >= 0 ? "+" : "−"}${fmt(Math.abs(v))}%`;
 };
 const nodeDesc = n => n.desc ?? n.eff.map(effTxt).join(", ");
 const nodeShort = n => n.major ? n.major : n.eff.map(([k, v]) => `${TSTAT[k][1]} ${v >= 0 ? "+" : "−"}${fmt(Math.abs(v))}`).join(" ");
-const treeHas = id => !!state.tree?.[id];
-const treeCanBuy = n => !treeHas(n.id) && (!n.req || treeHas(n.req));
+const treeHas = id => id === "@" || !!state.tree?.[id];
+const treeCanBuy = n => !treeHas(n.id) && T_ADJ[n.id].some(treeHas);
 function treeStats() {
   const t = { exec: false, revive: false, slot: false };
   for (const k in TSTAT) t[k] = 0;
@@ -3743,7 +3775,16 @@ function treeStats() {
   return t;
 }
 const treeSpent = () => Object.keys(state.tree || {}).reduce((a, id) => a + (TREE[id] ? treeCost(TREE[id]) : 0), 0);
-let treeBr = "a", treeSel = null;
+// 예전(v93) 가지별 트리의 노드 값: 초기화할 때 돌려주는 데 쓴다
+function oldTreeCost(id) {
+  const m = id.match(/^[admhl](s?)(\d+)$/);
+  if (!m) return 0;
+  const d = m[1] ? [1, 3, 5, 8, 10, 12][+m[2]] : +m[2];
+  if (!d) return 0;
+  const k = m[1] ? 1 : d === 7 || d === 14 ? 4 : d === 6 || d === 13 ? 0.5 : 1;
+  return Math.ceil(8 * Math.pow(1.25, d - 1) * k);
+}
+let treeSel = null, tv = { x: 0, y: 0, k: 0.8 }, tvHtml = {};
 function buyTree(id) {
   const n = TREE[id];
   if (!n || !treeCanBuy(n)) return;
@@ -3765,37 +3806,117 @@ function resetTree() {
   state.log.unshift({ text: "스킬 트리 초기화", delta: `+룬석 ${back}` });
   commit();
 }
-function treeView() {
-  const br = TREE_BRANCHES.find(b => b.key === treeBr), t = treeStats();
-  const owned = Object.keys(state.tree).length;
-  const node = n => {
-    const has = treeHas(n.id), can = treeCanBuy(n), c = treeCost(n);
-    const cls = ["tn", n.kind, has ? "own" : can ? "open" : "lock", treeSel === n.id ? "sel" : ""].join(" ");
-    return `<button class="${cls}" data-tnode="${n.id}" aria-label="${esc(nodeDesc(n))}"><span>${n.kind === "curse" ? "⚠ " : ""}${nodeShort(n)}</span>${has ? "" : `<small>${c}</small>`}</button>`;
-  };
-  let rows = "";
-  for (let d = 1; d <= 14; d++) {
-    const L = Object.values(TREE).find(n => n.br === br && n.d === d && n.side === "L");
-    const R = Object.values(TREE).find(n => n.br === br && n.d === d && n.side === "R");
-    rows += `<div class="trow">${L ? `<i class="hl l ${treeHas(L.id) ? "on" : ""}"></i>` : ""}${R ? `<i class="hl r ${treeHas(R.id) ? "on" : ""}"></i>` : ""}
-      <div class="tc">${L ? node(L) : ""}</div><div class="tc">${node(TREE[br.key + d])}</div><div class="tc">${R ? node(R) : ""}</div></div>`;
-  }
-  const sum = Object.keys(TSTAT).filter(k => t[k]).map(k => `<span class="${t[k] < 0 ? "neg" : ""}">${effTxt([k, t[k]])}</span>`)
-    .concat(t.exec ? ["<span>처형자</span>"] : [], t.revive ? ["<span>불굴 (부활)</span>"] : [], t.slot ? ["<span>스킬 칸 +1</span>"] : []).join("");
+// 처음 한 번만 그리고, 이후에는 상태(배움·열림·잠김)만 바꾼다 (끄는 도중 화면이 다시 그려지지 않게)
+function treeShell() {
+  const P = id => id === "@" ? { x: 0, y: 0 } : TREE[id];
+  const rings = [2, 4, 6, 8].map(r => `<circle class="tring" r="${r * T_UNIT}"/>`).join("");
+  const labels = TREE_BRANCHES.map((br, bi) => { const a = (-90 + bi * 72) * Math.PI / 180, R = 9.3 * T_UNIT;
+    return `<text class="tlab" x="${Math.cos(a) * R}" y="${Math.sin(a) * R}" fill="${br.color}">${br.name}</text>`; }).join("");
+  const edges = T_EDGES.map(([a, b], i) => { const p = P(a), q = P(b);
+    return `<line class="te" data-te="${i}" x1="${p.x}" y1="${p.y}" x2="${q.x}" y2="${q.y}"/>`; }).join("");
+  const nodes = Object.values(TREE).map(n => {
+    const r = n.kind === "major" ? 30 : 19;
+    const [ek, ev] = n.eff?.[0] ?? [];
+    const words = n.major ? n.major.split(" ")
+      : ek === "red" && ev < 0 ? ["⚠ 받는 피해", "+" + fmt(-ev)]
+      : [(n.kind === "curse" ? "⚠ " : "") + TSTAT[ek][1], (ev >= 0 ? "+" : "−") + fmt(Math.abs(ev))];
+    const text = words.map((w, i) => `<tspan x="0" dy="${i ? 1.1 : (1 - words.length) * 0.55 + 0.35}em">${w}</tspan>`).join("");
+    return `<g class="tn ${n.kind}" data-tnode="${n.id}" transform="translate(${n.x},${n.y})" style="--c:${n.br.color}">
+      ${n.kind === "major" ? `<circle class="halo" r="${r + 7}"/>` : ""}<circle class="body" r="${r}"/><text>${text}</text></g>`;
+  }).join("");
+  return `<div class="skills-head"><h3>스킬 트리</h3><span id="t-have"></span></div>
+    <p class="hint">끌어서 둘러보고, 두 손가락(휠)으로 확대해요. 배운 노드와 <b>이어진 노드</b>만 배울 수 있고, 밖으로 갈수록 비싸요. ★ 큰 능력 앞에는 ⚠ 대가가 있어요.</p>
+    <div class="tsum" id="t-sum"></div>
+    <div class="tview" id="t-view">
+      <svg id="tree-svg"><g id="t-g">${rings}${labels}${edges}
+        <g class="tn start own" transform="translate(0,0)"><circle class="body" r="24"/><text><tspan x="0" dy="0.35em">시작</tspan></text></g>${nodes}</g></svg>
+      <div class="tzoom"><button data-tz="1" aria-label="확대">+</button><button data-tz="-1" aria-label="축소">−</button><button data-tz="0" aria-label="가운데로">◎</button></div>
+    </div>
+    <div class="tdetail" id="t-detail"></div>
+    <div class="tfoot"><button data-treset id="t-reset"></button></div>`;
+}
+const tSet = (id, html) => { if (tvHtml[id] !== html) { tvHtml[id] = html; const el = $(id); if (el) el.innerHTML = html; } };
+function treeUpdate() {
+  const svg = $("tree-svg");
+  if (!svg) return;
+  svg.querySelectorAll("[data-tnode]").forEach(g => {
+    const n = TREE[g.dataset.tnode];
+    g.setAttribute("class", `tn ${n.kind} ${treeHas(n.id) ? "own" : treeCanBuy(n) ? "open" : "lock"}${treeSel === n.id ? " sel" : ""}`);
+  });
+  svg.querySelectorAll("[data-te]").forEach(l => {
+    const [a, b] = T_EDGES[+l.dataset.te], ha = treeHas(a), hb = treeHas(b);
+    l.setAttribute("class", `te ${ha && hb ? "own" : ha || hb ? "open" : ""}`);
+    if (ha && hb) l.style.stroke = (TREE[a] ?? TREE[b]).br === (TREE[b] ?? TREE[a]).br ? (TREE[b] ?? TREE[a]).br.color : "#e8d9b0";
+    else l.style.stroke = "";
+  });
+  const t = treeStats(), owned = Object.keys(state.tree).length;
+  tSet("t-have", `룬석 <b>${state.runes.toLocaleString("ko-KR")}</b>개 · ${owned}/${Object.keys(TREE).length}`);
+  tSet("t-sum", Object.keys(TSTAT).filter(k => t[k]).map(k => `<span class="${t[k] < 0 ? "neg" : ""}">${effTxt([k, t[k]])}</span>`)
+    .concat(t.exec ? ["<span>처형자</span>"] : [], t.revive ? ["<span>불굴 (부활)</span>"] : [], t.slot ? ["<span>스킬 칸 +1</span>"] : []).join("") || "<span>아직 배운 노드가 없어요</span>");
   const sel = treeSel && TREE[treeSel];
-  const detail = sel ? `<div class="tdetail" style="--bc:${sel.br.color}">
-      <b>${sel.major ? `★ ${sel.major}` : sel.kind === "curse" ? "⚠ 대가" : `${sel.br.name} ${sel.d}단계`}</b>
+  tSet("t-detail", sel ? `<div style="--bc:${sel.br.color}"><b>${sel.major ? `★ ${sel.major}` : sel.kind === "curse" ? "⚠ 대가" : `${sel.br.name} · ${sel.d}번째 고리`}</b>
       <p>${nodeDesc(sel)}</p>
       ${treeHas(sel.id) ? `<button disabled>배움</button>`
-        : `<button class="go" data-tbuy="${sel.id}" ${treeCanBuy(sel) && state.runes >= treeCost(sel) ? "" : "disabled"}>${treeCanBuy(sel) ? `배우기 · 룬석 ${treeCost(sel)}` : "앞 노드를 먼저 배워야 해요"}</button>`}
-    </div>` : `<div class="tdetail"><p>노드를 눌러 설명을 보고 배울 수 있어요. 위에서부터 이어서 배워요.</p></div>`;
-  return `<div class="skills-head"><h3>스킬 트리</h3><span>룬석 <b>${state.runes}</b>개 · ${owned}/${Object.keys(TREE).length}</span></div>
-    <p class="hint">가지 끝으로 갈수록 비싸고, ★ 큰 능력 바로 앞에는 ⚠ 대가(약한 디버프)가 있어요. 초기화하면 쓴 룬석을 모두 돌려받아요.</p>
-    ${seg("tbr", treeBr, TREE_BRANCHES.map(b => [b.key, b.name]))}
-    <div class="tsum">${sum || "<span>아직 배운 노드가 없어요</span>"}</div>
-    <div class="tree" style="--bc:${br.color}">${rows}</div>
-    ${detail}
-    <div class="tfoot"><button data-treset ${owned ? "" : "disabled"}>트리 초기화 (룬석 ${treeSpent().toLocaleString("ko-KR")} 돌려받기)</button></div>`;
+        : `<button class="go" data-tbuy="${sel.id}" ${treeCanBuy(sel) && state.runes >= treeCost(sel) ? "" : "disabled"}>${treeCanBuy(sel) ? `배우기 · 룬석 ${treeCost(sel)}` : `이어진 노드를 먼저 배워야 해요 (룬석 ${treeCost(sel)})`}</button>`}</div>`
+    : `<p>노드를 눌러 설명을 보고 배울 수 있어요. 가운데 '시작'에서부터 이어 나가요.</p>`);
+  const sp = treeSpent();
+  const rb = $("t-reset");
+  if (rb) { rb.textContent = `트리 초기화 (룬석 ${sp.toLocaleString("ko-KR")} 돌려받기)`; rb.disabled = !sp; }
+}
+function applyTv() {
+  const svg = $("tree-svg"), g = $("t-g");
+  if (!svg || !g) return;
+  g.setAttribute("transform", `translate(${svg.clientWidth / 2 + tv.x},${svg.clientHeight / 2 + tv.y}) scale(${tv.k})`);
+}
+function zoomTreeAt(cx, cy, k) {
+  const svg = $("tree-svg");
+  if (!svg) return;
+  k = clamp(k, 0.3, 2.2);
+  const rc = svg.getBoundingClientRect(), px = cx - rc.left - rc.width / 2, py = cy - rc.top - rc.height / 2;
+  const wx = (px - tv.x) / tv.k, wy = (py - tv.y) / tv.k;
+  tv = { x: px - wx * k, y: py - wy * k, k };
+  applyTv();
+}
+function setupTreeView() {
+  const v = $("t-view"), pts = new Map();
+  let start = null, moved = false, pinch = null;
+  v.addEventListener("pointerdown", e => {
+    if (e.target.closest("button")) return;
+    try { v.setPointerCapture(e.pointerId); } catch {}
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 1) { moved = false; start = { x: e.clientX, y: e.clientY, tx: tv.x, ty: tv.y, target: e.target }; }
+    else if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, k: tv.k }; moved = true; }
+  });
+  v.addEventListener("pointermove", e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2 && pinch) {
+      const [a, b] = [...pts.values()];
+      zoomTreeAt((a.x + b.x) / 2, (a.y + b.y) / 2, pinch.k * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d);
+    } else if (pts.size === 1 && start) {
+      const dx = e.clientX - start.x, dy = e.clientY - start.y;
+      if (Math.hypot(dx, dy) > 6) moved = true;
+      if (moved) { tv.x = start.tx + dx; tv.y = start.ty + dy; applyTv(); }
+    }
+  });
+  const up = e => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pts.size < 2) pinch = null;
+    if (pts.size === 0) {
+      if (!moved && start) {
+        const n = start.target.closest?.("[data-tnode]");
+        if (n) { treeSel = n.dataset.tnode; sfx("click"); treeUpdate(); }
+      }
+      start = null;
+    } else if (pts.size === 1) {
+      const [p] = [...pts.values()];
+      start = { x: p.x, y: p.y, tx: tv.x, ty: tv.y, target: null };
+    }
+  };
+  for (const ev of ["pointerup", "pointercancel"]) v.addEventListener(ev, up);
+  v.addEventListener("wheel", e => { e.preventDefault(); zoomTreeAt(e.clientX, e.clientY, tv.k * (e.deltaY < 0 ? 1.15 : 1 / 1.15)); }, { passive: false });
+  requestAnimationFrame(applyTv);
 }
 
 
@@ -3852,7 +3973,7 @@ const CHARS = [
 ];
 const CH = Object.fromEntries(CHARS.map(c => [c.key, c]));
 const isChar = key => state.char === key;
-const slotCount = () => (isChar("trickster") ? 3 : 2) + (runeSet() ? 1 : 0) + (treeHas("m14") ? 1 : 0);
+const slotCount = () => (isChar("trickster") ? 3 : 2) + (runeSet() ? 1 : 0) + (treeHas("m.m2") ? 1 : 0);
 const isLegend = key => CH[key]?.tier === "legend";
 const legendOpen = c => !c.unlock || c.unlock();
 const activeEquip = () => state.equip.slice(0, slotCount());
@@ -4379,7 +4500,11 @@ function renderZones() {
   }).join("");
 
   const head = seg("hview", huntView, [["zones", "사냥터"], ["skills", "스킬"], ["tree", "스킬 트리"], ["bosses", "보스 연습"]]);
-  if (huntView === "tree") { $("zones").innerHTML = head + treeView(); return; }
+  if (huntView === "tree") {
+    if (!$("tree-svg")) { tvHtml = {}; $("zones").innerHTML = head + treeShell(); setupTreeView(); }
+    treeUpdate();
+    return;
+  }
   if (huntView === "bosses") {
     $("zones").innerHTML = head + `
       <p class="hint">던전 보스와 바로 1:1로 싸워 볼 수 있어요. 던전과 같은 세기이고, 연습이라 보상과 기록은 없어요.</p>` +
@@ -9214,9 +9339,12 @@ window.addEventListener("blur", () => { keys.clear(); circleKeys.clear(); joy = 
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else resume(); });
 
 $("zones").addEventListener("click", e => {
-  const tb = e.target.closest("[data-tbr]"), tn = e.target.closest("[data-tnode]"), tbuy = e.target.closest("[data-tbuy]"), trs = e.target.closest("[data-treset]");
-  if (tb) { treeBr = tb.dataset.tbr; treeSel = null; renderZones(); return; }
-  if (tn) { treeSel = tn.dataset.tnode; renderZones(); return; }
+  const tz = e.target.closest("[data-tz]"), tbuy = e.target.closest("[data-tbuy]"), trs = e.target.closest("[data-treset]");
+  if (tz) {
+    const rc = $("tree-svg").getBoundingClientRect(), d = +tz.dataset.tz;
+    if (d) zoomTreeAt(rc.left + rc.width / 2, rc.top + rc.height / 2, tv.k * (d > 0 ? 1.25 : 0.8)); else { tv = { x: 0, y: 0, k: 0.8 }; applyTv(); }
+    return;
+  }
   if (tbuy) { buyTree(tbuy.dataset.tbuy); renderZones(); return; }
   if (trs) { resetTree(); renderZones(); return; }
   const zone = e.target.closest("[data-zone]");
@@ -9307,6 +9435,9 @@ function normalize(s) {
     coupons: Array.isArray(s.coupons) ? s.coupons.filter(x => typeof x === "string").slice(0, 50) : [],
     questV: QUEST_VER,
   };
+  // 스킬 트리 개편(v94): 가지별 트리에서 배운 노드는 룬석으로 돌려준다
+  const oldT = Object.keys(s.tree || {}).filter(id => !TREE[id]).reduce((a, id) => a + oldTreeCost(id), 0);
+  if (oldT) { o.runes += oldT; o.log.unshift({ text: "스킬 트리 개편: 예전 트리 초기화", delta: `+룬석 ${oldT}` }); }
   // 방어구 개편: 강화가 골드 대신 강화석으로 바뀜 → 가진 방어구 하나당 강화석 20개
   if ((s.armorV ?? 0) < ARMOR_V) {
     const n = Object.keys(o.armor.owned).length;

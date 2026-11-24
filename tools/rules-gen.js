@@ -50,8 +50,8 @@ const ROOT = path.join(__dirname, '..');
     out += `<div class="rule"><h3>스킬 (Lv 1 → Lv 5)</h3><p>룬석으로 배우고 강화. 장착 2칸(사기꾼 3칸, 룬 세트 +1). 폭탄·낙뢰는 보스에게 ${BOSS_AOE * 100}%, 회전 베기·돌진 베기·가시 갑옷은 ${BOSS_SKILL * 100}%.</p>` +
       table(['스킬', '종류', 'Lv 1', 'Lv 5'], SKILLS.map(s => [s.name, s.active ? '액티브' : '패시브', s.desc(1), s.desc(5)])) + `</div>`;
     // 스킬 트리
-    out += `<div class="rule"><h3>스킬 트리 (노드 ${Object.keys(TREE).length}개, 룬석 ${Object.values(TREE).reduce((a, n) => a + treeCost(n), 0).toLocaleString('ko-KR')}개면 전부)</h3><p>사냥터 → 스킬 트리. 가지 5개, 가운데 줄 1~14단계를 차례로 배우고 곁가지는 붙은 단계를 배운 뒤. 값 = 8 × 1.25<sup>단계−1</sup> (★ 큰 능력 ×4, ⚠ 대가 ×0.5). 7·14단계가 큰 능력, 그 앞 6·13단계는 대가. 초기화하면 룬석 전부 돌려받음.</p>` +
-      table(['가지', '단계', '종류', '효과', '룬석'], Object.values(TREE).sort((x, y) => TREE_BRANCHES.indexOf(x.br) - TREE_BRANCHES.indexOf(y.br) || x.d - y.d || (x.side ? 1 : 0) - (y.side ? 1 : 0)).map(n => [n.br.name, n.d, n.major ? '★ ' + n.major : n.kind === 'curse' ? '⚠ 대가' : n.side ? '곁가지' : '', nodeDesc(n), treeCost(n)])) + `</div>`;
+    out += `<div class="rule"><h3>스킬 트리 (노드 ${Object.keys(TREE).length}개, 룬석 ${Object.values(TREE).reduce((a, n) => a + treeCost(n), 0).toLocaleString('ko-KR')}개면 전부)</h3><p>사냥터 → 스킬 트리. 가운데 '시작'에서 다섯 방향으로 뻗은 하나의 그물 트리(이웃 방향끼리 다리로 연결). 배운 노드와 이어진 노드만 배울 수 있음. 값 = 16 × 1.3<sup>고리−1</sup> (★ 큰 능력 ×4, ⚠ 대가 ×0.5). 방향마다 큰 능력 2개(4·8번째 고리), 바로 앞의 대가를 지나야 닿음. 초기화하면 룬석 전부 돌려받음.</p>` +
+      table(['방향', '고리', '종류', '효과', '룬석'], Object.values(TREE).sort((x, y) => TREE_BRANCHES.indexOf(x.br) - TREE_BRANCHES.indexOf(y.br) || x.d - y.d || x.x - y.x).map(n => [n.br.name, n.d, n.major ? '★ ' + n.major : n.kind === 'curse' ? '⚠ 대가' : '', nodeDesc(n), treeCost(n)])) + `</div>`;
     // 상점
     out += `<div class="rule"><h3>상점 아이템</h3>${table(['아이템', '가격', '효과'], SHOP.map(w => [w.name, num(w.price) + ' G', w.desc]))}</div>\n  </section>`;
     return out;
