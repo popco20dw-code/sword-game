@@ -780,7 +780,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v79";
+const GAME_VERSION = "v80";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
@@ -3274,7 +3274,7 @@ const SKILLS = [
     cd: lv => 6 - 0.4 * (lv - 1), mult: lv => 2 + 0.5 * (lv - 1), guard: lv => 40 + 5 * (lv - 1),
     desc(lv) { return `움직이는 방향으로 돌진하며 지나친 적에게 공격력 ×${fmt(this.mult(lv))} 피해 (보스는 50%). 돌진 중 받는 피해 ${this.guard(lv)}% 감소 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "guard", name: "수호의 장막", glyph: "막", color: "#f0c35a", active: true, price: 5,
-    cd: lv => 12 - (lv - 1), dur: lv => 1 + 0.2 * (lv - 1),
+    cd: lv => 18 - 0.5 * (lv - 1), dur: lv => 0.8 + 0.1 * (lv - 1),
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 어떤 피해도 받지 않음 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "bomb", name: "폭탄 설치", glyph: "폭", color: "#ff5f56", active: true, price: 6,
     cd: lv => 10 - 0.5 * (lv - 1), mult: lv => 6 + 2 * (lv - 1), radius: lv => 65 + 5 * (lv - 1),
