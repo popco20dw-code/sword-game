@@ -779,7 +779,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v71";
+const GAME_VERSION = "v72";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
@@ -3256,11 +3256,12 @@ const hpOf = lv => 100 + 6 * lv;
 // 배우기는 price개, Lv n → n+1 강화는 price × (n+1)개.
 const SKILL_MAX = 5;
 const BOSS_AOE = 0.3;   // 폭탄·낙뢰는 보스에게 피해의 30%만 준다
+const BOSS_SKILL = 0.5; // 회전 베기·돌진 베기·가시 갑옷 같은 배수 스킬은 보스에게 50%
 const fmt = n => +n.toFixed(1);
 const SKILLS = [
   { key: "dash", name: "돌진 베기", glyph: "돌", color: "#ff8a3d", active: true, price: 5,
     cd: lv => 6 - 0.4 * (lv - 1), mult: lv => 2 + 0.5 * (lv - 1), guard: lv => 40 + 5 * (lv - 1),
-    desc(lv) { return `움직이는 방향으로 돌진하며 지나친 적에게 공격력 ×${fmt(this.mult(lv))} 피해. 돌진 중 받는 피해 ${this.guard(lv)}% 감소 · 재사용 ${fmt(this.cd(lv))}초`; } },
+    desc(lv) { return `움직이는 방향으로 돌진하며 지나친 적에게 공격력 ×${fmt(this.mult(lv))} 피해 (보스는 50%). 돌진 중 받는 피해 ${this.guard(lv)}% 감소 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "guard", name: "수호의 장막", glyph: "막", color: "#f0c35a", active: true, price: 5,
     cd: lv => 12 - (lv - 1), dur: lv => 1 + 0.2 * (lv - 1),
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 어떤 피해도 받지 않음 · 재사용 ${fmt(this.cd(lv))}초`; } },
@@ -3272,7 +3273,7 @@ const SKILLS = [
     desc(lv) { return `적이 가장 많이 모인 곳에 낙뢰를 떨어뜨려 반경 ${this.radius(lv)} 안의 적에게 공격력 ×${this.mult(lv)} 피해 (보스는 30%) · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "whirl", name: "회오리 베기", glyph: "회", color: "#e6e0d4", active: true, price: 6,
     cd: lv => 7 - 0.4 * (lv - 1), mult: lv => 3 + (lv - 1), radius: () => 90,
-    desc(lv) { return `제자리에서 회전하며 반경 90 안의 모든 적에게 공격력 ×${this.mult(lv)} 피해 · 재사용 ${fmt(this.cd(lv))}초`; } },
+    desc(lv) { return `제자리에서 회전하며 반경 90 안의 모든 적에게 공격력 ×${this.mult(lv)} 피해 (보스는 50%) · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "drain", name: "피의 갈증", glyph: "흡", color: "#d9475b", active: true, price: 8,
     cd: lv => 15 - (lv - 1), dur: lv => 5 + 0.5 * (lv - 1), heal: lv => 1 + 0.25 * (lv - 1),
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 적을 벨 때 최대 체력의 ${fmt(this.heal(lv))}% 회복 (0.3초에 한 번까지) · 재사용 ${fmt(this.cd(lv))}초`; } },
@@ -3281,7 +3282,7 @@ const SKILLS = [
     desc(lv) { return `${fmt(this.dur(lv))}초 동안 공격 사거리 1.5배, 공격 속도 2배 · 재사용 ${fmt(this.cd(lv))}초`; } },
   { key: "thorns", name: "가시 갑옷", glyph: "가", color: "#b9a68c", active: false, price: 6,
     mult: lv => 1 + 0.5 * (lv - 1),
-    desc(lv) { return `나에게 부딪힌 적에게 공격력 ×${fmt(this.mult(lv))} 반사 피해`; } },
+    desc(lv) { return `나에게 부딪힌 적에게 공격력 ×${fmt(this.mult(lv))} 반사 피해 (보스는 50%)`; } },
   { key: "swift", name: "바람의 발걸음", glyph: "풍", color: "#7dffb2", active: false, price: 5,
     bonus: lv => 15 + 5 * (lv - 1),
     desc(lv) { return `이동 속도 +${this.bonus(lv)}%`; } },
@@ -3817,7 +3818,7 @@ function useSkill(slot) {
     run.bombs.push({ x: p.x, y: p.y, t: 2, r: s.radius(lv), mult: s.mult(lv) });
   } else if (key === "whirl") {
     ring(p.x, p.y, s.radius(lv), s.color);
-    for (const m of run.mobs) if (Math.hypot(m.x - p.x, m.y - p.y) - m.r <= s.radius(lv)) hit(m, s.mult(lv));
+    for (const m of run.mobs) if (Math.hypot(m.x - p.x, m.y - p.y) - m.r <= s.radius(lv)) hit(m, s.mult(lv) * (m.boss ? BOSS_SKILL : 1));
   } else if (key === "drain") {
     run.buff.drain = s.dur(lv);
     run.buff.drainHeal = s.heal(lv) / 100;
@@ -4135,7 +4136,7 @@ function update(dt) {
     for (const m of r.mobs) {
       if (!d.hit.has(m) && Math.hypot(m.x - p.x, m.y - p.y) < m.r + P_R + 8) {
         d.hit.add(m);
-        hit(m, d.mult);
+        hit(m, d.mult * (m.boss ? BOSS_SKILL : 1));
       }
     }
     d.t -= dt;
@@ -4232,7 +4233,7 @@ function update(dt) {
       m.hitCd = 0.8;
       const zap = m.kind === "jelly";
       if (hurtPlayer(m.boss ? Math.round(m.dmg * BOSS_TOUCH_DMG) : m.dmg, zap ? "bolt" : null) && zap) stunPlayer(0.35);
-      if (thorns) hit(m, SK.thorns.mult(thorns));
+      if (thorns) hit(m, SK.thorns.mult(thorns) * (m.boss ? BOSS_SKILL : 1));
     }
     // 이번에 쏜 화살·장판은 누가 쐈는지 기억 (갑옷 반격 대상)
     for (let i = ns; i < r.shots.length; i++) r.shots[i].owner ??= m;
@@ -5273,7 +5274,7 @@ function knightAI(m, ax, ay, d, slow, dt, thorns) {
       m.atkCd = 1.1;
       if (d < m.r + P_R + 28) {
         if (hurtPlayer(m.dmg, m.kind === "grunt" ? "fire" : null) && m.kind === "grunt") burnPlayer(2, m.dmg * 0.1);   // 지옥 졸개는 화상
-        if (thorns) hit(m, SK.thorns.mult(thorns));
+        if (thorns) hit(m, SK.thorns.mult(thorns) * (m.boss ? BOSS_SKILL : 1));
       }
     }
     return;
