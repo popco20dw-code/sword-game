@@ -336,6 +336,25 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .sk .t { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1;
   font-family: var(--mono); font-size: 18px; color: var(--fg); }
 .sk.passive { opacity: .75; cursor: default; }
+.ult {
+  --cd: 0; --c: #ffd24a;
+  position: absolute; right: 80px; bottom: 10px; width: 66px; height: 66px; border-radius: 50%; padding: 0;
+  border: 3px solid var(--c); background: rgba(22, 19, 15, .78); color: var(--c);
+  display: grid; place-items: center; touch-action: none; user-select: none; -webkit-user-select: none; overflow: hidden;
+}
+.ult::after {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  background: conic-gradient(rgba(0, 0, 0, .7) calc(var(--cd) * 360deg), transparent 0);
+}
+.ult.ready { box-shadow: 0 0 14px var(--c), inset 0 0 10px var(--c); animation: ultPulse 1.2s ease-in-out infinite; }
+@keyframes ultPulse { 50% { box-shadow: 0 0 24px var(--c), inset 0 0 14px var(--c); } }
+.ult:not(.ready) .g { opacity: 0; }
+.ult .g { font-size: 13px; font-weight: 700; line-height: 1.1; text-align: center; padding: 0 4px; }
+.ult .t { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1;
+  font-family: var(--mono); font-size: 20px; color: var(--fg); }
+.ult .knob { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
+  background: var(--c); opacity: 0; pointer-events: none; z-index: 2; box-shadow: 0 0 10px var(--c); }
+.ult.steer .knob { opacity: .85; }
 .sk.passive .g { margin-top: -10px; }
 .sk.passive .t { font-family: var(--body); font-size: 10px; place-items: end center; padding-bottom: 9px; color: var(--muted); }
 
@@ -470,6 +489,53 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .notes-link span { color: var(--muted); font-size: 12px; }
 .notes-link:active { background: rgba(255,255,255,.06); }
 #update-bar button { border: 1px solid #7dffb2; background: #7dffb2; color: #102a18; border-radius: 8px; padding: 6px 14px; font-weight: 700; }
+/* 캐릭터 뽑기 */
+.cg-box { background: radial-gradient(ellipse at 50% 0%, #3a3018, var(--panel) 70%); border: 1px solid #6a5a2a; border-radius: 14px; padding: 16px; display: grid; gap: 10px; text-align: center; }
+.cg-box h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 22px; color: #ffe9a8; }
+.cg-box p { margin: 0; color: var(--muted); font-size: 13px; }
+.cg-orb-mini { width: 70px; height: 70px; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, #ffd24a 24%, rgba(255,180,60,.35) 48%, transparent 70%); animation: gpulse 1.4s ease-in-out infinite alternate; }
+.cg-pull { border-radius: 10px; padding: 12px; border: 1px solid #ffd24a; background: linear-gradient(180deg, #ffe066, #e0a030); color: #2a1a06; font-family: var(--display); font-size: 18px; }
+.cg-pull:disabled { filter: grayscale(.8) brightness(.6); }
+.char-card .tier { color: var(--tc); font-size: 11px; border: 1px solid var(--tc); border-radius: 6px; padding: 0 5px; margin-left: 4px; }
+.char-card.missing .avatar { filter: grayscale(1) brightness(.5); }
+.char-card.tier-legend { border-color: #6a5a2a; background: linear-gradient(180deg, rgba(255,210,74,.08), var(--panel)); }
+.cc-btns { display: grid; gap: 6px; grid-column: 3; grid-row: 1 / span 3; }
+.cc-btns button { border-radius: 8px; padding: 7px 10px; border: 1px solid var(--ember); color: var(--ember); font-size: 13px; }
+.cc-btns button.alt { border-color: var(--line); color: var(--fg); }
+.cc-btns button:disabled { opacity: .5; }
+.cgacha { position: fixed; inset: 0; z-index: 91; display: grid; grid-template-rows: 1fr auto; background: radial-gradient(ellipse at 50% 45%, #1e1830, #060409 75%);
+  padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); touch-action: manipulation; user-select: none; -webkit-user-select: none; }
+.cgacha[hidden] { display: none; }
+.cg-stage { position: relative; display: grid; place-items: center; }
+.cg-orb { --c: #fff; width: 170px; height: 170px; border-radius: 50%; transition: background .25s, box-shadow .25s;
+  background: radial-gradient(circle, #fff 0 10%, var(--c) 32%, color-mix(in srgb, var(--c) 35%, transparent) 55%, transparent 72%);
+  box-shadow: 0 0 60px 10px color-mix(in srgb, var(--c) 55%, transparent); }
+.cg-orb.tap { animation: cgtap .18s ease-out; }
+.cg-orb.legend { animation: ghue 1s linear infinite; }
+.cg-orb[hidden] { display: none; }
+@keyframes cgtap { 0% { transform: scale(1); } 40% { transform: scale(1.14) rotate(4deg); } 100% { transform: scale(1); } }
+.cg-hint { position: absolute; bottom: 10%; margin: 0; color: rgba(255,255,255,.75); font-size: 16px; letter-spacing: .1em; animation: gpulse .8s ease-in-out infinite alternate; }
+.cg-card { --tc: #fff; display: grid; justify-items: center; gap: 6px; padding: 22px 26px; border-radius: 16px; border: 2px solid var(--tc); background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 25%, #14101c), #0c0a12);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--tc) 60%, transparent); text-align: center; color: #fff; animation: gdeal .4s cubic-bezier(.2,1.4,.4,1) both; min-width: 200px; }
+.cg-card[hidden] { display: none; }
+.cg-card img { width: 120px; height: 120px; }
+.cg-card .tier { color: var(--tc); font-size: 13px; letter-spacing: .1em; }
+.cg-card b { font-family: var(--display); font-weight: 400; font-size: 24px; }
+.cg-card small { color: rgba(255,255,255,.7); font-size: 13px; }
+.cg-soul { font-size: 70px; color: #e8e0ff; text-shadow: 0 0 20px #b8a8ff; }
+.cg-cut { --c: #ffd24a; position: absolute; inset: -40px; display: grid; place-items: center; background: #000; overflow: hidden; }
+.cg-cut[hidden] { display: none; }
+.cut-rays { position: absolute; inset: -50%; background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 55%, transparent) 0 5deg, transparent 5deg 18deg);
+  -webkit-mask: radial-gradient(circle, #000 10%, transparent 60%); mask: radial-gradient(circle, #000 10%, transparent 60%); opacity: 0; animation: cutrays 5s ease-out forwards, gspin 6s linear infinite; }
+.cut-sil { position: relative; width: 220px; height: 220px; filter: brightness(0); animation: cutsil 5s ease-out forwards; }
+.cut-txt { position: absolute; bottom: 14%; text-align: center; color: #fff; opacity: 0; animation: cuttxt 5s ease-out forwards; padding: 0 20px; }
+.cut-txt small { display: block; color: var(--c); letter-spacing: .3em; font-size: 13px; }
+.cut-txt b { display: block; font-family: var(--display); font-weight: 400; font-size: 40px; text-shadow: 0 0 20px var(--c); }
+.cut-txt p { margin: 6px 0 0; color: rgba(255,255,255,.8); font-size: 15px; }
+@keyframes cutsil { 0% { transform: scale(.5); opacity: 0; } 25% { opacity: 1; transform: scale(.9); filter: brightness(0); } 45% { filter: brightness(0) drop-shadow(0 0 30px #fff); }
+  55% { filter: brightness(1) drop-shadow(0 0 40px var(--c)); transform: scale(1.15); } 100% { filter: brightness(1) drop-shadow(0 0 24px var(--c)); transform: scale(1); } }
+@keyframes cutrays { 0%, 40% { opacity: 0; } 55% { opacity: 1; } 100% { opacity: .6; } }
+@keyframes cuttxt { 0%, 55% { opacity: 0; transform: translateY(20px); } 70%, 100% { opacity: 1; transform: none; } }
 .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; border: 1px solid var(--line); border-radius: 10px; }
 .seg button { border: 0; border-radius: 7px; padding: 8px; font-size: 14px; color: var(--muted); }
 .seg button[aria-selected="true"] { background: var(--panel); color: var(--fg); box-shadow: inset 0 -2px 0 var(--ember); }
@@ -730,9 +796,10 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
           <button class="sk" hidden><span class="g"></span><span class="t"></span></button>
           <button class="sk" hidden><span class="g"></span><span class="t"></span></button>
         </div>
+        <button class="ult" id="ultbtn" hidden aria-label="궁극기"><span class="knob"></span><span class="g"></span><span class="t"></span></button>
       </div>
       <div class="arena-bar">
-        <span id="hunt-help">아무 곳이나 끌어서 이동 · 공격은 자동 (PC: WASD, 스킬 Q·E·R·F)</span>
+        <span id="hunt-help">아무 곳이나 끌어서 이동 · 공격은 자동 (PC: WASD, 스킬 Q·E·R·F, 궁극기 Space, 마법진 I·J·K·L)</span>
         <button id="hunt-exit">나가기</button>
       </div>
       <div class="result" id="result" hidden>
@@ -770,6 +837,11 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
     <div class="plist" id="other-list"></div>
   </section>
   <ul class="log" id="log" aria-label="최근 기록"></ul>
+  <div class="cgacha" id="cgacha" role="dialog" aria-label="캐릭터 뽑기" hidden>
+    <div class="cg-stage"><div class="cg-orb" id="cg-orb"></div><p class="cg-hint" id="cg-hint"></p>
+      <div class="cg-card" id="cg-card" hidden></div><div class="cg-cut" id="cg-cut" hidden></div></div>
+    <div class="g-bar"><button id="cg-skip" type="button">건너뛰기</button><button id="cg-ok" type="button" hidden>확인</button></div>
+  </div>
   <div class="gacha" id="gacha" role="dialog" aria-label="방어구 뽑기" hidden>
     <div class="g-stage" id="g-stage"></div>
     <div class="g-bar"><button id="g-skip" type="button">건너뛰기</button><button id="g-ok" type="button" hidden>확인</button></div>
@@ -786,7 +858,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v84";
+const GAME_VERSION = "v85";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -983,7 +1055,7 @@ const ARMOR_TYPES = [
 ];
 const ARMOR_MAX = 20, GACHA_COST = 30, GACHA_MAT = "star";
 // QUEST_VER 2: 암흑사신 다음에 '방어구 뽑기 잠금 해제' 목표 추가 (14번째 자리)
-const QUEST_VER = 3, ARMOR_QUEST = 14, OLD_DUNGEON_QUEST = 19;
+const QUEST_VER = 3, ARMOR_QUEST = 14, OLD_DUNGEON_QUEST = 19, CHAR_V = 1;
 const AT = Object.fromEntries(ARMOR_TYPES.map(t => [t.key, t]));
 const ASLOT = Object.fromEntries(ARMOR_SLOTS.map(sl => [sl.key, sl]));
 const armorId = (slot, type) => slot + "-" + type;
@@ -1013,7 +1085,7 @@ const matLabel = k => k === "runes" ? "룬석" : matName(k);
 // 룬 방어구: 한 부위마다 스킬 재사용 시간 10% 감소, 세 부위 모두 끼면 스킬 칸 하나 추가
 const runePieces = () => armorUnlocked() ? ARMOR_SLOTS.filter(sl => state.armor.equip[sl.key] === armorId(sl.key, "rune")).length : 0;
 const runeSet = () => runePieces() === ARMOR_SLOTS.length;
-const skillCdMul = () => 1 - 0.1 * runePieces();
+const skillCdMul = () => (1 - 0.1 * runePieces()) * (isChar("trickster") ? 1 - 0.02 * (cl("trickster") - 1) : 1);
 const armorLv = id => state.armor.owned[id] ?? 0;
 const equipped = () => ARMOR_SLOTS.map(sl => state.armor.equip[sl.key]).filter(Boolean);
 const armorHpTotal = () => equipped().reduce((a, id) => a + armorHp(id, armorLv(id)), 0);
@@ -1105,7 +1177,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -1328,11 +1400,11 @@ const QUESTS = [
   { text: "검을 +5까지 강화하기", prog: () => [state.best, 5], reward: { gold: 3000 } },
   { text: "광산에서 돌 50번 캐기", prog: () => [state.mined, 50], reward: { gold: 2000, inv: ["noDrop", 1] } },
   { text: "곡괭이를 +5까지 강화하기", prog: () => [state.pick, 5], reward: { gold: 5000 } },
-  { text: "초원에서 슬라임 킹 처치하기", prog: bossGoal("field", "crown"), reward: { runes: 5 } },
+  { text: "초원에서 슬라임 킹 처치하기", prog: bossGoal("field", "crown"), reward: { runes: 5, tickets: 1 } },
   { text: "스킬 하나 배우기", prog: () => [Object.keys(state.skills).length, 1], reward: { runes: 5 } },
   { text: "검을 +15까지 강화하기", prog: () => [state.best, 15], reward: { gold: 30000, inv: ["noBreak", 2] } },
   { text: "어둠의 동굴에서 바위 골렘 처치하기", prog: bossGoal("cave", "heart"), reward: { mats: ["ruby", 5] } },
-  { text: "상점에서 캐릭터 영입하기", prog: () => [Object.keys(state.chars).length - 1, 1], reward: { runes: 10 } },
+  { text: "상점 → 캐릭터에서 캐릭터 뽑기 한 번 하기", prog: () => [state.cpulls, 1], reward: { runes: 10, tickets: 1 } },
   { text: "검을 +30까지 강화하기", prog: () => [state.best, 30], reward: { gold: 300000, mats: ["diamond", 5] } },
   { text: "화산 지대에서 화염 드래곤 처치하기", prog: bossGoal("volcano", "scale"), reward: { mats: ["star", 2] } },
   { text: "검은가시 숲에서 거대 방패기사 처치하기", prog: bossGoal("forest", "crest"), reward: { runes: 20 } },
@@ -1372,6 +1444,7 @@ function rewardText(r) {
   if (r.runes) out.push(`룬석 ${r.runes}`);
   if (r.mats) out.push(`${matName(r.mats[0])} ${r.mats[1]}`);
   if (r.inv) out.push(`${SHOP.find(w => w.key === r.inv[0]).name} ${r.inv[1]}`);
+  if (r.tickets) out.push(`캐릭터 뽑기권 ${r.tickets}`);
   return out.join(" · ");
 }
 
@@ -1385,6 +1458,7 @@ function claimQuest() {
   state.runes += r.runes || 0;
   if (r.mats) state.mats[r.mats[0]] += r.mats[1];
   if (r.inv) state.inv[r.inv[0]] += r.inv[1];
+  if (r.tickets) state.ctickets += r.tickets;
   state.quest++;
   state.log.unshift({ text: `목표 달성: ${q.text}`, delta: "+" + rewardText(r) });
   sfx("fanfare");
@@ -1581,7 +1655,8 @@ function ago(ts) {
 function profileExtra(p) {
   const boss = p.w2Boss > 0 ? "월드 2 " + (ZONES2[p.w2Boss - 1]?.name ?? "?") : p.maxBoss > 0 ? ZONES[p.maxBoss - 1]?.name ?? "?" : "없음";
   const goal = `목표 ${Math.min((p.quest | 0) + 1, QUESTS.length)}/${QUESTS.length}${p.ended ? " · 월드 2" : ""}`;
-  const ch = CHARS.find(c => c.key === p.char)?.name;
+  const cn = CHARS.find(c => c.key === p.char)?.name, clv = p.build?.charLv | 0;
+  const ch = cn && (clv > 1 ? `${cn} Lv${Math.min(clv, CHAR_MAX)}` : cn);
   return `장인 Lv <em>${p.mlv | 0}</em> · 최대 보스 <em>${esc(boss)}</em> · 던전 <em>${p.dungeonBest | 0}/${DUNGEON.bosses.length}</em>` +
     ` · ${goal}${ch ? " · " + esc(ch) : ""}` + armorLine(p.build?.armor);
 }
@@ -1996,12 +2071,12 @@ $("friends").addEventListener("click", e => {
 $("shop").addEventListener("click", e => {
   const btn = e.target.closest("[data-buy]");
   const view = e.target.closest("[data-sview]");
-  const cbuy = e.target.closest("[data-char-buy]");
   const cuse = e.target.closest("[data-char-use]");
   if (btn) buy(btn.dataset.buy);
   else if (view) { shopView = view.dataset.sview; renderShop(); }
   else if (e.target.closest("[data-pull]")) doGacha(+e.target.closest("[data-pull]").dataset.pull);
-  else if (cbuy) buyChar(cbuy.dataset.charBuy);
+  else if (e.target.closest("[data-cpull]")) pullChar();
+  else if (e.target.closest("[data-char-up]")) upChar(e.target.closest("[data-char-up]").dataset.charUp);
   else if (cuse) useChar(cuse.dataset.charUse);
 });
 $("stone").addEventListener("change", e => {
@@ -2330,6 +2405,9 @@ function devRender() {
     <div class="dv-kills">${zones.map(z => `<label><input type="checkbox" data-dvkill="${z.key}" ${(state.bossKills[z.key] || 0) > 0 ? "checked" : ""}>${z.world === 2 ? "W2 " : ""}${z.name}</label>`).join("")}</div>
     <div class="dv-row"><button data-dv="kills">보스 처치 적용</button>
       <label>목표 번호<input type="number" min="1" max="${QUESTS.length + 1}" id="dv-quest" value="${state.quest + 1}" style="width:64px"></label><button data-dv="quest">목표 이동</button></div>
+    <h4>캐릭터</h4>
+    <div class="dv-row"><button data-dv="tix">뽑기권 +10</button><button data-dv="souls">소울 +5000</button><button data-dv="allChars">캐릭터 모두 지급</button><button data-dv="charMax">모든 캐릭터 Lv10</button><button data-dv="noChars">캐릭터 초기화</button></div>
+    <p class="hint">뽑기권 ${state.ctickets | 0}장 · 소울 ${state.souls | 0} · 보유 ${Object.keys(state.chars).length}명</p>
     <h4>전투</h4>
     <div class="dv-row"><label><input type="checkbox" id="dv-god" ${dev.god ? "checked" : ""}> 무적</label>
       <label>공격력 ×<select id="dv-mul">${[1, 10, 100, 1000].map(v => `<option ${dev.atkMul === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>
@@ -2366,6 +2444,11 @@ function devClick(e) {
     document.querySelectorAll("[data-dvkill]").forEach(i => { state.bossKills[i.dataset.dvkill] = i.checked ? Math.max(1, state.bossKills[i.dataset.dvkill] || 0) : 0; });
     say_("보스 처치 기록을 적용했어요. (방어구는 망자의 묘지, 월드 2는 용의 둥지)");
   }
+  if (act === "tix") { state.ctickets = (state.ctickets | 0) + 10; say_("캐릭터 뽑기권 10장을 넣었어요."); }
+  if (act === "souls") { state.souls = (state.souls | 0) + 5000; say_("소울 5000을 넣었어요."); }
+  if (act === "allChars") { for (const c of CHARS) { state.chars[c.key] = true; state.charLv[c.key] ||= 1; } say_("캐릭터를 모두 넣었어요. 사냥터 → 캐릭터에서 고르세요."); }
+  if (act === "charMax") { for (const c of CHARS) state.charLv[c.key] = CHAR_MAX; say_("모든 캐릭터를 Lv10으로 만들었어요."); }
+  if (act === "noChars") { state.chars = { adventurer: true }; state.char = "adventurer"; state.charLv = {}; state.shards = {}; say_("캐릭터를 처음 상태로 돌렸어요."); }
   if (act === "quest") { state.quest = clamp((num("#dv-quest") | 0) - 1, 0, QUESTS.length); say_("목표를 옮겼어요."); }
   if (act === "boss") { if (run && !run.over && !run.dungeon) { run.kills = 999; say_("곧 보스가 나와요."); } else say_("사냥터 안에서 눌러 주세요."); }
   if (act === "clear") { if (run && !run.over) { for (const m of run.mobs) if (!m.boss && !m.dead) { m.dead = true; kill(m); } say_("일반 몹을 처치했어요."); } else say_("사냥터 안에서 눌러 주세요."); }
@@ -2521,6 +2604,30 @@ function drawCharacter(g, key, x, y, r, aim, t, hurt) {
       g.beginPath(); g.arc(fx_ + (cx - x), fy_ + (cy - y), r * 0.16, 0, Math.PI * 2); g.fill();
     }
   }
+  if (key === "archmage") {
+    // 별무늬 망토
+    const [cx, cy] = at(back, r * 0.25);
+    fill("#2a1f5c", () => { g.moveTo(cx, cy); g.arc(cx, cy, r * 1.45, back - 1.15, back + 1.15); g.closePath(); });
+    g.fillStyle = "#ffe9a8";
+    for (const k of [-0.6, 0, 0.6]) { const [sx, sy] = at(back + k, r * 1.05); g.beginPath(); g.arc(sx + (cx - x), sy + (cy - y), r * 0.09, 0, Math.PI * 2); g.fill(); }
+  }
+  if (key === "dragonSlayer") {
+    const [cx, cy] = at(back, r * 0.3);
+    fill("#5e160c", () => { g.moveTo(cx, cy); g.arc(cx, cy, r * 1.5, back - 1.2, back + 1.2); g.closePath(); });
+    fill("#b8322a", () => { g.moveTo(cx, cy); g.arc(cx, cy, r * 1.25, back - 1.0, back + 1.0); g.closePath(); });
+    // 등에 멘 대검
+    g.strokeStyle = "#cfd6e0"; g.lineWidth = r * 0.32;
+    g.beginPath(); g.moveTo(...at(back - 0.9, r * 1.5)); g.lineTo(...at(back + 0.9, r * 1.5)); g.stroke();
+  }
+  if (key === "hypernova") {
+    // 주위를 도는 작은 별 세 개
+    for (let i = 0; i < 3; i++) {
+      const a = t * 2.2 + i * Math.PI * 2 / 3, [sx, sy] = at(a, r * 1.7);
+      g.shadowColor = "#ff9fe0"; g.shadowBlur = r * 0.6;
+      fill(i ? "#ffffff" : "#ffd24a", () => g.arc(sx, sy, r * 0.17, 0, Math.PI * 2));
+    }
+    g.shadowBlur = 0;
+  }
   if (key === "archer" || key === "adventurer") {
     g.save();
     g.translate(...at(back, r * 0.85));
@@ -2593,6 +2700,9 @@ function drawCharacter(g, key, x, y, r, aim, t, hurt) {
     g.beginPath(); g.moveTo(...at(back - 0.6, r * 0.6)); g.lineTo(...at(back - 1.1, r * 1.35)); g.stroke();
   }
   if (key === "vampire") cap("#1a0d12", 1.4, r * 0.95);
+  if (key === "dragonSlayer") cap("#8a8f99", 1.6, r * 1.0);
+  if (key === "hypernova") cap("#ffe0f4", 1.5, r * 0.98);
+  if (key === "archmage") cap("#e8e4ff", 1.3, r * 0.96);
   if (key === "adventurer") {
     g.strokeStyle = "#c2304a";
     g.lineWidth = r * 0.22;
@@ -2600,7 +2710,7 @@ function drawCharacter(g, key, x, y, r, aim, t, hurt) {
   }
 
   // ── 눈 ──
-  const eye = key === "demon" ? "#ffd24a" : key === "vampire" ? "#ff3b3b" : "#16130f";
+  const eye = key === "demon" ? "#ffd24a" : key === "vampire" ? "#ff3b3b" : key === "hypernova" ? "#ff4fb8" : key === "archmage" ? "#3b2a9a" : key === "dragonSlayer" ? "#ffb347" : "#16130f";
   for (const s of [-1, 1]) {
     const [ex, ey] = at(aim + s * 0.55, r * 0.55);
     fill(eye, () => g.arc(ex, ey, Math.max(1.2, r * 0.13), 0, Math.PI * 2));
@@ -2637,6 +2747,31 @@ function drawCharacter(g, key, x, y, r, aim, t, hurt) {
     fill("#ffffff", () => g.roundRect(-r * 0.2, -r * 0.28, r * 0.4, r * 0.56, r * 0.06));
     fill("#c2304a", () => g.arc(0, 0, r * 0.09, 0, Math.PI * 2));
     g.restore();
+  }
+  if (key === "archmage") {
+    // 뾰족한 마법사 모자와 금빛 별
+    fill("#4b36b8", () => g.ellipse(x, y - r * 0.55, r * 1.1, r * 0.3, 0, 0, Math.PI * 2));
+    fill("#5a44d0", () => { g.moveTo(x - r * 0.75, y - r * 0.6); g.quadraticCurveTo(x - r * 0.1, y - r * 1.4, x + r * 0.55, y - r * 2.15); g.quadraticCurveTo(x + r * 0.35, y - r * 1.2, x + r * 0.75, y - r * 0.6); g.closePath(); });
+    g.shadowColor = "#ffd24a"; g.shadowBlur = r * 0.5;
+    fill("#ffd24a", () => g.arc(x + r * 0.05, y - r * 1.05, r * 0.16, 0, Math.PI * 2));
+    g.shadowBlur = 0;
+  }
+  if (key === "dragonSlayer") {
+    // 투구 뿔
+    for (const s of [-1, 1]) fill("#f3e2c0", () => {
+      g.moveTo(x + s * r * 0.55, y - r * 0.7); g.quadraticCurveTo(x + s * r * 1.35, y - r * 1.0, x + s * r * 1.2, y - r * 1.75); g.quadraticCurveTo(x + s * r * 0.95, y - r * 1.1, x + s * r * 0.25, y - r * 0.85); g.closePath();
+    });
+    fill("#d0443a", () => g.rect(x - r * 0.9, y - r * 0.18, r * 1.8, r * 0.14));
+  }
+  if (key === "hypernova") {
+    // 빛나는 별 왕관
+    g.shadowColor = "#ff9fe0"; g.shadowBlur = r * 0.8;
+    fill("#ffd6f2", () => {
+      g.moveTo(x - r * 0.75, y - r * 0.75);
+      for (let i = 0; i <= 4; i++) { g.lineTo(x - r * 0.75 + i * r * 0.375, y - r * (i % 2 ? 1.05 : 1.55)); }
+      g.lineTo(x + r * 0.75, y - r * 0.75); g.closePath();
+    });
+    g.shadowBlur = 0;
   }
   if (key === "trickster") {
     // 어릿광대 모자: 보라·노랑 두 갈래와 방울
@@ -3289,7 +3424,7 @@ const SWING_TIME = 0.15, SWING_ARC = 1.25;   // 칼 휘두르기: 0.15초 동안
 const MAX_MOBS = 7, SPAWN_EVERY = 1.1, BOSS_EVERY = 20;
 const BOSS_MAX_MOBS = 3, BOSS_SPAWN_EVERY = 2.5;   // 보스전 중 일반 몹
 // 사냥꾼은 보스를 더 자주 만난다
-const bossEvery = () => isChar("hunter") ? 12 : BOSS_EVERY;
+const bossEvery = () => BOSS_EVERY;
 
 // rune: 일반 몹이 룬석을 떨어뜨릴 확률(%)
 const ZONES = [
@@ -3410,27 +3545,48 @@ const skillCost = key => SK[key].price * ((state.skills[key] || 0) + 1);
 
 // ── 캐릭터 ──
 // 상점에서 골드와 재료로 사고, 하나를 골라 사냥터에 데려간다. 모험가는 처음부터 가지고 있다.
+// ── 캐릭터 ── 뽑기로 얻고 소울로 강화 (Lv 1~10). 모험가는 처음부터 가진 기본 캐릭터
+const CHAR_MAX = 10;
+const CHAR_TIER = {
+  base:   { name: "기본", color: "#c9ccd2", need: 0,  dupSoul: 0,    shardSoul: 0,  upBase: 30 },
+  common: { name: "일반", color: "#6fd16f", need: 10, dupSoul: 100,  shardSoul: 10, upBase: 50 },
+  epic:   { name: "에픽", color: "#b47cff", need: 20, dupSoul: 300,  shardSoul: 25, upBase: 120 },
+  legend: { name: "전설", color: "#ffd24a", need: 0,  dupSoul: 1000, shardSoul: 0,  upBase: 300 },
+};
+const cl = key => state.charLv?.[key] || 1;   // 캐릭터 레벨
 const CHARS = [
-  { key: "adventurer", name: "모험가", color: "#efe6d8", cost: null,
-    desc: "특별한 능력은 없지만 처음부터 함께하는 기본 캐릭터." },
-  { key: "gambler", name: "도박꾼", color: "#3fbf7f", cost: { gold: 30000, ruby: 3 },
-    desc: "몹을 쓰러뜨리면 25% 확률로 골드를 2배로 받아요. 그중 30%는 3배." },
-  { key: "vampire", name: "뱀파이어", color: "#c2304a", cost: { gold: 50000, ruby: 5 },
-    desc: "적을 벨 때마다 최대 체력의 1%를 회복해요." },
-  { key: "archer", name: "아처", color: "#8fd16a", cost: { gold: 80000, diamond: 3 },
-    desc: "1.5초마다 가장 가까운 적(사거리 300)에게 화살을 쏴서 공격력 ×1 추가 피해." },
-  { key: "hunter", name: "사냥꾼", color: "#c98a4b", cost: { gold: 100000, diamond: 5 },
-    desc: "보스 전문가. 보스에게 주는 피해 +100%, 보스가 20마리 대신 12마리마다 등장, 보스 재료 1개 추가." },
-  { key: "demon", name: "악마", color: "#8a3aa3", cost: { gold: 200000, star: 1 },
-    desc: "기본 공격을 할 때마다 최대 체력의 1%를 잃는 대신 모든 피해 ×1.6. 이 대가로는 쓰러지지 않아요." },
-  { key: "angel", name: "천사", color: "#fff6c8", cost: { gold: 300000, star: 2 },
-    desc: "사냥할 때마다 한 번, 쓰러지면 체력 50%로 부활하고 2초 동안 무적." },
-  { key: "trickster", name: "사기꾼", color: "#e0a0ff", cost: { gold: 500000, star: 3 },
-    desc: "스킬 장착 슬롯이 3칸으로 늘어나요." },
+  { key: "adventurer", name: "모험가", tier: "base", color: "#efe6d8",
+    desc: lv => `특별한 능력은 없지만 처음부터 함께하는 기본 캐릭터. 레벨마다 공격력 +${lv - 1}%.` },
+  { key: "gambler", name: "도박꾼", tier: "common", color: "#3fbf7f",
+    desc: lv => `몹을 쓰러뜨리면 ${25 + 2 * (lv - 1)}% 확률로 골드 2배 (그중 30%는 3배).` },
+  { key: "vampire", name: "뱀파이어", tier: "common", color: "#c2304a",
+    desc: lv => `적을 벨 때마다 최대 체력의 ${fmt(1 + 0.1 * (lv - 1))}% 회복.` },
+  { key: "archer", name: "아처", tier: "common", color: "#8fd16a",
+    desc: lv => `${fmt(1.5 - 0.05 * (lv - 1))}초마다 가장 가까운 적(사거리 300)에게 화살, 공격력 ×${fmt(1 + 0.1 * (lv - 1))}.` },
+  { key: "demon", name: "악마", tier: "epic", color: "#8a3aa3",
+    desc: lv => `기본 공격마다 최대 체력의 1%를 잃는 대신 모든 피해 ×${fmt(1.6 + 0.05 * (lv - 1))}. 이 대가로는 쓰러지지 않아요.` },
+  { key: "angel", name: "천사", tier: "epic", color: "#fff6c8",
+    desc: lv => `사냥마다 한 번, 쓰러지면 체력 ${50 + 3 * (lv - 1)}%로 부활하고 2초 동안 무적.` },
+  { key: "trickster", name: "사기꾼", tier: "epic", color: "#e0a0ff",
+    desc: lv => `스킬 칸이 3칸으로 늘어나요.${lv > 1 ? ` 스킬 재사용 시간 −${2 * (lv - 1)}%.` : ""}` },
+  { key: "archmage", name: "앨리온", tier: "legend", color: "#8f7cff", title: "별빛 대마도사",
+    line: "마력의 흐름이… 당신의 검에 깃들었다.", ultName: "대마법진", ultCd: lv => 90 - 2 * (lv - 1),
+    desc: lv => `패시브 마력 연쇄: 벨 때마다 근처 적 2마리에게 마법이 튀어 공격력의 ${25 + 2 * (lv - 1)}% (보스 절반). ` +
+      `궁극기 대마법진 (재사용 ${90 - 2 * (lv - 1)}초): 8초 동안 거대 마법진이 0.5초마다 공격력 ×${fmt(2 + 0.15 * (lv - 1))} (보스 절반). 궁극기 버튼을 조이스틱처럼 끌어서 마법진을 움직여요.` },
+  { key: "dragonSlayer", name: "드래곤 슬레이어", tier: "legend", color: "#d0443a", title: "용을 벤 자",
+    line: "킹 드래곤의 비늘이 아직 따뜻하군. 다음은 누구지?", ultName: "용신화", ultCd: lv => 90 - 2 * (lv - 1), unlock: () => (state.bossKills.lair || 0) > 0, lockText: "킹 드래곤 처치 후 등장",
+    desc: lv => `패시브 용린의 가호: 기절·빙결·속박·둔화 시간 ${50 + 2 * (lv - 1)}% 감소. ` +
+      `궁극기 용신화 (재사용 ${90 - 2 * (lv - 1)}초): 15초 동안 용으로 변신, 받는 피해 30% 감소, 스킬이 브레스(공격력 ×${fmt(4 + 0.3 * (lv - 1))}, 3초)·발톱 휘두르기(×${fmt(3 + 0.2 * (lv - 1))}, 2초) 2개로 바뀜 (보스 절반).` },
+  { key: "hypernova", name: "하이퍼노바", tier: "legend", color: "#ff9fe0", title: "별을 삼킨 자를 쓰러뜨린 자",
+    line: "별이 죽을 때, 가장 밝게 빛나는 법이지.", ultName: "블랙홀", ultCd: lv => 100 - 2 * (lv - 1), unlock: () => (state.bossKills.rift || 0) > 0, lockText: "별을 삼킨 자 처치 후 등장",
+    desc: lv => `패시브 초신성: 몹을 처치하면 그 자리에서 폭발, 반경 70에 공격력의 ${60 + 4 * (lv - 1)}% (보스 30%, 연쇄 가능). ` +
+      `궁극기 블랙홀 (재사용 ${100 - 2 * (lv - 1)}초): 5초 동안 모든 적을 끌어모아 0.5초마다 공격력 ×3, 마지막에 ×${15 + (lv - 1)} 대폭발 (보스 절반).` },
 ];
 const CH = Object.fromEntries(CHARS.map(c => [c.key, c]));
 const isChar = key => state.char === key;
 const slotCount = () => (isChar("trickster") ? 3 : 2) + (runeSet() ? 1 : 0);
+const isLegend = key => CH[key]?.tier === "legend";
+const legendOpen = c => !c.unlock || c.unlock();
 const activeEquip = () => state.equip.slice(0, slotCount());
 // 장착한 패시브의 단계 (장착하지 않았으면 0)
 const passiveLv = key => activeEquip().includes(key) ? (state.skills[key] || 0) : 0;
@@ -3444,22 +3600,23 @@ function costHtml(cost) {
       `<span class="${state.mats[k] < n ? "short" : ""}">${matName(k)} ${state.mats[k]}/${n}</span>`)].join(" · ");
 }
 
-function buyChar(key) {
-  const c = CH[key];
-  if (!c || state.chars[key] || !canAfford(c.cost)) return;
-  state.gold -= c.cost.gold;
-  for (const [k, n] of Object.entries(c.cost)) if (k !== "gold") state.mats[k] -= n;
-  state.chars[key] = true;
-  sfx("fanfare");
-  state.log.unshift({ text: `${c.name} 영입`, delta: "−" + won(c.cost.gold) });
-  useChar(key);
+const charUpCost = key => CHAR_TIER[CH[key].tier].upBase * cl(key);
+function upChar(key) {
+  if (!state.chars[key] || cl(key) >= CHAR_MAX) return;
+  const c = charUpCost(key);
+  if (state.souls < c) return;
+  state.souls -= c;
+  state.charLv[key] = cl(key) + 1;
+  sfx("success");
+  state.log.unshift({ text: `${CH[key].name} 강화`, delta: `Lv ${state.charLv[key]}` });
+  commit();
 }
 
 function useChar(key) {
   if (!state.chars[key]) return;
   state.char = key;
-  // 사기꾼이 아니면 세 번째 슬롯은 비운다
-  if (key !== "trickster") state.equip[2] = null;
+  // 칸이 줄면 넘치는 칸은 비운다
+  for (let i = slotCount(); i < state.equip.length; i++) state.equip[i] = null;
   commit();
 }
 
@@ -3703,12 +3860,155 @@ function showGacha(results, best) {
   gLater(1800, () => { sfx("gBurst"); deal(true); });
 }
 
+$("cg-ok").addEventListener("click", () => { $("cgacha").hidden = true; render(); });
 $("g-ok").addEventListener("click", () => { gTimers.forEach(clearTimeout); $("gacha").hidden = true; render(); });
 document.addEventListener("change", e => {
   if (e.target.id !== "g-skipfx") return;
   gachaSkip = e.target.checked;
   try { localStorage.setItem("sword-forge-gacha-skip", gachaSkip ? "1" : "0"); } catch {}
 });
+
+// ── 캐릭터 뽑기 ── 보스를 잡으면 낮은 확률로 뽑기권. 결과는 소울·캐릭터 조각·캐릭터
+const CPULL = [   // [종류, 확률 %] (전설은 열린 전설 수 × 0.15%, 남는 확률은 소울)
+  ["epicChar", 2.6], ["commonChar", 9], ["epicShard", 8], ["commonShard", 25],
+];
+const LEGEND_RATE = 0.15;
+const charsOf = tier => CHARS.filter(c => c.tier === tier);
+function rollChar() {
+  const legends = charsOf("legend").filter(legendOpen);
+  let r = Math.random() * 100;
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  if (r < LEGEND_RATE * legends.length) return { type: "char", key: pick(legends).key, rank: 5 };
+  r -= LEGEND_RATE * legends.length;
+  for (const [kind, pct] of CPULL) {
+    if (r < pct) {
+      if (kind === "epicChar") return { type: "char", key: pick(charsOf("epic")).key, rank: 4 };
+      if (kind === "commonChar") return { type: "char", key: pick(charsOf("common")).key, rank: 2 };
+      if (kind === "epicShard") return { type: "shard", key: pick(charsOf("epic")).key, n: 1 + Math.floor(Math.random() * 2), rank: 3 };
+      return { type: "shard", key: pick(charsOf("common")).key, n: 1 + Math.floor(Math.random() * 3), rank: 1 };
+    }
+    r -= pct;
+  }
+  return { type: "soul", n: 20 + Math.floor(Math.random() * 41), rank: 0 };
+}
+function applyPull(res) {
+  const t = res.key && CHAR_TIER[CH[res.key].tier];
+  if (res.type === "soul") state.souls += res.n;
+  else if (res.type === "char") {
+    if (state.chars[res.key]) { res.dup = t.dupSoul; state.souls += t.dupSoul; }
+    else { state.chars[res.key] = true; state.charLv[res.key] = 1; res.isNew = true; }
+  } else {
+    if (state.chars[res.key]) { res.dup = t.shardSoul * res.n; state.souls += res.dup; }
+    else {
+      state.shards[res.key] = (state.shards[res.key] || 0) + res.n;
+      if (state.shards[res.key] >= t.need) { state.shards[res.key] -= t.need; state.chars[res.key] = true; state.charLv[res.key] = 1; res.unlocked = true; }
+    }
+  }
+}
+function pullChar() {
+  if (state.ctickets < 1 || !$("cgacha").hidden) return;
+  state.ctickets--;
+  state.cpulls++;
+  const res = rollChar();
+  applyPull(res);
+  state.log.unshift({ text: "캐릭터 뽑기", delta: res.type === "soul" ? `소울 ${res.n}` : `${CH[res.key].name}${res.type === "shard" ? ` 조각 ${res.n}` : ""}` });
+  commit();
+  showCharGacha(res);
+}
+
+function charShop() {
+  const legOpen = charsOf("legend").filter(legendOpen).length;
+  const head = `<div class="cg-box">
+    <div class="cg-orb-mini"></div>
+    <h3>캐릭터 뽑기</h3>
+    <p>뽑기권은 보스를 잡으면 낮은 확률로 나와요 (월드 1 5% · 월드 2 10% · 보스 ${TICKET_PITY}마리 동안 못 받으면 확정 · 던전 클리어 1장).</p>
+    <div class="g-have">뽑기권 <b>${state.ctickets}</b>장 · 소울 <b>${state.souls.toLocaleString("ko-KR")}</b> · 천장까지 ${TICKET_PITY - state.ctPity}마리</div>
+    <button class="cg-pull" data-cpull ${state.ctickets < 1 ? "disabled" : ""}>뽑기 (뽑기권 1장)</button>
+    <details class="g-rates"><summary>확률 보기</summary><table>
+      <tr><th>결과</th><th>확률</th></tr>
+      <tr><td style="color:#ffd24a">전설 캐릭터</td><td>${+(LEGEND_RATE * legOpen).toFixed(2)}% (열린 전설 ${legOpen}명, 한 명당 ${LEGEND_RATE}%)</td></tr>
+      ${CPULL.map(([k, v]) => `<tr><td>${{ epicChar: "에픽 캐릭터", commonChar: "일반 캐릭터", epicShard: "에픽 조각 1~2", commonShard: "일반 조각 1~3" }[k]}</td><td>${v}%</td></tr>`).join("")}
+      <tr><td>소울 20~60</td><td>나머지</td></tr></table>
+      <p class="hint">조각은 일반 10개·에픽 20개를 모으면 그 캐릭터가 돼요. 이미 가진 캐릭터와 조각은 소울로 바뀌어요 (중복 캐릭터: 일반 100 · 에픽 300 · 전설 1,000).</p></details>
+  </div>`;
+  const cards = CHARS.map(c => {
+    const t = CHAR_TIER[c.tier], has = state.chars[c.key], on = state.char === c.key, lv = cl(c.key);
+    const locked = c.tier === "legend" && !legendOpen(c);
+    let foot;
+    if (has) {
+      const cost = charUpCost(c.key);
+      foot = `<div class="cc-btns">${on ? `<button class="alt" disabled>사용 중</button>` : `<button class="alt" data-char-use="${c.key}">선택</button>`}
+        ${lv >= CHAR_MAX ? `<button disabled>최대 Lv</button>` : `<button data-char-up="${c.key}" ${state.souls < cost ? "disabled" : ""}>강화 · 소울 ${cost}</button>`}</div>`;
+    } else if (c.tier === "legend") foot = `<div class="price">${locked ? "🔒 " + c.lockText : "뽑기로만 얻을 수 있어요"}</div>`;
+    else foot = `<div class="price">조각 ${state.shards[c.key] || 0}/${t.need}</div>`;
+    return `<div class="char-card ${on ? "on" : ""} ${has ? "" : "missing"} tier-${c.tier}" style="--c:${c.color};--tc:${t.color}">
+      <img class="avatar" src="${charIcon(c.key)}" alt="">
+      <h3>${c.name} <small class="tier">${t.name}</small>${has ? `<small>Lv ${lv}</small>` : ""}</h3>
+      <p>${locked ? "???" : c.desc(lv)}</p>
+      ${foot}
+    </div>`;
+  }).join("");
+  return head + cards;
+}
+
+let cgTimers = [];
+function showCharGacha(res) {
+  // 누를 때마다 빛이 한 단계씩 오름. 높은 결과일수록 더 많이 눌러야 하고 색도 더 올라감
+  const STEPS = ["#ffffff", "#6fb8ff", "#6fd16f", "#b47cff", "#ff6bd8", "#ffd24a"];
+  const STAGE = [0, 1, 2, 3, 4, 5][res.rank], TAPS = [2, 3, 4, 5, 7, 10][res.rank];
+  let taps = 0;
+  const ov = $("cgacha"), orb = $("cg-orb"), hint = $("cg-hint");
+  ov.hidden = false; $("cg-card").hidden = true; $("cg-cut").hidden = true; orb.hidden = false;
+  $("cg-skip").hidden = false; $("cg-ok").hidden = true;
+  const paint = () => {
+    const st = Math.min(STAGE, Math.floor(taps * (STAGE + 1) / TAPS));
+    orb.style.setProperty("--c", STEPS[st]);
+    orb.classList.toggle("legend", st === 5);
+    hint.textContent = `눌러서 깨우기 (${TAPS - taps})`;
+    return st;
+  };
+  let last = paint();
+  const finish = () => {
+    ov.onpointerdown = null;
+    orb.hidden = true; hint.textContent = "";
+    if (res.rank === 5) playCutscene(res, () => revealChar(res));
+    else revealChar(res);
+  };
+  ov.onpointerdown = e => {
+    if (e.target.closest("button")) return;
+    taps++;
+    orb.classList.remove("tap"); void orb.offsetWidth; orb.classList.add("tap");
+    const st = paint();
+    if (st > last) { sfx(st >= 4 ? "gRare" : "gem"); last = st; } else sfx("gFlip");
+    if (taps >= TAPS) { sfx("gBurst"); finish(); }
+  };
+  $("cg-skip").onclick = () => { taps = TAPS; paint(); finish(); };
+}
+function revealChar(res) {
+  const card = $("cg-card"), c = res.key && CH[res.key], t = c && CHAR_TIER[c.tier];
+  card.hidden = false;
+  card.style.setProperty("--tc", res.type === "soul" ? "#e8e0ff" : t.color);
+  card.innerHTML = res.type === "soul"
+    ? `<div class="cg-soul">✦</div><b>소울 +${res.n}</b><small>캐릭터 강화 재료</small>`
+    : `<img src="${charIcon(res.key)}" alt=""><span class="tier">${t.name}</span><b>${c.name}${res.type === "shard" ? ` 조각 ×${res.n}` : ""}</b>
+       <small>${res.dup ? `이미 가지고 있어서 소울 +${res.dup}` : res.unlocked ? "조각을 다 모아서 캐릭터를 얻었어요!" : res.isNew ? "새 캐릭터!" : `조각 ${state.shards[res.key] || 0}/${t.need}`}</small>`;
+  $("cg-skip").hidden = true; $("cg-ok").hidden = false;
+  if (res.rank >= 4) sfx("fanfare");
+}
+// 전설 컷신: 어둠 → 실루엣 → 빛이 터지며 이름과 대사
+function playCutscene(res, done) {
+  const c = CH[res.key], cut = $("cg-cut");
+  cut.hidden = false;
+  cut.style.setProperty("--c", c.color);
+  cut.innerHTML = `<div class="cut-rays"></div><img class="cut-sil" src="${charIcon(res.key)}" alt="">
+    <div class="cut-txt"><small>${c.title}</small><b>${c.name}</b><p>“${c.line}”</p></div>`;
+  sfx("gLegend");
+  cgTimers.forEach(clearTimeout);
+  const end = () => { cgTimers.forEach(clearTimeout); cut.hidden = true; done(); };
+  cgTimers = [setTimeout(end, 5200)];
+  $("cg-skip").hidden = false;
+  $("cg-skip").onclick = end;
+}
 
 function renderShop() {
   let body;
@@ -3724,23 +4024,10 @@ function renderShop() {
         </button>
       </div>`).join("");
   } else {
-    body = CHARS.map(c => {
-      const has = state.chars[c.key], on = state.char === c.key;
-      const btn = on ? `<button class="alt" disabled>사용 중</button>`
-        : has ? `<button class="alt" data-char-use="${c.key}">선택</button>`
-        : `<button data-char-buy="${c.key}" ${canAfford(c.cost) ? "" : "disabled"}>구매</button>`;
-      return `
-        <div class="char-card${on ? " on" : ""}" style="--c:${c.color}">
-          <img class="avatar" src="${charIcon(c.key)}" alt="">
-          <h3>${c.name}${on ? "<small>사용 중</small>" : ""}</h3>
-          <p>${c.desc}</p>
-          <div class="price">${has ? "보유 중" : costHtml(c.cost)}</div>
-          ${btn}
-        </div>`;
-    }).join("");
+    body = charShop();
   }
   if (shopView === "armor") body = gachaBox();
-  $("shop").innerHTML = seg("sview", shopView, [["items", "아이템"], ["chars", "캐릭터"], ["armor", "방어구 뽑기"]]) + body;
+  $("shop").innerHTML = seg("sview", shopView, [["items", "아이템"], ["chars", "캐릭터 뽑기"], ["armor", "방어구 뽑기"]]) + body;
 }
 
 let run = null, raf = 0, lastT = 0, ctx = null, joy = null;
@@ -3847,7 +4134,7 @@ function charPicker() {
       <button role="radio" data-pick-char="${c.key}" aria-checked="${state.char === c.key}" style="--c:${c.color}">
         <img src="${charIcon(c.key)}" alt="">${c.name}
       </button>`).join("")}</div>
-    <p class="hint">${CH[state.char].desc}${owned.length < CHARS.length ? " 다른 캐릭터는 상점에서 영입할 수 있어요." : ""}</p>`;
+    <p class="hint"><b>${CH[state.char].name} Lv ${cl(state.char)}</b> · ${CH[state.char].desc(cl(state.char))}${owned.length < CHARS.length ? " 다른 캐릭터는 상점 → 캐릭터 뽑기로 얻어요." : ""}</p>`;
 }
 
 function learnSkill(key) {
@@ -3910,29 +4197,321 @@ function enterZone(key) {
 }
 
 function setupSkillButtons() {
+  setupUlt();
   document.querySelectorAll("#skillbar .sk").forEach((b, i) => {
-    const s = i < slotCount() ? SK[state.equip[i]] : null;
+    const s = run?.dragon ? DRAGON_SK[i] : i < slotCount() ? SK[state.equip[i]] : null;
     b.hidden = !s;
     if (!s) return;
     b.style.setProperty("--c", s.color);
     b.classList.toggle("passive", !s.active);
-    b.querySelector(".g").innerHTML = skillIcon(s.key);
+    b.querySelector(".g").innerHTML = s.icon || skillIcon(s.key);
     b.querySelector(".t").textContent = s.active ? "" : "패시브";
     b.setAttribute("aria-label", `${s.name}${s.active ? "" : " (패시브)"}`);
   });
 }
 
 function updateSkillButtons() {
+  updateUltBtn();
   document.querySelectorAll("#skillbar .sk").forEach((b, i) => {
-    const s = SK[state.equip[i]];
+    const s = run.dragon ? DRAGON_SK[i] : SK[state.equip[i]];
     if (!s || !s.active) return;
-    const left = run.cds[i];
-    b.style.setProperty("--cd", left > 0 ? left / run.cdMax[i] : 0);
+    const left = run.dragon ? run.dcds[i] : run.cds[i], max = run.dragon ? s.cd : run.cdMax[i];
+    b.style.setProperty("--cd", left > 0 ? left / max : 0);
     b.querySelector(".t").textContent = left > 0 ? Math.ceil(left) : "";
   });
 }
 
+// ── 전설 캐릭터: 패시브와 궁극기 ──
+const legendKey = () => CH[state.char]?.ultCd ? state.char : null;
+const ULT_FIXED = new Set(["kraken", "turret", "voidTentacle"]);   // 블랙홀에도 끌려가지 않는 고정형
+const CIRCLE_R = 105, CIRCLE_SPEED = 260, HOLE_R = 130;
+const DRAGON_SK = [
+  { key: "dbreath", name: "브레스", color: "#ff7a3a", active: true, cd: 3,
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12h5M8 12l13-7M8 12l13 7M8 12h13"/></svg>` },
+  { key: "dclaw", name: "발톱 휘두르기", color: "#f3e2c0", active: true, cd: 2,
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 4c4 4 6 9 6 16M10 3c3 4 5 9 5 15M15 3c2 3 4 7 4 12"/></svg>` },
+];
+let ultJoy = null;            // 궁극기 버튼을 조이스틱처럼 끄는 중
+const circleKeys = new Set(); // PC: IJKL로 마법진 이동
+
+function setupUlt() {
+  const b = $("ultbtn"), k = legendKey();
+  if (!run) return;
+  run.ult ??= 0; run.ultMax ??= 1;
+  run.novas ??= []; run.dfx ??= []; run.dcds ??= [0, 0];
+  b.hidden = !k;
+  if (!k) return;
+  const c = CH[k];
+  b.style.setProperty("--c", c.color);
+  b.querySelector(".g").textContent = c.ultName;
+  b.setAttribute("aria-label", "궁극기 " + c.ultName);
+}
+
+function updateUltBtn() {
+  const b = $("ultbtn");
+  if (!run || b.hidden) return;
+  const left = run.ult;
+  b.style.setProperty("--cd", left > 0 ? left / run.ultMax : 0);
+  b.querySelector(".t").textContent = left > 0 ? Math.ceil(left) : "";
+  b.classList.toggle("ready", left <= 0);
+  b.classList.toggle("steer", !!(ultJoy && run.circle));
+  const kn = b.querySelector(".knob");
+  kn.style.transform = ultJoy ? `translate(${ultJoy.dx * 20}px, ${ultJoy.dy * 20}px)` : "";
+}
+
+function castUlt() {
+  const k = legendKey();
+  if (!run || run.over || !k || run.ult > 0) return false;
+  if (run.p.frozen > 0 || run.p.stun > 0) { fx(run.p.x, run.p.y - 36, "사용 불가", "#efe6d8", 12); return false; }
+  const c = CH[k], lv = cl(k), p = run.p;
+  run.ult = run.ultMax = c.ultCd(lv);
+  run.ultFlash = { t: 0.6, col: c.color };
+  fx(p.x, p.y - 40, c.ultName + "!", c.color, 20);
+  if (k === "archmage") {
+    run.circle = { x: p.x, y: p.y, t: 8, tick: 0.5, mult: 2 + 0.15 * (lv - 1) };
+    sfx("buff");
+  } else if (k === "dragonSlayer") {
+    run.dragon = { t: 15 };
+    run.dcds = [0, 0];
+    ring(p.x, p.y, 70, "#ff7a3a");
+    sparksAt(p.x, p.y, "#ff7a3a", 24, 200);
+    sfx("buff");
+    setupSkillButtons();
+  } else if (k === "hypernova") {
+    run.hole = { x: p.x, y: p.y, t: 5, tick: 0.5, fin: 15 + (lv - 1) };
+    sfx("thunder");
+  }
+  return true;
+}
+
+// 앨리온: 벨 때마다 근처 적 2마리에게 마력이 튄다
+function arcaneChain(src) {
+  const lv = cl("archmage"), mult = (25 + 2 * (lv - 1)) / 100;
+  const ts = run.mobs.filter(m => !m.dead && m !== src && Math.hypot(m.x - src.x, m.y - src.y) < 150)
+    .sort((a, b) => Math.hypot(a.x - src.x, a.y - src.y) - Math.hypot(b.x - src.x, b.y - src.y)).slice(0, 2);
+  for (const m of ts) {
+    run.chains.push({ pts: [[src.x, src.y], [m.x, m.y]], t: 0.3, col: "160,140,255" });
+    hit(m, mult * (m.boss ? 0.5 : 1), null);
+  }
+}
+
+// 용신화 스킬: 0 브레스(부채꼴), 1 발톱 휘두르기(주변)
+function dragonSkill(i) {
+  const s = DRAGON_SK[i], p = run.p;
+  if (!s || run.over || run.dcds[i] > 0 || p.frozen > 0 || p.stun > 0) return;
+  const lv = cl("dragonSlayer");
+  run.dcds[i] = s.cd;
+  const near = run.mobs.filter(m => !m.dead).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+  const a = near && Math.hypot(near.x - p.x, near.y - p.y) < 300 ? Math.atan2(near.y - p.y, near.x - p.x) : p.aim;
+  p.aim = a;
+  if (i === 0) {
+    const mult = 4 + 0.3 * (lv - 1), LEN = 210, ARC = 0.55;
+    run.dfx.push({ type: "breath", x: p.x, y: p.y, a, t: 0.45, len: LEN, arc: ARC });
+    sfx("whirl");
+    for (const m of run.mobs) {
+      if (m.dead) continue;
+      const d = Math.hypot(m.x - p.x, m.y - p.y);
+      if (d - m.r > LEN) continue;
+      let diff = Math.atan2(m.y - p.y, m.x - p.x) - a; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+      if (Math.abs(diff) <= ARC + Math.atan2(m.r, Math.max(d, 1))) hit(m, mult * (m.boss ? 0.5 : 1), null);
+    }
+  } else {
+    const mult = 3 + 0.2 * (lv - 1), R = 85;
+    run.dfx.push({ type: "claw", x: p.x, y: p.y, a, t: 0.3, r: R });
+    sfx("whirl");
+    for (const m of run.mobs) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) - m.r <= R) hit(m, mult * (m.boss ? 0.5 : 1), null);
+  }
+}
+
+function ultUpdate(dt) {
+  const r = run, p = r.p;
+  if (r.ult > 0) r.ult = Math.max(0, r.ult - dt);
+  if (r.ultFlash) { r.ultFlash.t -= dt; if (r.ultFlash.t <= 0) r.ultFlash = null; }
+  for (const f of r.dfx) f.t -= dt;
+  r.dfx = r.dfx.filter(f => f.t > 0);
+  // 초신성 (하이퍼노바 패시브): 잠깐 뒤 터져서 연쇄될 수 있다
+  if (r.novas.length) {
+    const lv = cl("hypernova"), mult = (60 + 4 * (lv - 1)) / 100, due = [];
+    for (const n of r.novas) { n.t -= dt; if (n.t <= 0) due.push(n); }
+    r.novas = r.novas.filter(n => n.t > 0);
+    for (const n of due) {
+      ring(n.x, n.y, 70, "#ff9fe0");
+      sparksAt(n.x, n.y, "#ffd6f2", 8, 160);
+      for (const m of r.mobs) if (!m.dead && Math.hypot(m.x - n.x, m.y - n.y) - m.r <= 70) hit(m, mult * (m.boss ? 0.3 : 1), null);
+    }
+  }
+  // 대마법진
+  const c = r.circle;
+  if (c) {
+    let vx = 0, vy = 0;
+    if (ultJoy) { vx += ultJoy.dx; vy += ultJoy.dy; }
+    if (circleKeys.has("left")) vx -= 1;
+    if (circleKeys.has("right")) vx += 1;
+    if (circleKeys.has("up")) vy -= 1;
+    if (circleKeys.has("down")) vy += 1;
+    const v = Math.hypot(vx, vy);
+    if (v > 1) { vx /= v; vy /= v; }
+    c.x = clamp(c.x + vx * CIRCLE_SPEED * dt, 0, W);
+    c.y = clamp(c.y + vy * CIRCLE_SPEED * dt, 0, H);
+    c.tick -= dt;
+    if (c.tick <= 0) {
+      c.tick += 0.5;
+      for (const m of r.mobs) if (!m.dead && Math.hypot(m.x - c.x, m.y - c.y) - m.r <= CIRCLE_R) hit(m, c.mult * (m.boss ? 0.5 : 1), null);
+    }
+    c.t -= dt;
+    if (c.t <= 0) { r.circle = null; ultJoy = null; }
+  }
+  // 용신화
+  if (r.dragon) {
+    r.dcds = r.dcds.map(v => Math.max(0, v - dt));
+    r.dragon.t -= dt;
+    if (r.dragon.t <= 0) {
+      r.dragon = null;
+      fx(p.x, p.y - 36, "변신 해제", "#efe6d8", 13);
+      ring(p.x, p.y, 50, "#ff7a3a");
+      setupSkillButtons();
+    }
+  }
+  // 블랙홀
+  const h = r.hole;
+  if (h) {
+    for (const m of r.mobs) {
+      if (m.dead || ULT_FIXED.has(m.kind)) continue;
+      const dx = h.x - m.x, dy = h.y - m.y, d = Math.hypot(dx, dy);
+      if (d < 4) continue;
+      const step = Math.min(d - 2, (m.boss ? 160 : 260) * dt);
+      m.x += dx / d * step;
+      m.y += dy / d * step;
+    }
+    h.tick -= dt;
+    if (h.tick <= 0) {
+      h.tick += 0.5;
+      for (const m of r.mobs) if (!m.dead && Math.hypot(m.x - h.x, m.y - h.y) - m.r <= HOLE_R) hit(m, 3 * (m.boss ? 0.5 : 1), null);
+    }
+    h.t -= dt;
+    if (h.t <= 0) {
+      r.hole = null;
+      ring(h.x, h.y, 170, "#ff9fe0");
+      ring(h.x, h.y, 120, "#ffffff");
+      sparksAt(h.x, h.y, "#ff9fe0", 30, 260);
+      sfx("bossDown");
+      for (const m of r.mobs) if (!m.dead && Math.hypot(m.x - h.x, m.y - h.y) - m.r <= 170) hit(m, h.fin * (m.boss ? 0.5 : 1), null);
+    }
+  }
+}
+
+// 궁극기 효과 그리기: 바닥 쪽 (몹 아래)
+function drawUltUnder(t) {
+  const r = run;
+  if (r.circle) {
+    const c = r.circle, fade = Math.min(1, c.t / 0.4);
+    ctx.save();
+    ctx.globalAlpha = fade;
+    const g = ctx.createRadialGradient(c.x, c.y, 10, c.x, c.y, CIRCLE_R);
+    g.addColorStop(0, "rgba(143,124,255,.05)");
+    g.addColorStop(0.8, "rgba(143,124,255,.22)");
+    g.addColorStop(1, "rgba(200,190,255,.4)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(c.x, c.y, CIRCLE_R, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowColor = "#8f7cff"; ctx.shadowBlur = 14;
+    ctx.strokeStyle = "rgba(220,210,255,.9)";
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(c.x, c.y, CIRCLE_R, 0, Math.PI * 2); ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(c.x, c.y, CIRCLE_R * 0.78, 0, Math.PI * 2); ctx.stroke();
+    // 돌아가는 육망성과 룬
+    ctx.translate(c.x, c.y);
+    ctx.rotate(t * 0.8);
+    for (const off of [0, Math.PI / 3]) {
+      ctx.beginPath();
+      for (let i = 0; i <= 3; i++) { const a = off + i * Math.PI * 2 / 3; ctx.lineTo(Math.cos(a) * CIRCLE_R * 0.78, Math.sin(a) * CIRCLE_R * 0.78); }
+      ctx.stroke();
+    }
+    ctx.rotate(-t * 1.6);
+    ctx.fillStyle = "rgba(255,233,168,.9)";
+    for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6; ctx.fillRect(Math.cos(a) * CIRCLE_R * 0.89 - 2, Math.sin(a) * CIRCLE_R * 0.89 - 2, 4, 4); }
+    // 공격 순간 번쩍
+    if (c.tick > 0.38) { ctx.fillStyle = `rgba(230,220,255,${(c.tick - 0.38) * 2.5})`; ctx.beginPath(); ctx.arc(0, 0, CIRCLE_R, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  }
+  if (r.hole) {
+    const h = r.hole, grow = Math.min(1, (5 - h.t) / 0.4), R = HOLE_R * grow;
+    ctx.save();
+    const g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, R);
+    g.addColorStop(0, "rgba(0,0,0,.95)");
+    g.addColorStop(0.3, "rgba(10,0,20,.9)");
+    g.addColorStop(0.55, "rgba(255,95,200,.35)");
+    g.addColorStop(1, "rgba(120,60,200,0)");
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(h.x, h.y, R, 0, Math.PI * 2); ctx.fill();
+    ctx.translate(h.x, h.y);
+    ctx.strokeStyle = "rgba(255,159,224,.8)";
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 4; i++) {
+      ctx.beginPath();
+      const a0 = -t * 4 + i * Math.PI / 2;
+      for (let k = 0; k <= 14; k++) { const f = k / 14, a = a0 + f * 2.4, rr = R * (1 - f * 0.85); ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+      ctx.stroke();
+    }
+    ctx.shadowColor = "#ff9fe0"; ctx.shadowBlur = 16;
+    ctx.fillStyle = "#000";
+    ctx.beginPath(); ctx.arc(0, 0, 16 * grow, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "#ffd6f2"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(0, 0, 26 * grow, 8 * grow, t * 0.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+}
+
+// 궁극기 효과 그리기: 위쪽 (브레스·발톱·화면 번쩍)
+function drawUltOver(t) {
+  const r = run;
+  for (const f of r.dfx) {
+    ctx.save();
+    if (f.type === "breath") {
+      const k = f.t / 0.45, len = f.len * (1.1 - k * 0.3);
+      const g = ctx.createRadialGradient(f.x, f.y, 10, f.x, f.y, len);
+      g.addColorStop(0, `rgba(255,240,180,${0.9 * k})`);
+      g.addColorStop(0.5, `rgba(255,122,58,${0.75 * k})`);
+      g.addColorStop(1, "rgba(200,40,20,0)");
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.moveTo(f.x, f.y); ctx.arc(f.x, f.y, len, f.a - f.arc, f.a + f.arc); ctx.closePath(); ctx.fill();
+    } else if (f.type === "claw") {
+      const k = f.t / 0.3;
+      ctx.strokeStyle = `rgba(255,240,210,${k})`;
+      ctx.shadowColor = "#ff7a3a"; ctx.shadowBlur = 10;
+      ctx.lineWidth = 4;
+      for (const o of [-14, 0, 14]) {
+        ctx.beginPath();
+        ctx.arc(f.x, f.y, f.r - 10 + o * 0.3, f.a - 1.6 + (1 - k) * 0.6 + o * 0.02, f.a + 1.6 - k * 0.6 + o * 0.02);
+        ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+  if (r.ultFlash) {
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, r.ultFlash.t / 0.6) * 0.35;
+    ctx.fillStyle = r.ultFlash.col;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+  }
+}
+
+// 용신화 중 플레이어 모습: 불·얼음 용과 기본 캐릭터 사이 크기
+const DRAGON_SLAYER_PAL = { membrane: "#8e2416", dark: "#3a0e08", belly: "#ffd28a", horn: "#f3e2c0", eye: "#ffd24a", glow: "255,122,58" };
+function drawPlayerDragon(p, t) {
+  const left = run.dragon.t;
+  ctx.save();
+  ctx.translate(p.x, p.y);
+  ctx.rotate(p.aim);
+  const sc = left < 0.5 ? 0.5 + left : 1;
+  ctx.scale(sc, sc);
+  drawDragon({ r: 22, color: p.hurt > 0 ? "#ff5f56" : "#c0392b", flash: 0, mode: "" }, t, DRAGON_SLAYER_PAL);
+  ctx.restore();
+}
+
 function useSkill(slot) {
+  if (run?.dragon) return dragonSkill(slot);
   const key = state.equip[slot], s = SK[key];
   if (!run || run.over || slot >= slotCount() || !s || !s.active || run.cds[slot] > 0) return;
   const lv = state.skills[key], p = run.p;
@@ -4145,6 +4724,17 @@ const DUNGEON2_PRIZE = (() => {
   return { gold: 5e10, xp: 60000, runes: 300, mats };
 })();
 
+const TICKET_PITY = 20;
+function ticketDrop(m, pct) {
+  state.ctPity++;
+  if (Math.random() * 100 < pct || state.ctPity >= TICKET_PITY) {
+    state.ctPity = 0;
+    state.ctickets++;
+    lootFx(m, "캐릭터 뽑기권!", "#ffd24a", 15);
+    state.log.unshift({ text: "캐릭터 뽑기권 획득", delta: `보유 ${state.ctickets}장` });
+  }
+}
+
 function dungeonClear() {
   const P = run.zone.w2 ? DUNGEON2_PRIZE : DUNGEON_PRIZE;
   state.gold += P.gold;
@@ -4154,6 +4744,8 @@ function dungeonClear() {
   run.loot.runes += P.runes;
   for (const [k, n] of Object.entries(P.mats)) gainMat(k, n);
   if (run.zone.w2) state.dungeon2Clears++; else state.dungeonClears++;
+  state.ctickets++;
+  fx(W / 2, H / 2 + 12, "캐릭터 뽑기권 +1", "#ffd24a", 15, 20, 2.2);
   fx(W / 2, H / 2 - 70, "던전 클리어!", "#ffd24a", 26, 20, 2.2);
   fx(W / 2, H / 2 - 38, "+" + won(P.gold), "#f0c35a", 18, 20, 2.2);
   fx(W / 2, H / 2 - 14, `${matName("star")} +${P.mats.star} · 룬석 +${P.runes}`, "#ffc6f0", 15, 20, 2.2);
@@ -4188,8 +4780,8 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   if (m.kind === "obsidian" && !(m.open > 0)) { mult *= 0.3; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "단단함", "#8a8a9a", 11); }
   const critLv = passiveLv("crit");
   const crit = critLv && Math.random() * 100 < SK.crit.chance(critLv);
-  if (isChar("hunter") && m.boss) mult *= 2;
-  if (isChar("demon")) mult *= 1.6;
+  if (isChar("demon")) mult *= 1.6 + 0.05 * (cl("demon") - 1);
+  if (isChar("adventurer")) mult *= 1 + 0.01 * (cl("adventurer") - 1);
   const dmg = Math.round(run.atk * mult * (crit ? 2.5 : 1) * dev.atkMul);
   m.hp -= dmg;
   m.flash = 0.1;
@@ -4205,7 +4797,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   fx(m.x + (Math.random() - 0.5) * 16, m.y - m.r, dmg.toLocaleString("ko-KR"),
      crit ? "#ffd24a" : "#efe6d8", crit ? 16 : 12);
   // 피의 갈증은 여러 마리를 한 번에 베어도 0.3초에 한 번만 회복
-  let heal = isChar("vampire") ? 0.01 : 0;
+  let heal = isChar("vampire") ? (1 + 0.1 * (cl("vampire") - 1)) / 100 : 0;
   if (run.buff.drain > 0 && run.time - (run.drainAt ?? -9) >= 0.3) { heal += run.buff.drainHeal; run.drainAt = run.time; }
   if (heal) run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * heal);
   if (m.hp <= 0) {
@@ -4219,6 +4811,7 @@ function kill(m) {
   const z = run.zone;
   sfx(m.boss && !(m.kind === "slimeKing" && !m.mini) ? "bossDown" : "kill");
   sparksAt(m.x, m.y, m.color, m.boss ? 34 : 10, m.boss ? 230 : 140);
+  if (isChar("hypernova") && !m.boss && run.novas && run.novas.length < 30) run.novas.push({ x: m.x, y: m.y, t: 0.12 });
   // 슬라임 킹은 한 번 분열한다. 보상은 마지막 분열체를 잡았을 때
   if (m.boss && m.kind === "slimeKing" && !m.mini) { splitSlime(m); return; }
   if (m.noLoot) { lootFx(m, "분신 파괴", "#e4ccff"); return; }
@@ -4229,7 +4822,7 @@ function kill(m) {
   if (run.dungeon && m.boss) { dungeonReward(m); commit(); return; }
   let gold = Math.round(m.gold * goldMul());
   gainXp(zoneXp(z) * (m.boss ? 12 : 1));
-  if (isChar("gambler") && Math.random() < 0.25) {
+  if (isChar("gambler") && Math.random() < (25 + 2 * (cl("gambler") - 1)) / 100) {
     const x = Math.random() < 0.3 ? 3 : 2;
     gold *= x;
     lootFx(m, `잭팟 ×${x}!`, "#3fbf7f", 14);
@@ -4245,11 +4838,12 @@ function kill(m) {
     if (Math.hypot(p.x - m.x, p.y - m.y) < GOLEM_SNOW_R + P_R && hurtPlayer(Math.round(m.dmg * 0.8), "ice")) slowPlayer(2, 0.5);
   }
   if (m.boss) {
-    const n = 1 + (Math.random() < 0.3) + (Math.random() < 0.1) + (isChar("hunter") ? 1 : 0);
+    const n = 1 + (Math.random() < 0.3) + (Math.random() < 0.1);
     gainMat(z.boss.mat, n);
     const st = zoneStars(z);
     if (st) { gainMat("star", st); lootFx(m, `${matName("star")} +${st}`, "#ffc6f0", 14); }
     gainRunes(3 + Math.floor(Math.random() * 3), m);
+    ticketDrop(m, z.world === 2 ? 10 : 5);
     run.loot.bosses++;
     state.bossKills[z.key] = (state.bossKills[z.key] || 0) + 1;
     lootFx(m, `${matName(z.boss.mat)} +${n}!`, "#ffffff", 16);
@@ -4406,6 +5000,7 @@ function update(dt) {
   }
   curMob = null;
   w2Update(dt);
+  ultUpdate(dt);
   r.chainCd -= dt;
   for (const c of r.chains) c.t -= dt;
   r.chains = r.chains.filter(c => c.t > 0);
@@ -4427,6 +5022,7 @@ function update(dt) {
       p.atkCd = ATK_INTERVAL * (frenzy ? 0.5 : 1);
       if (isChar("demon")) p.hp = Math.max(1, p.hp - p.max * 0.01);
       for (const m of inRange) hit(m, 1);
+      if (isChar("archmage")) arcaneChain(near);
     }
   }
 
@@ -4436,7 +5032,7 @@ function update(dt) {
     if (r.arrowCd <= 0) {
       const target = r.mobs.filter(m => !m.dead && Math.hypot(m.x - p.x, m.y - p.y) < 300)
         .sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
-      if (target) { r.arrows.push({ x: p.x, y: p.y, target, a: 0 }); r.arrowCd = 1.5; }
+      if (target) { r.arrows.push({ x: p.x, y: p.y, target, a: 0 }); r.arrowCd = 1.5 - 0.05 * (cl("archer") - 1); }
     }
   }
   for (const a of r.arrows) {
@@ -4445,7 +5041,7 @@ function update(dt) {
     a.x += ax / d * 480 * dt;
     a.y += ay / d * 480 * dt;
     if (m.dead) a.done = true;
-    else if (d < m.r + 4) { a.done = true; hit(m, 1, a); }
+    else if (d < m.r + 4) { a.done = true; hit(m, 1 + 0.1 * (cl("archer") - 1), a); }
   }
   r.arrows = r.arrows.filter(a => !a.done);
 
@@ -4551,7 +5147,7 @@ function update(dt) {
   if (p.hp <= 0) {
     if (isChar("angel") && !r.revived) {
       r.revived = true;
-      p.hp = p.max * 0.5;
+      p.hp = p.max * (0.5 + 0.03 * (cl("angel") - 1));
       p.invuln = 2;
       ring(p.x, p.y, 80, "#fff6c8");
       fx(p.x, p.y - 30, "부활!", "#fff6c8", 20);
@@ -4590,7 +5186,7 @@ function hurtPlayer(dmg, el = null) {
     return false;
   }
   // 돌진 베기 중에는 무적이 아니라 피해 감소
-  dmg = Math.max(1, Math.round(dmg * resistMul(el) * (p.dash ? 1 - (p.dash.red || 0) : 1)));
+  dmg = Math.max(1, Math.round(dmg * resistMul(el) * (p.dash ? 1 - (p.dash.red || 0) : 1) * (run.dragon ? 0.7 : 1)));
   p.hp -= dmg;
   armorRetaliate(curMob);
   p.hurt = 0.2;
@@ -4699,16 +5295,18 @@ function poisonPlayer(sec, dps) {
   p.poisonDps = Math.max(p.poisonT > 0 ? p.poisonDps || 0 : 0, dps);
 }
 
+// 드래곤 슬레이어 패시브: 기절·빙결·속박·둔화 시간 감소
+const ccMul = () => isChar("dragonSlayer") ? Math.max(0.2, 1 - (0.5 + 0.02 * (cl("dragonSlayer") - 1))) : 1;
 function slowPlayer(sec, amount) {
   const p = run.p;
-  sec *= resistMul("ice");
+  sec *= resistMul("ice") * ccMul();
   p.slowT = Math.max(p.slowT || 0, sec);
   p.slowAmt = amount;
 }
 
 function stunPlayer(sec) {
   const p = run.p;
-  sec *= resistMul("bolt");
+  sec *= resistMul("bolt") * ccMul();
   if ((p.stun || 0) <= 0) { fx(p.x, p.y - 36, "기절!", "#ffe066", 15); sfx("stun"); }
   p.stun = Math.max(p.stun || 0, sec);
 }
@@ -4716,6 +5314,7 @@ function stunPlayer(sec) {
 // 속박: 움직일 수 없지만 공격은 된다
 function rootPlayer(sec) {
   const p = run.p;
+  sec *= ccMul();
   if ((p.root || 0) <= 0) { fx(p.x, p.y - 36, "속박!", "#b07aff", 15); sfx("bind"); }
   p.root = Math.max(p.root || 0, sec);
 }
@@ -4730,7 +5329,7 @@ function burnPlayer(sec, dps) {
 
 function freezePlayer(sec) {
   const p = run.p;
-  sec *= resistMul("ice");
+  sec *= resistMul("ice") * ccMul();
   if ((p.frozen || 0) <= 0) { fx(p.x, p.y - 36, "얼어붙음!", "#9fe3ff", 15); sfx("freeze"); }
   p.frozen = Math.max(p.frozen || 0, sec);
 }
@@ -7681,11 +8280,11 @@ function draw() {
   }
   // 뇌전 갑옷의 연쇄 번개
   for (const c of r.chains) {
-    const k = c.t / 0.3;
+    const k = c.t / 0.3, cc = c.col || "255,224,102";
     ctx.save();
-    ctx.shadowColor = "#ffe066";
+    ctx.shadowColor = `rgb(${cc})`;
     ctx.shadowBlur = 12;
-    for (const [w, col] of [[5, `rgba(255,224,102,${k})`], [2, `rgba(255,255,255,${k})`]]) {
+    for (const [w, col] of [[5, `rgba(${cc},${k})`], [2, `rgba(255,255,255,${k})`]]) {
       ctx.strokeStyle = col;
       ctx.lineWidth = w;
       ctx.beginPath();
@@ -7720,6 +8319,7 @@ function draw() {
     ctx.restore();
   }
 
+  drawUltUnder(t);
   // 폭탄: 터질 범위를 미리 보여 주고, 터질 때가 다가올수록 빠르게 깜빡인다
   for (const b of r.bombs) {
     ctx.strokeStyle = "rgba(255,95,86,.3)";
@@ -7975,8 +8575,11 @@ function draw() {
   if (r.buff.drain > 0) blob(p.x, p.y, P_R + 9, P_R + 9, "rgba(217,71,91,.25)");
   if (r.buff.frenzy > 0) blob(p.x, p.y, P_R + 6, P_R + 6, "rgba(255,179,71,.3)");
 
+  // 대마법진을 펼치는 동안 몸이 빛난다
+  if (r.circle) { ctx.save(); ctx.shadowColor = "#8f7cff"; ctx.shadowBlur = 20; blob(p.x, p.y, P_R + 8, P_R + 8, "rgba(180,165,255,.35)"); ctx.restore(); }
   // 플레이어와 검
   const range = RANGE * (r.buff.frenzy > 0 ? 1.5 : 1);
+  if (r.dragon) drawPlayerDragon(p, t); else {
   blob(p.x, p.y + P_R * 0.9, P_R * 0.95, P_R * 0.32, "rgba(0,0,0,.3)");
   // 칼: 휘두르는 동안 한쪽 끝에서 반대쪽 끝으로 빠르게 가르고, 지나간 자리에 잔상이 남는다
   const dirS = p.swingDir || 1;
@@ -8021,6 +8624,7 @@ function draw() {
   ctx.lineTo(hx - Math.cos(bladeA + Math.PI / 2) * 5, hy - Math.sin(bladeA + Math.PI / 2) * 5);
   ctx.stroke();
   drawCharacter(ctx, r.charKey, p.x, p.y, P_R, p.aim, t, p.hurt > 0);
+  }
   if (p.frozen > 0) {
     ctx.fillStyle = "rgba(170,225,255,.55)";
     ctx.strokeStyle = "rgba(235,250,255,.9)";
@@ -8087,6 +8691,7 @@ function draw() {
     ctx.fillRect(q.x - q.size / 2, q.y - q.size / 2, q.size, q.size);
   }
   ctx.globalAlpha = 1;
+  drawUltOver(t);
 
   // 떠오르는 숫자
   ctx.textAlign = "center";
@@ -8234,6 +8839,29 @@ document.querySelectorAll("#skillbar .sk").forEach((b, i) => {
   b.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); useSkill(i); } });
 });
 
+// 궁극기 버튼: 누르면 시전. 앨리온은 누른 채 끌면 마법진이 움직이고, 떼면 그 자리에 남는다 (다시 누르면 이어서 조종)
+{
+  const ub = $("ultbtn");
+  const steer = e => {
+    if (!ultJoy || e.pointerId !== ultJoy.id) return;
+    const dx = e.clientX - ultJoy.ox, dy = e.clientY - ultJoy.oy, d = Math.hypot(dx, dy), k = d > 45 ? 45 / d : 1;
+    ultJoy.dx = d < 6 ? 0 : dx * k / 45;
+    ultJoy.dy = d < 6 ? 0 : dy * k / 45;
+  };
+  ub.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (!run || run.over) return;
+    if (!run.circle) castUlt();
+    if (run.circle) {
+      ultJoy = { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0 };
+      try { ub.setPointerCapture(e.pointerId); } catch {}
+    }
+  });
+  ub.addEventListener("pointermove", steer);
+  for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) ub.addEventListener(ev, e => { if (ultJoy && e.pointerId === ultJoy.id) ultJoy = null; });
+  ub.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); castUlt(); } });
+}
+const CIRCLE_KEYS = { KeyI: "up", KeyK: "down", KeyJ: "left", KeyL: "right" };
 const KEYMAP = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "right",
                  ArrowUp: "up", KeyW: "up", ArrowDown: "down", KeyS: "down" };
 const SKILL_KEYS = { KeyQ: 0, Digit1: 0, KeyE: 1, Digit2: 1, KeyR: 2, Digit3: 2, KeyF: 3, Digit4: 3 };
@@ -8244,12 +8872,14 @@ window.addEventListener("keydown", e => {
     if (!e.repeat) useSkill(SKILL_KEYS[e.code]);
     return;
   }
+  if (e.code === "Space") { e.preventDefault(); if (!e.repeat) castUlt(); return; }
+  if (CIRCLE_KEYS[e.code]) { e.preventDefault(); circleKeys.add(CIRCLE_KEYS[e.code]); return; }
   if (!KEYMAP[e.code]) return;
   e.preventDefault();
   keys.add(KEYMAP[e.code]);
 });
-window.addEventListener("keyup", e => { if (KEYMAP[e.code]) keys.delete(KEYMAP[e.code]); });
-window.addEventListener("blur", () => { keys.clear(); joy = null; });
+window.addEventListener("keyup", e => { if (KEYMAP[e.code]) keys.delete(KEYMAP[e.code]); if (CIRCLE_KEYS[e.code]) circleKeys.delete(CIRCLE_KEYS[e.code]); });
+window.addEventListener("blur", () => { keys.clear(); circleKeys.clear(); joy = null; ultJoy = null; });
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else resume(); });
 
 $("zones").addEventListener("click", e => {
@@ -8288,7 +8918,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V });
 
 function normalize(s) {
   const o = {
@@ -8318,6 +8948,13 @@ function normalize(s) {
     bossKills: { ...(s.bossKills || {}) },
     ended: !!s.ended,
     char: s.char && CH[s.char] && (s.chars || {})[s.char] ? s.char : "adventurer",
+    charLv: { ...(s.charLv || {}) },
+    shards: { ...(s.shards || {}) },
+    souls: s.souls ?? 0,
+    ctickets: s.ctickets ?? 0,
+    ctPity: s.ctPity ?? 0,
+    cpulls: s.cpulls ?? 0,
+    charV: CHAR_V,
     equip: [0, 1, 2, 3].map(i => {
       const k = Array.isArray(s.equip) ? s.equip[i] : null;
       return k && SK[k] && (s.skills || {})[k] > 0 ? k : null;
@@ -8330,6 +8967,12 @@ function normalize(s) {
     coupons: Array.isArray(s.coupons) ? s.coupons.filter(x => typeof x === "string").slice(0, 50) : [],
     questV: QUEST_VER,
   };
+  // 캐릭터 개편: 예전에 산 캐릭터(모험가 제외)는 모두 지우고 하나당 캐릭터 뽑기권 1장
+  if ((s.charV ?? 0) < CHAR_V) {
+    const had = Object.keys(s.chars || {}).filter(k => k !== "adventurer" && s.chars[k]);
+    o.chars = { adventurer: true }; o.char = "adventurer"; o.charLv = {};
+    if (had.length) { o.ctickets += had.length; o.log.unshift({ text: `캐릭터 개편: 가지고 있던 캐릭터 ${had.length}명`, delta: `뽑기권 +${had.length}` }); }
+  }
   // 목표가 중간에 추가되기 전에 이미 그 지점을 지난 저장은 번호를 한 칸 밀고 보상을 바로 준다
   if ((s.questV ?? 1) < 2 && o.quest >= ARMOR_QUEST) {
     o.quest++;
@@ -8417,7 +9060,7 @@ function profileData() {
     nickname: state.nickname, sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
     gold: Math.max(0, Math.floor(state.gold)), mlv: state.mlv | 0, quest: state.quest | 0, ended: !!state.ended,
     maxBoss, w2Boss, dungeonBest: Math.min(DUNGEON.bosses.length, state.dungeonBest | 0), dungeonClears: state.dungeonClears | 0,
-    char: state.char, build: { equip: state.equip, skills: state.skills, traits: state.traits,
+    char: state.char, build: { equip: state.equip, skills: state.skills, traits: state.traits, charLv: cl(state.char),
       armor: Object.fromEntries(ARMOR_SLOTS.map(sl => { const id = state.armor.equip[sl.key]; return [sl.key, id ? [id, armorLv(id)] : null]; })) },
   }));
 }
