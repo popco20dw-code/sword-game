@@ -1500,7 +1500,10 @@ function myRow() {
   const pub = me.id ? players.find(p => p.id === me.id) : null;
   const local = profileData();
   let note;
-  if (!state.nickname) note = "닉네임을 정하면 친구들에게 이렇게 보여요.";
+  if (pushErr) note = pushErr === "permission-denied"
+    ? "⚠️ 서버가 기록을 거부하고 있어요 (Firebase 규칙). 지금 위의 기록은 예전 것이에요."
+    : `⚠️ 기록을 올리지 못하고 있어요 (${pushErr}). 인터넷 연결을 확인해 주세요.`;
+  else if (!state.nickname) note = "닉네임을 정하면 친구들에게 이렇게 보여요.";
   else if (!me.db) note = "인터넷에 연결되면 올라가요. 지금은 미리 보기예요.";
   else if (!pub) note = "곧 올라가요. 지금은 미리 보기예요.";
   else {
@@ -7295,7 +7298,7 @@ let fbState = "off";         // off | loading | on | failed
 let fb = null;               // { A, F, auth, db } Firebase 모듈과 연결
 let acctMsg = null;          // [문구, "bad"?] 구글 연결 결과 안내
 let lastSaveKey = 0;
-let lastPush = 0, pushTimer = null;
+let lastPush = 0, pushTimer = null, pushErr = null;
 
 function schedulePush(now = false) {
   if (!me.db || cloud) return;   // claude.ai 쪽은 계정 저장(flush)이 올림
@@ -7303,7 +7306,13 @@ function schedulePush(now = false) {
   if (now) { clearTimeout(pushTimer); pushTimer = null; }
   else if (pushTimer) return;
   const wait = now ? 0 : Math.max(3000, lastPush + FB_PUSH_GAP - Date.now());
-  pushTimer = setTimeout(() => { pushTimer = null; pushProfile().catch(() => {}); pushSave().catch(() => {}); }, wait);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    // 실패하면 이유를 친구 탭에 보여 주고, 성공하면 지움
+    pushProfile().then(() => { if (pushErr) { pushErr = null; renderFriends(); } })
+      .catch(e => { pushErr = e?.code || "unknown"; lastProfile = ""; renderFriends(); });
+    pushSave().catch(() => {});
+  }, wait);
 }
 
 // ── 구글 계정 연결 ── 익명 아이디를 구글 계정에 묶으면, 다시 설치하거나 기기를 바꿔도 같은 아이디·진행 상황으로 돌아온다
