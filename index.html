@@ -858,7 +858,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v87";
+const GAME_VERSION = "v88";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1042,7 +1042,7 @@ const ARMOR_SLOTS = [
   { key: "body", name: "갑옷", hp: 100 },
   { key: "feet", name: "신발", hp: 40 },
 ];
-// 등급별 뽑기 확률(%)과 중복일 때 받는 강화석. 같은 등급 안에서는 아직 없는 방어구가 먼저 나온다
+// 등급별 뽑기 확률(%)과 중복일 때 받는 강화석
 const ARMOR_GRADES = { 1: { rate: 35, dup: 5 }, 2: { rate: 20, dup: 10 }, 3: { rate: 15, dup: 20 }, 4: { rate: 25.5, dup: 40 }, 5: { rate: 4.5, dup: 100 } };
 // mat: 강화할 때 강화석과 함께 드는 재료
 const ARMOR_TYPES = [
@@ -3878,7 +3878,7 @@ function gachaBox() {
   return `<div class="g-box">
     <div class="g-mini"></div>
     <h3>방어구 뽑기</h3>
-    <p>${matName(GACHA_MAT)} ${GACHA_COST}개로 1회. 투구·갑옷·신발 중 하나가 나와요. 상위 방어구일수록 드물어요.<br>같은 등급 안에서는 <b>아직 없는 방어구가 먼저</b> 나와요. 뽑을 때마다 강화석 ${PULL_STONES}개, 중복은 강화석으로 바뀌어요.</p>
+    <p>${matName(GACHA_MAT)} ${GACHA_COST}개로 1회. 투구·갑옷·신발 중 하나가 나와요. 상위 방어구일수록 드물어요.<br>뽑을 때마다 강화석 ${PULL_STONES}개, 이미 가진 방어구가 나오면 강화석으로 바뀌어요.</p>
     <div class="g-have">보유 ${matName(GACHA_MAT)} <b>${have.toLocaleString("ko-KR")}</b> · 강화석 <b>${state.astones.toLocaleString("ko-KR")}</b> · 지금까지 ${state.armor.pulls}회</div>
     <div class="g-btns">
       <button data-pull="1" ${have < GACHA_COST ? "disabled" : ""}>1회 뽑기<span>${matName(GACHA_MAT)} ${GACHA_COST}</span></button>
@@ -3894,9 +3894,7 @@ function rollArmor() {
   let r = Math.random() * 100, stars = 1;
   for (const [st, g] of Object.entries(ARMOR_GRADES)) { if (r < g.rate) { stars = +st; break; } r -= g.rate; }
   const all = ARMOR_TYPES.filter(t => t.stars === stars).flatMap(t => ARMOR_SLOTS.map(sl => armorId(sl.key, t.key)));
-  const fresh_ = all.filter(id => !(id in state.armor.owned));
-  const pool = fresh_.length ? fresh_ : all;
-  return pool[Math.floor(Math.random() * pool.length)];
+  return all[Math.floor(Math.random() * all.length)];
 }
 
 function doGacha(n) {
