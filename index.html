@@ -780,7 +780,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v75";
+const GAME_VERSION = "v76";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
@@ -1220,7 +1220,7 @@ const ZONES2 = [
   { key: "desert", world: 2, name: "잿빛 사막", rec: 80, bg: "#3a2f22", rune: 17, xp: 190, stars: 22,
     feature: "가끔 모래 폭풍이 불어 주변만 보여요",
     mob: { kind: "scorpion", name: "모래 전갈", color: "#c79a5b", hp: 1.0e7, dmg: 320, speed: 82, r: 14, gold: 1.5e6 },
-    alt: { kind: "bandit", name: "사막 도적", color: "#a8724a", hp: 7.5e6, dmg: 260, speed: 60, r: 12, gold: 1.3e6, contact: false },
+    alt: { kind: "bandit", name: "사막 도적", color: "#a8724a", hp: 6.0e6, dmg: 260, speed: 60, r: 12, gold: 1.3e6, contact: false },
     boss: { kind: "sandWorm", name: "모래 거인 웜", color: "#c9a26a", mat: "tooth", hp: 2.0e8, dmg: 380, speed: 58, r: 32 },
     drops: { ruby: 14, diamond: 10, star: 11 } },
   { key: "crystal", world: 2, name: "수정 동굴", rec: 85, bg: "#1d1830", rune: 18, xp: 230, stars: 24,
@@ -6670,20 +6670,24 @@ const W2AI = {
   },
   // 사막 도적: 거리를 두고 단검 3개, 가까이 붙으면 연막을 터뜨리고 순간이동
   bandit(m, ax, ay, d, slow, dt) {
-    const go = d > 190 ? 1 : d < 120 ? -1 : 0;
+    // 연막 뒤에는 잠깐 숨을 고르느라 멈춤 (이때 잡기 쉬움)
+    if (m.rest > 0) { m.rest -= dt; m.face = Math.atan2(ay, ax); return; }
+    // 너무 가까울 때만 천천히 물러남 (예전엔 120 안이면 계속 도망)
+    const go = d > 190 ? 1 : d < 75 ? -0.55 : 0;
     m.x = clamp(m.x + ax / d * m.speed * slow * dt * go, m.r, W - m.r); m.y = clamp(m.y + ay / d * m.speed * slow * dt * go, m.r, H - m.r);
     m.face = Math.atan2(ay, ax);
-    m.shootCd -= dt; m.smokeCd = (m.smokeCd ?? 2) - dt;
-    if (d < 80 && m.smokeCd <= 0) {
-      m.smokeCd = 6;
+    m.shootCd -= dt; m.smokeCd = (m.smokeCd ?? 5) - dt;
+    if (d < 60 && m.smokeCd <= 0) {
+      m.smokeCd = 12;
       for (let k = 0; k < 10; k++) run.parts.push({ x: m.x, y: m.y, vx: (Math.random() - 0.5) * 220, vy: (Math.random() - 0.5) * 220, t: 0.6, color: "rgba(200,190,170,.8)", size: 9 });
       const a = Math.random() * Math.PI * 2;
-      m.x = clamp(run.p.x + Math.cos(a) * 210, 30, W - 30); m.y = clamp(run.p.y + Math.sin(a) * 210, 30, H - 30);
-      m.shootCd = Math.min(m.shootCd, 0.5); sfx("dash");
+      m.x = clamp(run.p.x + Math.cos(a) * 140, 30, W - 30); m.y = clamp(run.p.y + Math.sin(a) * 140, 30, H - 30);
+      m.rest = 1.2; m.shootCd = Math.max(m.shootCd, 1.2); sfx("dash");
+      fx(m.x, m.y - m.r - 10, "헉헉", "#e8c98a", 11);
     }
     if (m.shootCd <= 0 && d < 300) {
-      m.shootCd = 2.4;
-      for (let k = -1; k <= 1; k++) run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face + k * 0.2) * 290, vy: Math.sin(m.face + k * 0.2) * 290, dmg: m.dmg, t: 2.5, owner: m });
+      m.shootCd = 2.8;
+      for (let k = -1; k <= 1; k++) run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face + k * 0.2) * 260, vy: Math.sin(m.face + k * 0.2) * 260, dmg: m.dmg, t: 2.5, owner: m });
     }
   },
   // 수정 박쥐: 지그재그로 날아듦 (죽으면 파편이 터짐)
