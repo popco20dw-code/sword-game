@@ -786,7 +786,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v82";
+const GAME_VERSION = "v83";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -6215,7 +6215,7 @@ function drawKraken(m, t) {
 // ── 월드 2 보스 행동 ── 체력 50% 아래에서 분노: 기술이 강해지고 더 자주 씀. 같은 기술은 연달아 쓰지 않음
 const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken", "mushKing", "griffon", "timeKnight"]);
 const W2_PATTERNS = {
-  sandWorm: ["burrow", "charge", "tornado", "spit", "quicksand"],
+  sandWorm: ["burrow", "charge", "tornado", "spit", "quicksand", "spit", "tornado"],   // 땅속 기술 2/7
   crystalQueen: ["prism", "sweep", "rain", "prison", "clones", "shards"],
   kraken: ["slam", "cage", "geyser", "wave", "ink", "whirl", "summon"],
   mushKing: ["sporeRain", "bounce", "toxicAura", "sprouts", "spiral"],
@@ -6290,7 +6290,7 @@ function w2BossAI(m, dt) {
     }
     case "howl": if (m.timer <= 0) done(); return;
     // 모래 거인 웜: 땅속으로 → 쫓아옴 → 발밑에서 튀어나옴 (분노: 3번 연속)
-    case "dig": if (m.timer <= 0) { m.mode = "under"; m.timer = 1.5; m.ghost = 99; } return;
+    case "dig": if (m.timer <= 0) { m.mode = "under"; m.timer = 1.0; m.ghost = 99; } return;
     case "under": {
       const a = toP();
       m.x = clamp(m.x + Math.cos(a) * 185 * dt, m.r, W - m.r);
@@ -6308,7 +6308,7 @@ function w2BossAI(m, dt) {
       }
       for (let k = 0; k < 8; k++) w2Shot(m, k / 8 * Math.PI * 2, 170, m.dmg * 0.35, "#e8c98a");
       if (--m.ambush > 0) { m.mode = "under"; m.timer = 0.8; }
-      else { m.ghost = 0; done(); }
+      else { m.ghost = 0; m.mode = "howl"; m.timer = 1.2; fx(m.x, m.y - m.r - 14, "헐떡…", "#e8c98a", 13); }   // 튀어나온 뒤 잠깐 멈춰 때릴 틈
       return;
     }
     case "charge": {
@@ -6319,7 +6319,7 @@ function w2BossAI(m, dt) {
       if (m.timer <= 0) {
         if (m.chgNext) { m.chg = m.chgNext; m.chgNext = null; m.timer = m.chg.dur; return; }
         m.x = clamp(m.x, m.r + 10, W - m.r - 10); m.y = clamp(m.y, m.r + 10, H - m.r - 10); m.ghost = 0;
-        ring(m.x, m.y, 60, "#e8c98a"); done();
+        ring(m.x, m.y, 60, "#e8c98a"); m.mode = "howl"; m.timer = 1.2; fx(m.x, m.y - m.r - 14, "헐떡…", "#e8c98a", 13);
       }
       return;
     }
@@ -6442,7 +6442,7 @@ function w2BossAI(m, dt) {
 
 // 기술 시작
 const W2_START = {
-  burrow(m, p, w, toP, E) { m.mode = "dig"; m.timer = 0.6; m.ambush = E ? 3 : 1; sfx("rock"); },
+  burrow(m, p, w, toP, E) { m.mode = "dig"; m.timer = 0.6; m.ambush = E ? 2 : 1; sfx("rock"); },
   charge(m, p, w, toP, E) {
     const horiz = Math.random() < 0.5, l = laneThrough(p.x, p.y, horiz);
     if (Math.random() < 0.5) l.splice(0, 4, l[2], l[3], l[0], l[1]);
