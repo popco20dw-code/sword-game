@@ -858,7 +858,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v89";
+const GAME_VERSION = "v90";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1043,7 +1043,7 @@ const ARMOR_SLOTS = [
   { key: "feet", name: "신발", hp: 40 },
 ];
 // 등급별 뽑기 확률(%)과 중복일 때 받는 강화석
-const ARMOR_GRADES = { 1: { rate: 35, dup: 5 }, 2: { rate: 20, dup: 10 }, 3: { rate: 15, dup: 20 }, 4: { rate: 25.5, dup: 40 }, 5: { rate: 4.5, dup: 100 } };
+const ARMOR_GRADES = { 1: { rate: 45, dup: 5 }, 2: { rate: 25, dup: 10 }, 3: { rate: 16.5, dup: 20 }, 4: { rate: 12, dup: 40 }, 5: { rate: 1.5, dup: 100 } };
 // mat: 강화할 때 강화석과 함께 드는 재료
 const ARMOR_TYPES = [
   { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,    mat: null },
