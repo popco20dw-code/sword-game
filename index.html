@@ -858,7 +858,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v86";
+const GAME_VERSION = "v87";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1042,18 +1042,33 @@ const ARMOR_SLOTS = [
   { key: "body", name: "갑옷", hp: 100 },
   { key: "feet", name: "신발", hp: 40 },
 ];
-// rate: 세 부위를 합친 뽑기 확률(%). 한 부위 아이템은 그 1/3. mat: 강화 재료. dup: 중복일 때 돌려받는 별의 파편
+// 등급별 뽑기 확률(%)과 중복일 때 받는 강화석. 같은 등급 안에서는 아직 없는 방어구가 먼저 나온다
+const ARMOR_GRADES = { 1: { rate: 35, dup: 5 }, 2: { rate: 20, dup: 10 }, 3: { rate: 15, dup: 20 }, 4: { rate: 25.5, dup: 40 }, 5: { rate: 4.5, dup: 100 } };
+// mat: 강화할 때 강화석과 함께 드는 재료
 const ARMOR_TYPES = [
-  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,   rate: 36.5,   mat: null,      dup: 3 },
-  { key: "ruby",    pre: "루비 ",   grade: "고급", stars: 2, color: "#ff6b81", hpMul: 1.3, rate: 20,   mat: "ruby",    dup: 6 },
-  { key: "diamond", pre: "다이아 ", grade: "희귀", stars: 3, color: "#bff6ff", hpMul: 1.6, rate: 15,   mat: "diamond", dup: 9 },
-  { key: "fire",    pre: "화염 ",   grade: "영웅", stars: 4, color: "#ff6a3d", hpMul: 1.6, rate: 8.5,  mat: "scale",   dup: 15 },
-  { key: "ice",     pre: "얼음 ",   grade: "영웅", stars: 4, color: "#8fd8ff", hpMul: 1.6, rate: 8.5,  mat: "frost",   dup: 15 },
-  { key: "bolt",    pre: "뇌전 ",   grade: "영웅", stars: 4, color: "#ffe066", hpMul: 1.6, rate: 8.5,  mat: "horn",    dup: 15 },
-  { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6, rate: 1.5,  mat: "star",    dup: 30 },
-  { key: "rune",    pre: "룬 ",     grade: "전설", stars: 5, color: "#b8a8ff", hpMul: 2.2, rate: 1.5,  mat: "runes",   dup: 30 },
+  { key: "hero",    pre: "용사의 ", grade: "일반", stars: 1, color: "#c9ccd2", hpMul: 1,    mat: null },
+  { key: "leather", pre: "가죽 ",   grade: "일반", stars: 1, color: "#b08050", hpMul: 0.95, mat: null },
+  { key: "bronze",  pre: "청동 ",   grade: "일반", stars: 1, color: "#cd8a46", hpMul: 1.15, mat: null },
+  { key: "ruby",    pre: "루비 ",   grade: "고급", stars: 2, color: "#ff6b81", hpMul: 1.3,  mat: "ruby" },
+  { key: "steel",   pre: "강철 ",   grade: "고급", stars: 2, color: "#aeb6c2", hpMul: 1.4,  mat: "ruby" },
+  { key: "wind",    pre: "바람 ",   grade: "고급", stars: 2, color: "#7fe0c0", hpMul: 1.2,  mat: "ruby" },
+  { key: "diamond", pre: "다이아 ", grade: "희귀", stars: 3, color: "#bff6ff", hpMul: 1.6,  mat: "diamond" },
+  { key: "blood",   pre: "피의 ",   grade: "희귀", stars: 3, color: "#d9475b", hpMul: 1.5,  mat: "diamond" },
+  { key: "gold",    pre: "황금 ",   grade: "희귀", stars: 3, color: "#e6b422", hpMul: 1.5,  mat: "diamond" },
+  { key: "fire",    pre: "화염 ",   grade: "영웅", stars: 4, color: "#ff6a3d", hpMul: 1.6,  mat: "scale" },
+  { key: "ice",     pre: "얼음 ",   grade: "영웅", stars: 4, color: "#8fd8ff", hpMul: 1.6,  mat: "frost" },
+  { key: "bolt",    pre: "뇌전 ",   grade: "영웅", stars: 4, color: "#ffe066", hpMul: 1.6,  mat: "horn" },
+  { key: "shadow",  pre: "그림자 ", grade: "영웅", stars: 4, color: "#8a78c8", hpMul: 1.6,  mat: "soul" },
+  { key: "star",    pre: "별의 ",   grade: "전설", stars: 5, color: "#ffc6f0", hpMul: 2.6,  mat: "star" },
+  { key: "rune",    pre: "룬 ",     grade: "전설", stars: 5, color: "#b8a8ff", hpMul: 2.2,  mat: "runes" },
+  { key: "dragon",  pre: "용린 ",   grade: "전설", stars: 5, color: "#d8402e", hpMul: 2.4,  mat: "kingheart" },
 ];
-const ARMOR_MAX = 20, GACHA_COST = 30, GACHA_MAT = "star";
+for (const t of ARMOR_TYPES) {
+  const n = ARMOR_TYPES.filter(o => o.stars === t.stars).length;
+  t.rate = +(ARMOR_GRADES[t.stars].rate / n).toFixed(3);
+  t.dup = ARMOR_GRADES[t.stars].dup;
+}
+const ARMOR_MAX = 20, GACHA_COST = 30, GACHA_MAT = "star", PULL_STONES = 3, ARMOR_V = 1;
 // QUEST_VER 2: 암흑사신 다음에 '방어구 뽑기 잠금 해제' 목표 추가 (14번째 자리)
 const QUEST_VER = 3, ARMOR_QUEST = 14, OLD_DUNGEON_QUEST = 19, CHAR_V = 1;
 const AT = Object.fromEntries(ARMOR_TYPES.map(t => [t.key, t]));
@@ -1079,9 +1094,9 @@ function normArmor(a) {
 }
 const armorUnlocked = () => (state.bossKills.grave || 0) > 0;
 // 룬 방어구는 룬석으로 강화하므로, 재료를 읽고 쓸 때 룬석도 같이 다룬다
-const matHave = k => k === "runes" ? state.runes : state.mats[k];
-const matTake = (k, n) => { if (k === "runes") state.runes -= n; else state.mats[k] -= n; };
-const matLabel = k => k === "runes" ? "룬석" : matName(k);
+const matHave = k => k === "runes" ? state.runes : k === "astone" ? state.astones : state.mats[k];
+const matTake = (k, n) => { if (k === "runes") state.runes -= n; else if (k === "astone") state.astones -= n; else state.mats[k] -= n; };
+const matLabel = k => k === "runes" ? "룬석" : k === "astone" ? "강화석" : matName(k);
 // 룬 방어구: 한 부위마다 스킬 재사용 시간 10% 감소, 세 부위 모두 끼면 스킬 칸 하나 추가
 const runePieces = () => armorUnlocked() ? ARMOR_SLOTS.filter(sl => state.armor.equip[sl.key] === armorId(sl.key, "rune")).length : 0;
 const runeSet = () => runePieces() === ARMOR_SLOTS.length;
@@ -1102,10 +1117,23 @@ const ARMOR_FX = {
   patch: lv => 35 + 1.5 * lv,                   // 얼음 신발: 얼음 장판 이동 속도 감소(%)
   run: lv => 8 + 0.5 * lv,                      // 뇌전 신발: 이동 속도(%)
 };
+// 새 종류: 부위와 상관없이 같은 효과, 여러 부위를 끼면 더해진다
+const ARMOR_BONUS = {
+  leather: { stat: "move", v: lv => 3 + 0.1 * lv, txt: v => `이동 속도 +${fmt(v)}%` },
+  wind:    { stat: "move", v: lv => 6 + 0.2 * lv, txt: v => `이동 속도 +${fmt(v)}%` },
+  steel:   { stat: "red",  v: lv => 3 + 0.1 * lv, txt: v => `받는 피해 ${fmt(v)}% 감소` },
+  blood:   { stat: "heal", v: lv => 0.3 + 0.02 * lv, txt: v => `적을 벨 때 최대 체력의 ${fmt(v)}% 회복 (0.3초에 한 번)` },
+  gold:    { stat: "gold", v: lv => 5 + 0.25 * lv, txt: v => `몹 골드 +${fmt(v)}%` },
+  shadow:  { stat: "dodge", v: lv => 4 + 0.1 * lv, txt: v => `공격을 ${fmt(v)}% 확률로 피함` },
+  dragon:  { stat: "atk",  v: lv => 6 + 0.2 * lv, txt: v => `공격력 +${fmt(v)}%` },
+};
+const DRAGON_SET_BOSS = 15;   // 용린 세트 3부위: 보스에게 주는 피해 +15%
+const dragonSet = () => ARMOR_SLOTS.every(sl => state.armor.equip[sl.key] === armorId(sl.key, "dragon"));
 function armorEffect(id, lv) {
   const { slot, type } = armorParts(id);
   const f = ARMOR_FX;
   if (type.key === "rune") return "스킬 재사용 시간 10% 감소 · 룬 세트 3부위: 스킬 칸 +1";
+  if (ARMOR_BONUS[type.key]) { const b = ARMOR_BONUS[type.key]; return b.txt(b.v(lv)) + (type.key === "dragon" ? ` · 용린 세트 3부위: 보스 피해 +${DRAGON_SET_BOSS}%` : ""); }
   if (slot.key === "head") return {
     fire: `불 피해·화상 ${f.resist(lv)}% 감소`, ice: `얼음 피해·빙결·둔화 ${f.resist(lv)}% 감소`,
     bolt: `번개 피해·기절 시간 ${f.resist(lv)}% 감소` }[type.key] ?? "";
@@ -1125,12 +1153,14 @@ function armorOdds(lv) {
   if (lv < 15) return [45, 40, 15];
   return [30, 45, 25];
 }
-const armorGold = lv => tieredCost(100000, [[0, 1.3]], lv);
+// 강화석: 단계가 높을수록, 등급이 높을수록 더 든다
+const armorStones = (id, lv) => Math.ceil((3 + 2 * lv) * (1 + 0.25 * (armorParts(id).type.stars - 1)));
 function armorMats(id, lv) {
   const { type } = armorParts(id);
-  if (!type.mat) return [];
+  const st = [["astone", armorStones(id, lv)]];
+  if (!type.mat) return st;
   const gem = { ruby: 8, diamond: 5, star: 4, runes: 60 }[type.mat];   // 룬석은 많이 쌓이므로 4배
-  return [[type.mat, gem ? Math.ceil(gem * (1 + lv * 0.5)) : 1 + Math.floor(lv / 4)]];
+  return [...st, [type.mat, gem ? Math.ceil(gem * (1 + lv * 0.5)) : 1 + Math.floor(lv / 4)]];
 }
 
 const OIL_CLICKS = 200;    // 곡괭이 기름 한 병으로 골드 2배가 되는 횟수
@@ -1177,7 +1207,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -2379,11 +2409,11 @@ function setupDev() {
   });
 }
 
-const devAllMats = () => [["gold", "골드"], ["runes", "룬석"], ...[...MATS, ...BOSS_MATS].map(m => [m.key, m.name])];
-const devGet = k => k === "gold" ? state.gold : k === "runes" ? state.runes : state.mats[k];
+const devAllMats = () => [["gold", "골드"], ["runes", "룬석"], ["astones", "강화석"], ...[...MATS, ...BOSS_MATS].map(m => [m.key, m.name])];
+const devGet = k => k === "gold" ? state.gold : k === "runes" ? state.runes : k === "astones" ? state.astones : state.mats[k];
 function devSet(k, v) {
   v = Math.max(0, Math.floor(v) || 0);
-  if (k === "gold") state.gold = v; else if (k === "runes") state.runes = v; else state.mats[k] = v;
+  if (k === "gold") state.gold = v; else if (k === "runes") state.runes = v; else if (k === "astones") state.astones = v; else state.mats[k] = v;
 }
 
 function devRender() {
@@ -3725,6 +3755,14 @@ function armorSvg(id) {
     diamond: `<path d="M32 7l3-4h8l3 4-7 9z" fill="#dffbff" stroke="#6fd8f0" stroke-width=".9"/><path d="M32 7h14M39 16l-2-9 2-4 2 4z" stroke="#6fd8f0" stroke-width=".6" fill="none"/>`,
     rune: `<path d="M39 1l6 7-6 7-6-7z" fill="#5b3d8a" stroke="#e0d4ff" stroke-width="1"/><path d="M39 4v8M36.5 6.5l5 3M41.5 6.5l-5 3" stroke="#e0d4ff" stroke-width="1.2"/>`,
     star: `<path d="M39 1l2.4 5 5.4.7-4 3.7 1.1 5.4L39 13.1l-4.9 2.7 1.1-5.4-4-3.7 5.4-.7z" fill="#fff6c8" stroke="#ffb3e6" stroke-width=".8"/>`,
+    leather: `<path d="M34 3h10v10H34z" fill="#7a5232" stroke="#f3e2c0" stroke-width=".9" stroke-dasharray="1.6 1.2"/>`,
+    bronze: `<circle cx="39" cy="8" r="5.5" fill="#cd7f32" stroke="#ffd8a8" stroke-width=".9"/><circle cx="39" cy="8" r="2" fill="#ffd8a8"/>`,
+    steel: `<path d="M34 2h10v6c0 4-5 8-5 8s-5-4-5-8z" fill="#cfd6e0" stroke="#5a6270" stroke-width=".9"/>`,
+    wind: `<path d="M31 6h10a3 3 0 1 0-3-3M31 11h13a3 3 0 1 1-3 3" stroke="#e8fff6" stroke-width="1.7" fill="none" stroke-linecap="round"/>`,
+    blood: `<path d="M39 1c3 5 5.5 7.5 5.5 10.5a5.5 5.5 0 0 1-11 0c0-3 2.5-5.5 5.5-10.5z" fill="#c2304a" stroke="#ffc0c8" stroke-width=".9"/>`,
+    gold: `<circle cx="39" cy="8" r="6" fill="#ffd24a" stroke="#8a6010" stroke-width="1"/><path d="M39 4.5v7M37 6.5h3.5a1.5 1.5 0 0 1 0 3H37" stroke="#8a6010" stroke-width="1.1" fill="none"/>`,
+    shadow: `<path d="M42 1.5a7 7 0 1 0 3.5 12.5a6 6 0 1 1-3.5-12.5z" fill="#2a2240" stroke="#c8b8ff" stroke-width=".9"/>`,
+    dragon: `<path d="M32 3l7 13 7-13-7 4z" fill="#d8402e" stroke="#ffd28a" stroke-width=".9"/><circle cx="39" cy="8" r="1.4" fill="#ffd24a"/>`,
   }[type.key] ?? "";
   return `<svg viewBox="0 0 48 48" aria-hidden="true">${body}${mark}</svg>`;
 }
@@ -3746,8 +3784,9 @@ function renderArmor() {
         <b>${sl.name}</b><small>${id ? "+" + armorLv(id) : "비어 있음"}</small></button>`;
     }).join("");
     const runes = runePieces();
-    const sum = `<div class="a-sum">방어구 체력 <b>+${armorHpTotal()}</b> · 별 세트 <b>${stars}/3</b>${stars === 3 ? `<span class="on"> (부활 1회)</span>` : ""}
-      · 룬 세트 <b>${runes}/3</b>${runes ? ` <span class="on">(재사용 −${runes * 10}%${runes === 3 ? ", 스킬 칸 +1" : ""})</span>` : ""}</div>`;
+    const dset = ARMOR_SLOTS.filter(sl => eq[sl.key]?.endsWith("-dragon")).length;
+    const sum = `<div class="a-sum">강화석 <b>${state.astones.toLocaleString("ko-KR")}</b> · 방어구 체력 <b>+${armorHpTotal()}</b> · 별 세트 <b>${stars}/3</b>${stars === 3 ? `<span class="on"> (부활 1회)</span>` : ""}
+      · 룬 세트 <b>${runes}/3</b>${runes ? ` <span class="on">(재사용 −${runes * 10}%${runes === 3 ? ", 스킬 칸 +1" : ""})</span>` : ""}${dset ? ` · 용린 세트 <b>${dset}/3</b>${dset === 3 ? `<span class="on"> (보스 피해 +${DRAGON_SET_BOSS}%)</span>` : ""}` : ""}</div>`;
 
     const id = eq[armorSel];
     let main;
@@ -3756,9 +3795,9 @@ function renderArmor() {
       const eff = armorEffect(id, lv);
       const max = lv >= ARMOR_MAX;
       const [sc, kc, dc] = armorOdds(lv);
-      const gold = armorGold(lv), mats = armorMats(id, lv);
-      const ok = !max && state.gold >= gold && mats.every(([k, n]) => matHave(k) >= n);
-      const costTxt = max ? "최대 단계" : [`<span class="${state.gold < gold ? "lack" : ""}">${won(gold)}</span>`,
+      const mats = armorMats(id, lv);
+      const ok = !max && mats.every(([k, n]) => matHave(k) >= n);
+      const costTxt = max ? "최대 단계" : [
         ...mats.map(([k, n]) => `<span class="${matHave(k) < n ? "lack" : ""}">${matLabel(k)} ${n} (보유 ${matHave(k)})</span>`)].join(" · ");
       main = `<div class="a-main" style="--c:${type.color}">
         <div class="a-art">${armorSvg(id)}</div>
@@ -3770,7 +3809,7 @@ function renderArmor() {
         ${max ? "" : `<dl class="odds" style="grid-template-columns:repeat(3,1fr)">
           <div class="good"><dt>성공</dt><dd>${sc}%</dd></div><div class="${kc ? "" : "none"}"><dt>유지</dt><dd>${kc}%</dd></div>
           <div class="warn ${dc ? "" : "none"}"><dt>하락</dt><dd>${dc}%</dd></div></dl>`}
-        <div class="a-cost">${costTxt}${dc && !max ? ` · 하락방지권 ${state.inv.noDrop}장` : ""}</div>
+        <div class="a-cost">${costTxt}${dc && !max ? ` · 하락방지권 ${state.inv.noDrop}장` : ""}<br><small>강화석은 방어구 뽑기에서 얻어요 (한 번에 ${PULL_STONES}개 + 중복은 강화석으로)</small></div>
         <div class="a-acts"><button class="primary" data-aup ${ok ? "" : "disabled"}>${max ? "최대 단계" : "강화"}</button>
           <button data-aoff>해제</button></div>
       </div>`;
@@ -3795,9 +3834,8 @@ function enhanceArmor() {
   const id = state.armor.equip[armorSel];
   if (!id) return;
   const lv = armorLv(id);
-  const gold = armorGold(lv), mats = armorMats(id, lv);
-  if (lv >= ARMOR_MAX || state.gold < gold || mats.some(([k, n]) => matHave(k) < n)) return;
-  state.gold -= gold;
+  const mats = armorMats(id, lv);
+  if (lv >= ARMOR_MAX || mats.some(([k, n]) => matHave(k) < n)) return;
   for (const [k, n] of mats) matTake(k, n);
   gainXp(3 + lv);
   const [sc, kc] = armorOdds(lv), roll = Math.random() * 100, nm = armorName(id);
@@ -3834,27 +3872,31 @@ function gachaBox() {
   if (!armorUnlocked()) return `<div class="g-box"><div class="g-mini" style="filter:grayscale(1);opacity:.4"></div><h3>방어구 뽑기</h3>
     <p>망자의 묘지 보스 <b>암흑사신</b>을 처치하면 열려요.</p></div>`;
   const have = state.mats[GACHA_MAT];
-  const rows = ARMOR_TYPES.map(t => `<tr><td style="color:${t.color}">${"★".repeat(t.stars)}</td><td>${t.pre.trim()} (${t.grade})</td>
-    <td>${t.rate}%</td><td>${+(t.rate / 3).toFixed(2)}%</td><td>+${t.dup}</td></tr>`).join("");
+  const rows = Object.entries(ARMOR_GRADES).map(([st, g]) => { const ts = ARMOR_TYPES.filter(t => t.stars === +st);
+    return `<tr><td style="color:${ts[0].color}">${"★".repeat(+st)}</td><td>${ts[0].grade}: ${ts.map(t => `<span style="color:${t.color}">${t.pre.trim()}</span>`).join(" · ")}</td>
+    <td>${g.rate}%</td><td>${ts.length * 3}개</td><td>+${g.dup}</td></tr>`; }).join("");
   return `<div class="g-box">
     <div class="g-mini"></div>
     <h3>방어구 뽑기</h3>
-    <p>${matName(GACHA_MAT)} ${GACHA_COST}개로 1회. 투구·갑옷·신발 중 하나가 나와요. 상위 방어구일수록 드물어요.<br>이미 가진 방어구가 나오면 ${matName(GACHA_MAT)}을 돌려받아요.</p>
-    <div class="g-have">보유 ${matName(GACHA_MAT)} <b>${have.toLocaleString("ko-KR")}</b> · 지금까지 ${state.armor.pulls}회</div>
+    <p>${matName(GACHA_MAT)} ${GACHA_COST}개로 1회. 투구·갑옷·신발 중 하나가 나와요. 상위 방어구일수록 드물어요.<br>같은 등급 안에서는 <b>아직 없는 방어구가 먼저</b> 나와요. 뽑을 때마다 강화석 ${PULL_STONES}개, 중복은 강화석으로 바뀌어요.</p>
+    <div class="g-have">보유 ${matName(GACHA_MAT)} <b>${have.toLocaleString("ko-KR")}</b> · 강화석 <b>${state.astones.toLocaleString("ko-KR")}</b> · 지금까지 ${state.armor.pulls}회</div>
     <div class="g-btns">
       <button data-pull="1" ${have < GACHA_COST ? "disabled" : ""}>1회 뽑기<span>${matName(GACHA_MAT)} ${GACHA_COST}</span></button>
       <button data-pull="10" ${have < GACHA_COST * 10 ? "disabled" : ""}>10회 뽑기<span>${matName(GACHA_MAT)} ${(GACHA_COST * 10).toLocaleString("ko-KR")}</span></button>
     </div>
     <label class="g-skipfx"><input type="checkbox" id="g-skipfx" ${gachaSkip ? "checked" : ""}> 연출 건너뛰고 결과만 보기</label>
     <details class="g-rates"><summary>확률 보기</summary>
-      <table><tr><th></th><th>종류</th><th>합계</th><th>부위별</th><th>중복</th></tr>${rows}</table></details>
+      <table><tr><th></th><th>종류</th><th>확률</th><th>개수</th><th>중복 강화석</th></tr>${rows}</table></details>
   </div>`;
 }
 
 function rollArmor() {
-  let r = Math.random() * 100, type = ARMOR_TYPES[0];
-  for (const t of ARMOR_TYPES) { if (r < t.rate) { type = t; break; } r -= t.rate; }
-  return armorId(ARMOR_SLOTS[Math.floor(Math.random() * ARMOR_SLOTS.length)].key, type.key);
+  let r = Math.random() * 100, stars = 1;
+  for (const [st, g] of Object.entries(ARMOR_GRADES)) { if (r < g.rate) { stars = +st; break; } r -= g.rate; }
+  const all = ARMOR_TYPES.filter(t => t.stars === stars).flatMap(t => ARMOR_SLOTS.map(sl => armorId(sl.key, t.key)));
+  const fresh_ = all.filter(id => !(id in state.armor.owned));
+  const pool = fresh_.length ? fresh_ : all;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function doGacha(n) {
@@ -3865,8 +3907,8 @@ function doGacha(n) {
   for (let i = 0; i < n; i++) {
     const id = rollArmor(), { slot, type } = armorParts(id);
     const dup = id in state.armor.owned;
-    if (dup) state.mats[GACHA_MAT] += type.dup;
-    else {
+    state.astones += PULL_STONES + (dup ? type.dup : 0);
+    if (!dup) {
       state.armor.owned[id] = 0;
       if (!state.armor.equip[slot.key]) state.armor.equip[slot.key] = id;   // 빈 부위는 바로 장착
     }
@@ -3884,11 +3926,11 @@ function gLater(ms, fn) { gTimers.push(setTimeout(fn, ms)); }
 
 function gCard(r, i, n) {
   const { type } = armorParts(r.id);
-  return `<div class="g-card${type.stars >= 4 ? " leak" : ""}${type.key === "star" ? " legend" : ""}" style="--gc:${type.color};animation-delay:${n > 1 ? i * 0.05 : 0}s" data-i="${i}">
+  return `<div class="g-card${type.stars >= 4 ? " leak" : ""}${type.stars === 5 ? " legend" : ""}" style="--gc:${type.color};animation-delay:${n > 1 ? i * 0.05 : 0}s" data-i="${i}">
     <div class="g-in"><div class="g-face g-back"></div>
     <div class="g-face g-front">${armorSvg(r.id)}<div class="st">${"★".repeat(type.stars)}</div>
       <div class="gr">${type.grade}</div><div class="nm">${armorName(r.id)}</div>
-      <div class="tg ${r.dup ? "dup" : ""}">${r.dup ? `중복 · ${matName(GACHA_MAT)} +${type.dup}` : "NEW"}</div></div></div></div>`;
+      <div class="tg ${r.dup ? "dup" : ""}">${r.dup ? `중복 · 강화석 +${type.dup}` : "NEW"}</div></div></div></div>`;
 }
 
 function showGacha(results, best) {
@@ -4881,6 +4923,8 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   const crit = critLv && Math.random() * 100 < SK.crit.chance(critLv);
   if (isChar("demon")) mult *= 1.6 + 0.05 * (cl("demon") - 1);
   if (isChar("adventurer")) mult *= 1 + 0.01 * (cl("adventurer") - 1);
+  if (run.arm.atk) mult *= 1 + run.arm.atk / 100;
+  if (run.arm.dragonSet && m.boss) mult *= 1 + DRAGON_SET_BOSS / 100;
   if (isChar("berserker")) mult *= 1 + (0.8 + 0.04 * (cl("berserker") - 1)) * clamp(1 - run.p.hp / run.p.max, 0, 1);
   const dmg = Math.round(run.atk * mult * (crit ? 2.5 : 1) * dev.atkMul);
   m.hp -= dmg;
@@ -4899,6 +4943,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   // 피의 갈증은 여러 마리를 한 번에 베어도 0.3초에 한 번만 회복
   let heal = isChar("vampire") ? (1 + 0.1 * (cl("vampire") - 1)) / 100 : 0;
   if (run.buff.drain > 0 && run.time - (run.drainAt ?? -9) >= 0.3) { heal += run.buff.drainHeal; run.drainAt = run.time; }
+  if (run.arm.heal && run.time - (run.bloodAt ?? -9) >= 0.3) { heal += run.arm.heal / 100; run.bloodAt = run.time; }
   if (heal) run.p.hp = Math.min(run.p.max, run.p.hp + run.p.max * heal);
   if (m.hp <= 0) {
     if (twinDown(m)) return;
@@ -4920,7 +4965,7 @@ function kill(m) {
     return;
   }
   if (run.dungeon && m.boss) { dungeonReward(m); commit(); return; }
-  let gold = Math.round(m.gold * goldMul() * (isChar("alchemist") ? 1.2 + 0.02 * (cl("alchemist") - 1) : 1));
+  let gold = Math.round(m.gold * goldMul() * (isChar("alchemist") ? 1.2 + 0.02 * (cl("alchemist") - 1) : 1) * (1 + run.arm.gold / 100));
   gainXp(zoneXp(z) * (m.boss ? 12 : 1));
   if (isChar("gambler") && Math.random() < (25 + 2 * (cl("gambler") - 1)) / 100) {
     const x = Math.random() < 0.3 ? 3 : 2;
@@ -5010,7 +5055,7 @@ function update(dt) {
     const swift = passiveLv("swift");
     const chill = p.slowT > 0 ? 1 - p.slowAmt : 1;
     const wet = r.floor.puddles?.some(q => ((p.x - q.x) / q.rx) ** 2 + ((p.y - q.y) / q.ry) ** 2 < 1) ? 0.7 : 1;
-    const speed = P_SPEED * (1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0)) * chill * wet;
+    const speed = P_SPEED * (1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + r.arm.move / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0)) * chill * wet;
     p.x = clamp(p.x + dx * speed * dt, P_R, W - P_R);
     p.y = clamp(p.y + dy * speed * dt, P_R, H - P_R);
     moved = Math.hypot(dx, dy) > 0.1;
@@ -5286,9 +5331,9 @@ function hurtPlayer(dmg, el = null) {
     sfx("block");
     return false;
   }
-  if (isChar("rogue") && Math.random() * 100 < 8 + 0.5 * (cl("rogue") - 1)) { fx(p.x, p.y - 22, "회피", "#c9d6e0", 12); return false; }
+  if ((isChar("rogue") && Math.random() * 100 < 8 + 0.5 * (cl("rogue") - 1)) || (run.arm.dodge && Math.random() * 100 < run.arm.dodge)) { fx(p.x, p.y - 22, "회피", "#c9d6e0", 12); return false; }
   // 돌진 베기 중에는 무적이 아니라 피해 감소
-  const guardMul = isChar("knight") ? 1 - (15 + (cl("knight") - 1)) / 100 : 1;
+  const guardMul = (isChar("knight") ? 1 - (15 + (cl("knight") - 1)) / 100 : 1) * (1 - run.arm.red / 100);
   dmg = Math.max(1, Math.round(dmg * resistMul(el) * (p.dash ? 1 - (p.dash.red || 0) : 1) * (run.dragon ? 0.7 : 1) * guardMul));
   p.hp -= dmg;
   armorRetaliate(curMob);
@@ -5301,9 +5346,12 @@ function hurtPlayer(dmg, el = null) {
 // ── 방어구 전투 효과 ── 사냥을 시작할 때 장착 상태를 run.arm에 담아 둔다
 let curMob = null;   // 지금 플레이어를 공격 중인 몹 (갑옷 반격 대상)
 function armorSnapshot() {
-  const a = { res: {}, body: null, bodyLv: 0, feet: null, feetLv: 0, star: starSet(), run: 0, patch: 0 };
+  const a = { res: {}, body: null, bodyLv: 0, feet: null, feetLv: 0, star: starSet(), run: 0, patch: 0,
+              move: 0, red: 0, heal: 0, gold: 0, dodge: 0, atk: 0, dragonSet: false };
   if (!armorUnlocked()) return a;
   const eq = state.armor.equip;
+  for (const id of equipped()) { const b = ARMOR_BONUS[armorParts(id).type.key]; if (b) a[b.stat] += b.v(armorLv(id)); }
+  a.dragonSet = dragonSet();
   if (eq.head) { const { type } = armorParts(eq.head); if (["fire", "ice", "bolt"].includes(type.key)) a.res[type.key] = ARMOR_FX.resist(armorLv(eq.head)); }
   if (eq.body) { a.body = armorParts(eq.body).type.key; a.bodyLv = armorLv(eq.body); }
   if (eq.feet) {
@@ -9021,7 +9069,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V });
 
 function normalize(s) {
   const o = {
@@ -9058,6 +9106,8 @@ function normalize(s) {
     ctPity: s.ctPity ?? 0,
     cpulls: s.cpulls ?? 0,
     charV: CHAR_V,
+    astones: s.astones ?? 0,
+    armorV: ARMOR_V,
     equip: [0, 1, 2, 3].map(i => {
       const k = Array.isArray(s.equip) ? s.equip[i] : null;
       return k && SK[k] && (s.skills || {})[k] > 0 ? k : null;
@@ -9070,6 +9120,11 @@ function normalize(s) {
     coupons: Array.isArray(s.coupons) ? s.coupons.filter(x => typeof x === "string").slice(0, 50) : [],
     questV: QUEST_VER,
   };
+  // 방어구 개편: 강화가 골드 대신 강화석으로 바뀜 → 가진 방어구 하나당 강화석 20개
+  if ((s.armorV ?? 0) < ARMOR_V) {
+    const n = Object.keys(o.armor.owned).length;
+    if (n) { o.astones += n * 20; o.log.unshift({ text: `방어구 개편: 가진 방어구 ${n}개`, delta: `강화석 +${n * 20}` }); }
+  }
   // 캐릭터 개편: 예전에 산 캐릭터(모험가 제외)는 모두 지우고 하나당 캐릭터 뽑기권 1장
   if ((s.charV ?? 0) < CHAR_V) {
     const had = Object.keys(s.chars || {}).filter(k => k !== "adventurer" && s.chars[k]);
