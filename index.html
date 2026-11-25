@@ -897,7 +897,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v100";
+const GAME_VERSION = "v101";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -2354,20 +2354,44 @@ function updateMusic() {
   if (actx) nextT = actx.currentTime + 0.1;
 }
 
-// ── 진행 상황 옮기기 ── 저장 데이터를 "SF1.본문.확인값" 코드로 바꿔 복사하고, 붙여 넣은 코드를 검사해서 불러온다
+// ── 진행 상황 옮기기 ── 저장 데이터를 "SF2.nonce.본문.서명" 코드로 바꿔 복사하고, 붙여 넣은 코드를 검사해서 불러온다
 const transferHash = str => { let h = 5381; for (let i = 0; i < str.length; i++) h = (h * 33 ^ str.charCodeAt(i)) >>> 0; return h.toString(16).padStart(8, "0"); };
 
+// SF2: 내용을 뒤섞고(무작위 nonce + 키 흐름 XOR) 비밀 키로 서명. 코드를 풀어 수치를 고치면 서명이 맞지 않아 거부된다
+const TK = String.fromCharCode(62, 83, 101, 123, 83, 113, 96, 105, 74, 48, 72, 78, 83, 37, 61, 94, 51, 57, 90, 110, 42, 43, 61, 37);
+function cyrb53(str, seed = 0) {
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for (let i = 0; i < str.length; i++) { const c = str.charCodeAt(i); h1 = Math.imul(h1 ^ c, 2654435761); h2 = Math.imul(h2 ^ c, 1597334677); }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36).padStart(11, "0");
+}
+const tSign = (nonce, body) => cyrb53(TK + nonce + body, 7) + cyrb53(body + nonce + TK, 13);
+function tMix(bin, nonce) {
+  let a = parseInt(cyrb53(TK + nonce, 3).slice(-8), 36) >>> 0, out = "";
+  for (let i = 0; i < bin.length; i++) {
+    a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    out += String.fromCharCode(bin.charCodeAt(i) ^ (((t ^ (t >>> 14)) >>> 0) & 255));
+  }
+  return out;
+}
 function exportCode() {
-  const json = JSON.stringify({ ...state, log: [] });
-  const body = btoa(unescape(encodeURIComponent(json)));
-  return `${TEST ? "SFT1" : "SF1"}.${body}.${transferHash(body)}`;
+  const bin = unescape(encodeURIComponent(JSON.stringify({ ...state, log: [] })));
+  const nonce = Math.random().toString(36).slice(2, 10).padEnd(8, "0");
+  const body = btoa(tMix(bin, nonce));
+  return `${TEST ? "SFT2" : "SF2"}.${nonce}.${body}.${tSign(nonce, body)}`;
 }
 
 function readCode(code) {
-  const m = code.replace(/\s+/g, "").match(TEST ? /^SFT?1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/ : /^SF1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/);
-  if (!m || transferHash(m[1]) !== m[2]) return null;
+  code = code.replace(/\s+/g, "");
+  if (/^SFT?1\./.test(code) && !TEST) return "old";
+  // 테스트 모드는 예전 형식도 받는다
+  const m1 = TEST && code.match(/^SFT?1\.([A-Za-z0-9+/=]+)\.([0-9a-f]{8})$/);
+  if (m1) { try { return transferHash(m1[1]) === m1[2] ? JSON.parse(decodeURIComponent(escape(atob(m1[1])))) : null; } catch { return null; } }
+  const m = code.match(TEST ? /^SFT?2\.([a-z0-9]{8})\.([A-Za-z0-9+/=]+)\.([a-z0-9]{22})$/ : /^SF2\.([a-z0-9]{8})\.([A-Za-z0-9+/=]+)\.([a-z0-9]{22})$/);
+  if (!m || tSign(m[1], m[2]) !== m[3]) return null;
   try {
-    const data = JSON.parse(decodeURIComponent(escape(atob(m[1]))));
+    const data = JSON.parse(decodeURIComponent(escape(tMix(atob(m[2]), m[1]))));
     return data && typeof data.gold === "number" ? data : null;
   } catch { return null; }
 }
@@ -2399,6 +2423,11 @@ function disarmImport() {
 }
 $("import-btn").addEventListener("click", () => {
   const data = readCode($("transfer-code").value);
+  if (data === "old") {
+    disarmImport();
+    transferMsg("예전 형식(SF1) 코드는 보안 때문에 더 이상 쓸 수 없어요. 원래 기기에서 내보내기를 다시 눌러 새 코드(SF2)를 만들어 주세요.", "bad");
+    return;
+  }
   if (!data) {
     disarmImport();
     transferMsg("코드가 올바르지 않아요. 처음부터 끝까지 빠짐없이 복사했는지 확인하세요.", "bad");
