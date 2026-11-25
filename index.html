@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v110";
+const GAME_VERSION = "v111";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5157,7 +5157,7 @@ const isHard = z => z.w2 ? 0 : (!!z.dungeon && (z.practice == null || z.practice
 // 월드 2(별의 던전 포함): 스킬 트리가 생긴 만큼 조금 더 세게
 const W2_HP = 1.15, W2_DMG = 1.1;
 // 월드 2 사냥터 보스는 여기에 더해 (스킬 트리·방어구를 감안, v110). 별의 던전은 따로 맞춤
-const W2_BOSS_HP = 4, W2_BOSS_DMG = 1.25, W2_MOB_HP = 1.4, W2_MOB_DMG = 1.2;
+const W2_BOSS_HP = 3.5, W2_BOSS_DMG = 1.15, W2_MOB_HP = 1.4, W2_MOB_DMG = 1.2;
 function hardened(m) {
   if (run.zone.world === 2 || run.zone.w2) {
     const zw = run.zone.world === 2, zb = m.boss && zw, zm = !m.boss && zw;
@@ -5413,7 +5413,7 @@ function kill(m) {
     if (Math.hypot(p.x - m.x, p.y - m.y) < GOLEM_SNOW_R + P_R && hurtPlayer(Math.round(m.dmg * 0.8), "ice")) slowPlayer(2, 0.5);
   }
   if (m.boss) {
-    const n = 1 + (Math.random() < 0.3) + (Math.random() < 0.1);
+    const n = 1 + Math.floor(Math.random() * 5);   // 보스 재료 1~5개 (v111)
     gainMat(z.boss.mat, n);
     if (isChar("alchemist") && Math.random() < (40 + 3 * (cl("alchemist") - 1)) / 100) { gainMat(z.boss.mat, 1); lootFx(m, "연금술 +1", "#d4a84a", 13); }
     const st = zoneStars(z);

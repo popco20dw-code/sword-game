@@ -25,7 +25,7 @@ const ROOT = path.join(__dirname, '..');
       `<p>보석 합성: 루비 10개 또는 다이아몬드 4개 → 별의 파편 1개.</p></div>`;
     // 월드 1
     const hard = Object.values(HARD_DMG);
-    out += `<div class="rule"><h3>사냥터 · 월드 1</h3><p>공격력 = 8 × 1.17<sup>검 단계</sup>, 체력 = 100 + 6 × 검 단계 (+ 방어구). 몹 ${BOSS_EVERY}마리마다 보스. 뇌운 봉우리부터는 몹 공격력 ×${hard.slice(0, 3).join('·×')}, 체력 ×${HARD_HP}. <b>용의 둥지 킹 드래곤을 잡으면 월드 2가 열림.</b></p>` +
+    out += `<div class="rule"><h3>사냥터 · 월드 1</h3><p>공격력 = 8 × 1.17<sup>검 단계</sup>, 체력 = 100 + 6 × 검 단계 (+ 방어구). 몹 ${BOSS_EVERY}마리마다 보스 (잡으면 보스 재료 1~5개, 월드 2도 같음). 뇌운 봉우리부터는 몹 공격력 ×${hard.slice(0, 3).join('·×')}, 체력 ×${HARD_HP}. <b>용의 둥지 킹 드래곤을 잡으면 월드 2가 열림.</b></p>` +
       table(['사냥터', '권장', '일반 몹', '보스 → 재료', '보스 별의 파편', '몹 드롭 % (루비·다이아·별·룬석)'], ZONES.map(z => [z.name, '+' + z.rec, [z.mob, z.alt].filter(Boolean).map(m => m.name).join(', '), `${z.boss.name ?? DUNGEON.bosses.find(x => x.kind === z.boss.kind)?.name} → ${M(z.boss.mat)}`, zoneStars(z), `${z.drops.ruby} · ${z.drops.diamond} · ${z.drops.star} · ${z.rune}`])) + `</div>`;
     // 월드 2
     out += `<div class="rule"><h3>사냥터 · 월드 2</h3><p>사냥터 하나가 검 5단계를 담당. 표의 기본 수치에 몹·보스 체력 ×${W2_HP}, 공격력 ×${W2_DMG}, 여기에 사냥터 보스는 체력 ×${W2_BOSS_HP}·공격력 ×${W2_BOSS_DMG}, 일반 몹은 체력 ×${W2_MOB_HP}·공격력 ×${W2_MOB_DMG}. 보스는 체력 50% 아래에서 분노해 기술이 강해지고, 같은 기술을 연달아 쓰지 않음. 독은 지속 피해 + 중독 중 회복 절반.</p>` +
