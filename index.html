@@ -496,6 +496,19 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .cg-orb-mini { width: 70px; height: 70px; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle, #fff 0 8%, #ffd24a 24%, rgba(255,180,60,.35) 48%, transparent 70%); animation: gpulse 1.4s ease-in-out infinite alternate; }
 .cg-pull { border-radius: 10px; padding: 12px; border: 1px solid #ffd24a; background: linear-gradient(180deg, #ffe066, #e0a030); color: #2a1a06; font-family: var(--display); font-size: 18px; }
 .cg-pull:disabled { filter: grayscale(.8) brightness(.6); }
+.cg-pulls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cg-pull small { display: block; font-family: var(--body); font-size: 11px; opacity: .75; }
+.cg-card.multi { padding: 14px 10px; max-width: min(96vw, 520px); }
+.cg-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; width: 100%; }
+.cg-mini { display: grid; justify-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; border: 1px solid var(--tc);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--tc) 22%, #14101c), #0c0a12); opacity: 0; animation: cgMini .35s ease-out forwards; }
+.cg-card .cg-mini img { width: 46px; height: 46px; }
+.cg-card .cg-mini .cg-soul { font-size: 30px; line-height: 46px; }
+.cg-card .cg-mini span { font-size: 11px; line-height: 1.2; text-align: center; word-break: keep-all; }
+.cg-card .cg-mini small { font-size: 10px; color: rgba(255,255,255,.7); }
+.cg-mini.r4, .cg-mini.r5 { box-shadow: 0 0 12px var(--tc); }
+.cg-mini.r5 { border-width: 2px; }
+@keyframes cgMini { from { opacity: 0; transform: translateY(8px) scale(.9); } to { opacity: 1; transform: none; } }
 .char-card .tier { color: var(--tc); font-size: 11px; border: 1px solid var(--tc); border-radius: 6px; padding: 0 5px; margin-left: 4px; white-space: nowrap; display: inline-block; }
 .char-card.missing .avatar { filter: grayscale(1) brightness(.5); }
 .char-card.tier-legend { border-color: #6a5a2a; background: linear-gradient(180deg, rgba(255,210,74,.08), var(--panel)); }
@@ -901,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v107";
+const GAME_VERSION = "v108";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -2183,6 +2196,7 @@ $("shop").addEventListener("click", e => {
   if (btn) buy(btn.dataset.buy);
   else if (view) { shopView = view.dataset.sview; renderShop(); }
   else if (e.target.closest("[data-pull]")) doGacha(+e.target.closest("[data-pull]").dataset.pull);
+  else if (e.target.closest("[data-cpull10]")) pullChar10();
   else if (e.target.closest("[data-cpull]")) pullChar();
   else if (e.target.closest("[data-char-up]")) upChar(e.target.closest("[data-char-up]").dataset.charUp);
   else if (cuse) useChar(cuse.dataset.charUse);
@@ -4376,6 +4390,19 @@ function applyPull(res) {
     }
   }
 }
+// 10연속 뽑기: 한 번에 10개를 뽑고, 가장 좋은 결과의 빛으로 연출한 뒤 10장을 한꺼번에 보여 준다
+function pullChar10() {
+  if (state.ctickets < 10 || !$("cgacha").hidden) return;
+  state.ctickets -= 10;
+  state.cpulls += 10;
+  const list = [];
+  for (let i = 0; i < 10; i++) { const res = rollChar(); applyPull(res); list.push(res); }
+  const best = list.reduce((a, b) => b.rank > a.rank ? b : a);
+  const legends = list.filter(r => r.rank === 5).map(r => CH[r.key].name);
+  state.log.unshift({ text: "캐릭터 10회 뽑기", delta: legends.length ? `전설 ${legends.join(", ")}!` : `최고 ${best.type === "soul" ? "소울" : CH[best.key].name}` });
+  commit();
+  showCharGacha({ ...best, multi: list });
+}
 function pullChar() {
   if (state.ctickets < 1 || !$("cgacha").hidden) return;
   state.ctickets--;
@@ -4394,7 +4421,8 @@ function charShop() {
     <h3>캐릭터 뽑기</h3>
     <p>뽑기권은 보스를 잡으면 낮은 확률로 나와요 (월드 1 초원 3% → 용의 둥지 15% · 월드 2 25% · 던전 클리어 1장). 못 받은 보스의 확률이 쌓여 ${TICKET_PITY}%가 되면 확정.</p>
     <div class="g-have">뽑기권 <b>${state.ctickets}</b>장 · 소울 <b>${state.souls.toLocaleString("ko-KR")}</b> · 천장 ${Math.min(100, Math.floor(state.ctPity / TICKET_PITY * 100))}%</div>
-    <button class="cg-pull" data-cpull ${state.ctickets < 1 ? "disabled" : ""}>뽑기 (뽑기권 1장)</button>
+    <div class="cg-pulls"><button class="cg-pull" data-cpull ${state.ctickets < 1 ? "disabled" : ""}>1회 뽑기<small>뽑기권 1장</small></button>
+      <button class="cg-pull" data-cpull10 ${state.ctickets < 10 ? "disabled" : ""}>10회 뽑기<small>뽑기권 10장</small></button></div>
     <details class="g-rates"><summary>확률 보기</summary><table>
       <tr><th>결과</th><th>확률</th></tr>
       <tr><td style="color:#ffd24a">전설 캐릭터</td><td>${+(LEGEND_RATE * legOpen).toFixed(2)}% (열린 전설 ${legOpen}명, 한 명당 ${LEGEND_RATE}%)</td></tr>
@@ -4455,8 +4483,28 @@ function showCharGacha(res) {
   };
   $("cg-skip").onclick = () => { taps = TAPS; paint(); finish(); };
 }
+function revealMulti(list) {
+  const card = $("cg-card");
+  card.hidden = false;
+  card.classList.add("multi");
+  card.style.setProperty("--tc", "#ffd24a");
+  const souls = list.reduce((a, r) => a + (r.type === "soul" ? r.n : 0) + (r.dup || 0), 0);
+  card.innerHTML = `<div class="cg-grid">${list.map((r, i) => {
+    const c = r.key && CH[r.key], t = c && CHAR_TIER[c.tier];
+    const col = r.type === "soul" ? "#e8e0ff" : t.color;
+    const tag = r.type === "soul" ? `소울 ${r.n}` : r.dup ? `소울 +${r.dup}` : r.unlocked ? "획득!" : r.isNew ? "NEW" : `조각 ${state.shards[r.key] || 0}/${t.need}`;
+    return `<div class="cg-mini r${r.rank}" style="--tc:${col};animation-delay:${i * 0.07}s">
+      ${r.type === "soul" ? `<div class="cg-soul">✦</div>` : `<img src="${charIcon(r.key)}" alt="">`}
+      <span>${r.type === "soul" ? "소울" : c.name + (r.type === "shard" ? ` 조각×${r.n}` : "")}</span><small>${tag}</small></div>`;
+  }).join("")}</div><small>이번에 받은 소울 합계 ${souls.toLocaleString("ko-KR")}</small>`;
+  $("cg-skip").hidden = true; $("cg-ok").hidden = false;
+  const top = Math.max(...list.map(r => r.rank));
+  if (top >= 4) sfx("fanfare");
+}
 function revealChar(res) {
+  if (res.multi) return revealMulti(res.multi);
   const card = $("cg-card"), c = res.key && CH[res.key], t = c && CHAR_TIER[c.tier];
+  card.classList.remove("multi");
   card.hidden = false;
   card.style.setProperty("--tc", res.type === "soul" ? "#e8e0ff" : t.color);
   card.innerHTML = res.type === "soul"
