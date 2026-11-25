@@ -901,14 +901,14 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v103";
+const GAME_VERSION = "v104";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
 const dev = { god: false, atkMul: 1 };
 const START_GOLD = 2000;
-const MINE_GOLD = 10;      // 곡괭이 +0일 때 돌 하나당 골드
+const MINE_GOLD = 20;      // 곡괭이 +0일 때 돌 하나당 골드 (v104: 10 → 20)
 const MINE_GROWTH = 1.2;   // 곡괭이 1단계마다 돌 하나당 골드 배율 (+35에서 약 5,900 G)
 const MINER_GOLD = 0.5;    // 광부가 캐는 골드는 직접 캘 때의 절반
 const rockGold = () => Math.round(MINE_GOLD * Math.pow(MINE_GROWTH, state.pick) * (1 + 0.05 * state.traits.luck));
