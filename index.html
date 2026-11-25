@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v113";
+const GAME_VERSION = "v114";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1412,7 +1412,7 @@ const ZONES2 = [
   { key: "temple", world: 2, name: "가라앉은 신전", rec: 90, bg: "#14262b", rune: 19, xp: 270, stars: 26,
     feature: "물웅덩이에 들어가면 느려져요",
     mob: { kind: "jelly", name: "전기 해파리", color: "#7fe0ff", hp: 4.8e7, dmg: 370, speed: 48, r: 13, gold: 3.8e6 },
-    alt: { kind: "merman", name: "어인 창병", color: "#3f9a8a", hp: 6.5e7, dmg: 460, speed: 72, r: 14, gold: 4.3e6, contact: false },
+    alt: { kind: "merman", name: "어인 창병", color: "#3f9a8a", hp: 6.5e7, dmg: 340, speed: 72, r: 14, gold: 4.3e6, contact: false },
     boss: { kind: "kraken", name: "심해 크라켄", color: "#2f7a8a", mat: "tentacle", hp: 9.6e8, dmg: 460, speed: 0, r: 42 },
     drops: { ruby: 16, diamond: 12, star: 13 } },
   { key: "swamp", world: 2, name: "독버섯 늪", rec: 95, bg: "#1c2414", rune: 20, xp: 310, stars: 28,
@@ -8348,7 +8348,7 @@ const W2AI = {
     m.atkCd = (m.atkCd || 0) - dt;
     if (d > 150 && m.spearCd <= 0) {
       m.spearCd = 3.2;
-      run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face) * 380, vy: Math.sin(m.face) * 380, dmg: Math.round(m.dmg * 0.9), t: 2, owner: m, spear: true });
+      run.shots.push({ x: m.x, y: m.y, vx: Math.cos(m.face) * 380, vy: Math.sin(m.face) * 380, dmg: Math.round(m.dmg * 0.65), t: 2, owner: m, spear: true });
       return;
     }
     if (d > m.r + P_R + 4) { m.x += ax / d * m.speed * wet * slow * dt; m.y += ay / d * m.speed * wet * slow * dt; }
