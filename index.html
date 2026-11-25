@@ -901,7 +901,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v104";
+const GAME_VERSION = "v105";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5167,7 +5167,7 @@ function spawnDungeonBoss() {
   d.stage++;
   run.mobs.push(hardened({ boss: true, kind: b.kind, name: b.name, color: b.color, x: W / 2, y: 110, hp: b.hp, max: b.hp,
                   dmg: b.dmg, speed: b.speed, baseSpeed: b.speed, r: b.r, gold: 0, mat: b.mat, dashSpeed: b.dashSpeed,
-                  mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, face: Math.PI / 2, combo: 1, hitCd: 0, flash: 0, phase: 0 }));
+                  mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, face: Math.PI / 2, combo: 1, hitCd: 0, flash: 0, phase: 0, hidden: !!b.hidden }));
   if (b.twins) addTwin(run.mobs[run.mobs.length - 1], b);
   fx(W / 2, H / 2 - 60, b.hidden ? "숨은 보스 등장!" : `${d.stage}/${DG.bosses.length - (DG.w2 ? 1 : 0)} ${b.name}`, b.hidden ? "#ff9fe0" : "#ffd24a", 22);
   sfx("bossIn");
@@ -5404,6 +5404,7 @@ function update(dt) {
     const jx = joy.x - joy.ox, jy = joy.y - joy.oy, jm = Math.hypot(jx, jy);
     if (jm > 6) { dx = jx / Math.max(jm, 40); dy = jy / Math.max(jm, 40); }
   }
+  if (p.invertT > 0) { p.invertT -= dt; dx = -dx; dy = -dy; }
   const mag = Math.hypot(dx, dy);
   if (mag > 1) { dx /= mag; dy /= mag; }
   if (mag > 0.1) p.dir = { x: dx / Math.max(mag, 1e-6), y: dy / Math.max(mag, 1e-6) };
@@ -7529,8 +7530,15 @@ function drawDevourer(m, t) {
   // 소용돌이치는 몸
   for (let k = 0; k < 3; k++) { ctx.strokeStyle = ["rgba(255,159,224,.5)", "rgba(143,216,255,.45)", "rgba(255,246,255,.4)"][k]; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(0, 0, r * (1.1 + k * 0.2), t * (1 + k) + k, t * (1 + k) + k + 4.2); ctx.stroke(); }
-  ctx.save(); ctx.shadowColor = st === 2 ? "#ff5f8a" : "#b8a8ff"; ctx.shadowBlur = 24;
-  blob(0, 0, r, r, c);
+  if (m.hidden) {
+    // 진: 금빛 코로나와 도는 별 가시
+    ctx.save(); ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 30;
+    for (let k = 0; k < 10; k++) { const a = k / 10 * Math.PI * 2 - t * 0.8, L = r * (1.55 + 0.12 * Math.sin(t * 4 + k));
+      poly([[Math.cos(a - 0.12) * r * 1.05, Math.sin(a - 0.12) * r * 1.05], [Math.cos(a) * L, Math.sin(a) * L], [Math.cos(a + 0.12) * r * 1.05, Math.sin(a + 0.12) * r * 1.05]], k % 2 ? "#ffe9a8" : "#ffffff"); }
+    ctx.restore();
+  }
+  ctx.save(); ctx.shadowColor = m.hidden ? "#ffe9a8" : st === 2 ? "#ff5f8a" : "#b8a8ff"; ctx.shadowBlur = 24;
+  blob(0, 0, r, r, m.hidden && m.flash <= 0 ? (st >= 3 ? "#ffd6f0" : "#ffe9a8") : c);
   ctx.restore();
   blob(0, 0, r * 0.62, r * 0.62, "#08060f");
   for (let k = 0; k < 12; k++) { const a = k / 12 * Math.PI * 2 + t * 0.6; blob(Math.cos(a) * r * 0.45, Math.sin(a) * r * 0.45, 2, 2, "#ffffff"); }
@@ -7598,6 +7606,14 @@ const DEVOURER_PHASES = [
   ["sporeRain", "dive", "hands", "gearRain", "blackhole", "starfall"],
   ["meteor", "fissure", "blackhole", "starfall", "heatwave", "orbs"],
 ];
+// 별을 삼킨 자 · 진 (별의 던전 숨은 보스): 4단계, 단계마다 고유 기술이 섞이고 마지막엔 우주가 무너진다
+const TRUE_PHASES = [
+  ["charge", "prism", "slam", "wave", "starfall", "constellation"],
+  ["sporeRain", "dive", "hands", "gearRain", "blackhole", "invert", "constellation"],
+  ["meteor", "fissure", "blackhole", "heatwave", "orbs", "nova", "invert"],
+  ["constellation", "nova", "invert", "blackhole", "starfall", "meteor", "nova"],
+];
+const TRUE_STAGE_TEXT = ["2단계: 별자리가 깨어난다", "3단계: 하늘이 뒤집힌다", "최후: 우주가 무너진다"];
 const W2_PATTERNS = {
   sandWorm: ["burrow", "charge", "tornado", "spit", "quicksand", "spit", "tornado"],   // 땅속 기술 2/7
   crystalQueen: ["prism", "sweep", "rain", "prison", "clones", "shards"],
@@ -7642,8 +7658,9 @@ function hitBy(m, dmg, el) { curMob = m; const got = hurtPlayer(Math.round(dmg),
 
 function w2Pick(m) {
   if (m.kind === "devourer") {
-    let list = DEVOURER_PHASES[m.stage || 0].filter(v => v !== m.last);
-    if (!list.length) list = DEVOURER_PHASES[m.stage || 0].slice(0, 1);
+    const PH = m.hidden ? TRUE_PHASES : DEVOURER_PHASES;
+    let list = PH[m.stage || 0].filter(v => v !== m.last);
+    if (!list.length) list = PH[m.stage || 0].slice(0, 1);
     return (m.last = list[Math.floor(Math.random() * list.length)]);
   }
   const clonesUp = run.mobs.some(o => o.kind === "qclone" && !o.dead);
@@ -7662,9 +7679,16 @@ function w2BossAI(m, dt) {
     return;
   }
   if (m.kind === "devourer") {
-    const st = m.hp < m.max / 3 ? 2 : m.hp < m.max * 2 / 3 ? 1 : 0;
+    const nSt = m.hidden ? 4 : 3, st = Math.min(nSt - 1, Math.floor((1 - m.hp / m.max) * nSt));
     if (st > (m.stage || 0)) {
-      m.stage = st; m.enraged = st === 2;
+      m.stage = st; m.enraged = st >= 2;
+      if (m.hidden) {
+        m.mode = "howl"; m.timer = 1.4; m.ghost = 1.4; w.beams = []; w.sweep = null; w.hands = null;
+        ring(m.x, m.y, 140, "#ffe9a8"); ring(m.x, m.y, 90, "#ff9fe0"); sfx("bossIn"); run.quake = 0.5;
+        fx(m.x, m.y - m.r - 24, TRUE_STAGE_TEXT[st - 1], "#ffe9a8", 16);
+        if (st === 3) { w.collapse = { r: 330, tick: 0, owner: m }; fx(W / 2, H / 2, "우주 붕괴! 가운데로", "#ff9fe0", 20); }
+        return;
+      }
       m.mode = "howl"; m.timer = 1.2; m.ghost = 1.2; w.beams = []; w.sweep = null; w.hands = null;
       ring(m.x, m.y, 120, "#ff9fe0"); ring(m.x, m.y, 80, "#ffffff"); sfx("bossIn"); run.quake = 0.4;
       fx(m.x, m.y - m.r - 24, st === 1 ? "2단계: 하늘과 시간을 삼킨다" : "3단계: 모든 것을 삼킨다", "#ff9fe0", 16);
@@ -7866,6 +7890,14 @@ function w2BossAI(m, dt) {
         p.knock = { vx: Math.cos(a) * 1500, vy: Math.sin(a) * 1500, t: 0.45 };
         fx(p.x, p.y - 30, "튕겨 나감!", "#9fe3ff", 15);
       }
+      done();
+      return;
+    }
+    case "nova": {
+      if (m.timer > 0) return;
+      const nv = w.nova; w.nova = null;
+      run.quake = 0.6; ring(m.x, m.y, 400, "#ffe9a8"); ring(m.x, m.y, 260, "#ffffff"); sfx("bossDown");
+      if (nv && !nv.orbs.some(o => Math.hypot(p.x - o.x, p.y - o.y) < o.r + P_R * 0.5)) hitBy(m, m.dmg * 2.2);
       done();
       return;
     }
@@ -8157,6 +8189,28 @@ const W2_START = {
     for (let k = 0; k < n; k++) w2Boom(k ? 40 + Math.random() * (W - 80) : p.x, k ? 160 + Math.random() * (H - 220) : p.y, 44, 0.9 + k * 0.06, m.dmg * 0.75, "255,159,224", m);
     fx(m.x, m.y - m.r - 20, "별똥별!", "#ff9fe0", 16);
   },
+  // 별자리: 나를 둘러싼 오각별 모양 광선이 한 줄씩 터짐
+  constellation(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 1.0;
+    const R = 150, a0 = Math.random() * Math.PI * 2;
+    const pts = [0, 1, 2, 3, 4].map(k => [p.x + Math.cos(a0 + k * Math.PI * 2 / 5) * R, p.y + Math.sin(a0 + k * Math.PI * 2 / 5) * R]);
+    const order = [0, 2, 4, 1, 3, 0];
+    for (let i = 0; i < 5; i++) w2Lane([...pts[order[i]], ...pts[order[i + 1]]], 30, 0.9 + i * (E ? 0.1 : 0.16), m.dmg * 0.8, m, "star");
+    fx(p.x, p.y - 50, "별자리! 별 안쪽 오각형이 안전", "#ffe9a8", 14); sfx("learn");
+  },
+  // 초신성: 온 화면이 터진다. 떠다니는 중성자별 두 개 곁에만 숨을 수 있다
+  nova(m, p, w, toP, E) {
+    m.mode = "nova"; m.timer = E ? 2.2 : 2.6;
+    w.nova = { t: m.timer, max: m.timer, owner: m, orbs: [0, 1].map(() => ({ x: 70 + Math.random() * (W - 140), y: 170 + Math.random() * (H - 240), vx: (Math.random() - 0.5) * 70, vy: (Math.random() - 0.5) * 70, r: 52 })) };
+    fx(W / 2, 150, "초신성! 빛나는 별 곁으로", "#ffe9a8", 18); sfx("bossIn");
+  },
+  // 중력 반전: 잠깐 동안 조작이 반대로
+  invert(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.7;
+    p.invertT = (E ? 3.5 : 2.8) * ccMul();
+    ring(p.x, p.y, 40, "#b8a8ff"); fx(p.x, p.y - 36, "중력 반전! 조작이 반대로", "#b8a8ff", 15); sfx("stun");
+    w2Shot(m, toP(), 220, m.dmg * 0.5, "#ffe9a8"); w2Shot(m, toP() + 0.25, 220, m.dmg * 0.5, "#ffe9a8"); w2Shot(m, toP() - 0.25, 220, m.dmg * 0.5, "#ffe9a8");
+  },
   blackhole(m, p, w, toP, E) { m.mode = "blackhole"; m.timer = 3; m.spinCd = 0; m.spinA = 0; fx(m.x, m.y - m.r - 20, "블랙홀! 버티세요", "#e8e0ff", 16); sfx("whirl"); },
   summon(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.6;
@@ -8398,6 +8452,23 @@ function w2Update(dt) {
   if (w.sweep && !casting(["sweepAim", "sweep"])) w.sweep = null;
   if (w.beams.length && !casting(["prismAim", "prism"])) w.beams = [];
   if (w.prisons.length && !casting(["prisonCast"])) w.prisons = [];
+  if (w.nova && !casting(["nova"])) w.nova = null;
+  if (w.nova) w.nova.t -= dt;
+  if (w.nova) for (const o of w.nova.orbs) {
+    o.x += o.vx * dt; o.y += o.vy * dt;
+    if (o.x < 50 || o.x > W - 50) o.vx *= -1;
+    if (o.y < 160 || o.y > H - 50) o.vy *= -1;
+  }
+  // 우주 붕괴 (진 마지막 단계): 원이 점점 좁아지고 밖에 있으면 피해
+  if (w.collapse) {
+    const c = w.collapse;
+    if (c.owner.dead) w.collapse = null;
+    else {
+      c.r = Math.max(140, c.r - 6 * dt);
+      c.tick -= dt;
+      if (Math.hypot(p.x - W / 2, p.y - H / 2) > c.r && c.tick <= 0) { c.tick = 0.5; hitBy(c.owner, c.owner.dmg * 0.3); fx(p.x, p.y - 30, "붕괴하는 우주", "#ff9fe0", 12); }
+    }
+  }
   // 여왕(또는 별을 삼킨 자)이 없으면 수정 분신도 사라짐
   if (r.mobs.some(m => m.kind === "qclone" && !m.dead) && !r.mobs.some(m => !m.dead && (m.kind === "crystalQueen" || m.kind === "devourer")))
     for (const m of r.mobs) if (m.kind === "qclone" && !m.dead) { m.dead = true; ring(m.x, m.y, 30, "#e4ccff"); }
@@ -8568,7 +8639,7 @@ function drawW2Under(r, t) {
     if (ln.t > 0) {
       const k = 1 - ln.t / ln.max;
       ctx.fillStyle = ln.look === "sand" ? `rgba(232,201,138,${0.12 + 0.2 * k})` : ln.look === "wind" ? `rgba(255,243,208,${0.1 + 0.18 * k})`
-        : ln.look === "echo" ? `rgba(224,192,112,${0.06 + 0.12 * k})` : `rgba(255,95,86,${0.1 + 0.18 * k})`;
+        : ln.look === "echo" ? `rgba(224,192,112,${0.06 + 0.12 * k})` : ln.look === "star" ? `rgba(255,233,168,${0.1 + 0.22 * k})` : `rgba(255,95,86,${0.1 + 0.18 * k})`;
       ctx.fillRect(0, -ln.w / 2, len, ln.w);
       ctx.strokeStyle = ln.look === "sand" ? "rgba(232,201,138,.8)" : "rgba(255,95,86,.7)"; ctx.setLineDash([8, 6]); ctx.lineWidth = 2; ctx.strokeRect(0, -ln.w / 2, len, ln.w);
     } else if (ln.look === "lava") {
@@ -8622,6 +8693,26 @@ function drawW2Under(r, t) {
     }
     ctx.restore();
   }
+  // 초신성: 화면이 점점 밝아지고 중성자별 곁만 어둡게
+  if (w.nova) {
+    const nv = w.nova, k = clamp(1 - nv.t / nv.max, 0, 1);
+    ctx.save();
+    ctx.fillStyle = `rgba(255,233,168,${0.08 + 0.32 * k})`; ctx.fillRect(0, 0, W, H);
+    for (const o of nv.orbs) {
+      ctx.fillStyle = "rgba(20,14,40,.75)"; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = "#8fd8ff"; ctx.shadowBlur = 18; ctx.strokeStyle = "#cfefff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2); ctx.stroke();
+      ctx.shadowBlur = 0; blob(o.x, o.y, 9, 9, "#e6f7ff");
+    }
+    ctx.restore();
+  }
+  if (w.collapse) {
+    const c = w.collapse;
+    ctx.save();
+    ctx.fillStyle = "rgba(10,4,20,.55)"; ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(W / 2, H / 2, c.r, 0, Math.PI * 2, true); ctx.fill("evenodd");
+    ctx.strokeStyle = "rgba(255,159,224,.85)"; ctx.lineWidth = 3; ctx.setLineDash([10, 6]); ctx.beginPath(); ctx.arc(W / 2, H / 2, c.r, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  if (run.p.invertT > 0) { const q = run.p, tt = run.time; ctx.save(); ctx.strokeStyle = "rgba(184,168,255,.9)"; ctx.lineWidth = 2; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(q.x, q.y, P_R + 10, tt * 4, tt * 4 + Math.PI * 1.5); ctx.stroke(); ctx.restore(); }
   // 수정 감옥
   for (const q of w.prisons) {
     const k = 1 - q.t / q.max;
