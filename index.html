@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v108";
+const GAME_VERSION = "v109";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1453,14 +1453,16 @@ const ZONES2 = [
     drops: { ruby: 22, diamond: 18, star: 19 } },
 ];
 // ── 월드 2 던전 ── 월드 2 보스 9마리 + 숨은 보스. 별의 균열 보스를 잡으면 열림
+const DG2_HP = 6e11, DG2_TRUE_HP = 4.5e12, DG2_DMG = 750;
 const DUNGEON2 = {
-  key: "dungeon2", name: "별의 던전", rec: 120, bg: "#0c0a18", dungeon: true, w2: true, rune: 0, drops: {},
+  key: "dungeon2", name: "별의 던전", rec: 125, bg: "#0c0a18", dungeon: true, w2: true, rune: 0, drops: {},
   bosses: [
+    // 최종 콘텐츠: 사냥터 보스 수치 대신 검 +125·스킬 트리·방어구 기준으로 다시 맞춘 체력과 공격력 (v109)
     ...["desert", "crystal", "temple", "swamp", "sky", "clock", "shadow", "abyss", "rift"].map((k, i) => {
       const b = ZONES2[i].boss;
-      return { kind: b.kind, name: b.name, color: b.color, hp: b.hp * 1.2, dmg: Math.round(b.dmg * 1.15), speed: b.speed, r: b.r, mat: b.mat, twins: b.twins };
+      return { kind: b.kind, name: b.name, color: b.color, hp: DG2_HP * Math.pow(1.12, i), dmg: DG2_DMG + 40 * i, speed: b.speed, r: b.r, mat: b.mat, twins: b.twins };
     }),
-    { kind: "devourer", name: "??? 별을 삼킨 자 · 진", color: "#ff9fe0", hp: 2.4e11, dmg: 820, speed: 70, r: 44, mat: "score", hidden: true },
+    { kind: "devourer", name: "??? 별을 삼킨 자 · 진", color: "#ff9fe0", hp: DG2_TRUE_HP, dmg: DG2_DMG + 350, speed: 70, r: 44, mat: "score", hidden: true },
   ],
 };
 const dungeon2Open = () => (state.bossKills.rift || 0) > 0;

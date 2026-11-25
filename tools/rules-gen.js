@@ -8,7 +8,7 @@ const ROOT = path.join(__dirname, '..');
   await p.goto('file://' + path.join(ROOT, 'index.html')); await p.waitForTimeout(500);
   const html = await p.evaluate(() => {
     const M = k => k === 'runes' ? '룬석' : matName(k);
-    const num = n => n >= 1e8 ? (n / 1e8).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억' : n >= 1e4 ? (n / 1e4).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '만' : n.toLocaleString('ko-KR');
+    const num = n => n >= 1e12 ? (n / 1e12).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + '조' : n >= 1e8 ? (n / 1e8).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '억' : n >= 1e4 ? (n / 1e4).toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '만' : n.toLocaleString('ko-KR');
     const row = cells => `<tr>${cells.map(c => typeof c === 'number' || /^[+\d.·/ %,-]+$/.test(String(c)) ? `<td class="num">${c}</td>` : `<td>${c}</td>`).join('')}</tr>`;
     const table = (head, rows) => `<div class="tablewrap"><table><thead><tr>${head.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div>`;
     const matsTxt = a => a && a.length ? a.map(([k, n]) => `${M(k)} ${n}`).join(' + ') : '없음';
@@ -32,7 +32,7 @@ const ROOT = path.join(__dirname, '..');
       table(['사냥터', '권장', '지형', '일반 몹', '보스 → 재료', '보스 별의 파편', '몹 드롭 %'], ZONES2.map(z => [z.name, '+' + z.rec, z.feature, [z.mob, z.alt].filter(Boolean).map(m => m.name).join(', '), `${z.boss.name} → ${M(z.boss.mat)}`, zoneStars(z), `${z.drops.ruby} · ${z.drops.diamond} · ${z.drops.star} · ${z.rune}`])) + `</div>`;
     // 던전
     const P2 = DUNGEON2_PRIZE;
-    out += `<div class="rule"><h3>별의 던전 (월드 2)</h3><p>별의 균열 보스를 잡으면 열림. 월드 2 보스 9마리(체력 ×1.2, 공격력 ×1.15) + 숨은 보스 별을 삼킨 자 · 진. 보상은 모두 잡아야 한꺼번에: ${num(P2.gold)} G · 별의 파편 ${P2.mats.star} · 룬석 ${P2.runes} · 월드 2 보스 재료 각 3(별의 핵 5). 클리어 목표가 두 번째 엔딩.</p></div>`;
+    out += `<div class="rule"><h3>별의 던전 (월드 2)</h3><p>별의 균열 보스를 잡으면 열림. 권장 +${DUNGEON2.rec}. 월드 2 보스 9마리(검 +125 기준으로 다시 맞춤: 체력 ${num(DUNGEON2.bosses[0].hp)}~${num(DUNGEON2.bosses[8].hp)}, 공격력 ${DUNGEON2.bosses[0].dmg}~${DUNGEON2.bosses[8].dmg}) + 숨은 보스 별을 삼킨 자 · 진(체력 ${num(DUNGEON2.bosses[9].hp)}, 공격력 ${DUNGEON2.bosses[9].dmg}). 보상은 모두 잡아야 한꺼번에: ${num(P2.gold)} G · 별의 파편 ${P2.mats.star} · 룬석 ${P2.runes} · 월드 2 보스 재료 각 3(별의 핵 5). 클리어 목표가 두 번째 엔딩.</p></div>`;
     const P1 = DUNGEON_PRIZE, extra = Object.entries(P1.mats).filter(([k, v]) => k !== 'star' && v > 2).map(([k, v]) => `${M(k)} ${v}`);
     out += `<div class="rule"><h3>보스 던전 (월드 1 추가 콘텐츠, 권장 +${DUNGEON.rec})</h3><p>보스 9마리 연전, 잡을 때마다 체력 30% 회복. 몹 공격력 ×${HARD_DMG.dungeon}. <b>보상은 모두 잡아야 한꺼번에:</b> ${num(P1.gold)} G · 별의 파편 ${P1.mats.star} · 룬석 ${P1.runes} · 보스 재료 각 2${extra.length ? ' · ' + extra.join(' · ') : ''}. 도중에 쓰러지면 보상 없음. 보스 연습은 보상 없음.</p>` +
       table(['순서', '보스', '체력', '공격력'], DUNGEON.bosses.map((x, i) => [i + 1, x.name, num(x.hp), x.dmg])) + `</div>`;
