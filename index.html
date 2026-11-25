@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v112";
+const GAME_VERSION = "v113";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5647,6 +5647,7 @@ function update(dt) {
       if (got && sh.chain) rootPlayer(1.2);
       if (got && sh.spark) stunPlayer(0.35);
       if (got && sh.poison) poisonPlayer(2.5, sh.dmg * 0.15);
+      if (got && sh.ink) { run.w2.ink = 4.5; fx(p.x, p.y - 30, "먹물!", "#9fe3ff", 14); }
       if (got && sh.knock && !p.dash) { const sp = Math.hypot(sh.vx, sh.vy) || 1; p.knock = { vx: sh.vx / sp * 300, vy: sh.vy / sp * 300, t: 0.2 }; }
       curMob = null;
     }
@@ -8072,8 +8073,8 @@ const W2_START = {
   },
   ink(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.5;
-    w.ink = 4.5;
-    for (let k = -1; k <= 1; k++) w2Shot(m, toP() + k * 0.3, 200, m.dmg * 0.4, "#1a2a33");
+    // 먹물 탄에 맞았을 때만 화면이 어두워짐 (v113)
+    for (let k = -1; k <= 1; k++) w2Shot(m, toP() + k * 0.3, 200, m.dmg * 0.4, "#1a2a33", { ink: true });
     if (E) W2_START.slam(m, p, w, toP, E);
     fx(m.x, m.y + m.r + 10, "먹물!", "#9fe3ff", 16);
   },
