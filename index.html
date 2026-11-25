@@ -897,7 +897,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v96";
+const GAME_VERSION = "v97";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -8312,6 +8312,14 @@ function w2Update(dt) {
     else if ((w.sandT -= dt) <= 0) { w.sand = 5; w.sandT = 16; fx(W / 2, 120, "모래 폭풍!", "#e8c98a", 18); }
   }
   if (w.ink > 0) w.ink -= dt;
+  // 주인 없는 보스 효과 정리: 기술 도중 보스가 죽거나 행동이 끊기면 광선·감옥이 화면에 남던 문제
+  const casting = modes => r.mobs.some(m => !m.dead && modes.includes(m.mode));
+  if (w.sweep && !casting(["sweepAim", "sweep"])) w.sweep = null;
+  if (w.beams.length && !casting(["prismAim", "prism"])) w.beams = [];
+  if (w.prisons.length && !casting(["prisonCast"])) w.prisons = [];
+  // 여왕(또는 별을 삼킨 자)이 없으면 수정 분신도 사라짐
+  if (r.mobs.some(m => m.kind === "qclone" && !m.dead) && !r.mobs.some(m => !m.dead && (m.kind === "crystalQueen" || m.kind === "devourer")))
+    for (const m of r.mobs) if (m.kind === "qclone" && !m.dead) { m.dead = true; ring(m.x, m.y, 30, "#e4ccff"); }
   for (const q of w.prisons) q.t -= dt;
   for (const l of w.later) l.t -= dt;
   const due = w.later.filter(l => l.t <= 0);
