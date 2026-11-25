@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v109";
+const GAME_VERSION = "v110";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -3796,10 +3796,10 @@ const TREE_BRANCHES = [
             { major: "숙련", special: "slot", desc: "스킬 칸 +1" }],
     side: [["move", 2], ["cdr", 2], ["dodge", 1], ["move", 2], ["cdr", 3], ["dodge", 2]] },
   { key: "h", name: "사냥", color: "#c07cff",
-    spine: [["boss", 4], ["leech", 0.2], ["boss", 4], ["atkSpd", 4], ["boss", 5], C("hp", -5),
-            { major: "피의 계약", eff: [["leech", 1]] }, ["boss", 6], ["leech", 0.3], ["boss", 6], ["atkSpd", 5], ["boss", 8], C("move", -8),
-            { major: "거인 사냥꾼", eff: [["boss", 30]] }],
-    side: [["boss", 3], ["leech", 0.1], ["crit", 2], ["boss", 3], ["leech", 0.2], ["atkSpd", 4]] },
+    spine: [["boss", 3], ["leech", 0.2], ["boss", 3], ["atkSpd", 4], ["boss", 4], C("hp", -5),
+            { major: "피의 계약", eff: [["leech", 1]] }, ["boss", 4], ["leech", 0.3], ["boss", 4], ["atkSpd", 5], ["boss", 5], C("move", -8),
+            { major: "거인 사냥꾼", eff: [["boss", 15]] }],
+    side: [["boss", 2], ["leech", 0.1], ["crit", 2], ["boss", 2], ["leech", 0.2], ["atkSpd", 4]] },
   { key: "l", name: "행운", color: "#f0c35a",
     spine: [["gold", 5], ["drop", 5], ["gold", 6], ["rune", 10], ["gold", 6], C("atk", -5),
             { major: "행운아", eff: [["drop", 20]] }, ["gold", 8], ["rune", 10], ["drop", 6], ["gold", 8], ["xp", 10], C("red", -5),
@@ -5156,10 +5156,13 @@ const HARD_DMG = { storm: 1.5, hell: 1.6, lair: 1.7, dungeon: 1.7 }, HARD_HP = 1
 const isHard = z => z.w2 ? 0 : (!!z.dungeon && (z.practice == null || z.practice >= 6)) ? HARD_DMG.dungeon : HARD_DMG[z.key] ?? 0;
 // 월드 2(별의 던전 포함): 스킬 트리가 생긴 만큼 조금 더 세게
 const W2_HP = 1.15, W2_DMG = 1.1;
+// 월드 2 사냥터 보스는 여기에 더해 (스킬 트리·방어구를 감안, v110). 별의 던전은 따로 맞춤
+const W2_BOSS_HP = 4, W2_BOSS_DMG = 1.25, W2_MOB_HP = 1.4, W2_MOB_DMG = 1.2;
 function hardened(m) {
   if (run.zone.world === 2 || run.zone.w2) {
-    m.dmg = Math.round(m.dmg * W2_DMG);
-    m.hp = m.max = Math.round(m.max * W2_HP);
+    const zw = run.zone.world === 2, zb = m.boss && zw, zm = !m.boss && zw;
+    m.dmg = Math.round(m.dmg * W2_DMG * (zb ? W2_BOSS_DMG : zm ? W2_MOB_DMG : 1));
+    m.hp = m.max = Math.round(m.max * W2_HP * (zb ? W2_BOSS_HP : zm ? W2_MOB_HP : 1));
     return m;
   }
   if (!run.hard) return m;
@@ -5186,7 +5189,7 @@ function spawn(boss) {
 }
 // 그림자 쌍둥이: 보스 하나를 둘로 나누고 서로 짝으로 묶음
 function addTwin(a, def) {
-  a.hp = a.max = a.max / 2;
+  a.hp = a.max = a.max * 0.7;   // 광역 공격이 둘을 함께 때리므로 반씩이 아니라 70%씩
   const b = { ...a, x: clamp(W - a.x, 40, W - 40), side: 1, color: "#a090d0", lootN: 0, flash: 0 };
   a.side = 0; a.partner = b; b.partner = a;
   run.mobs.push(b);
