@@ -914,7 +914,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v111";
+const GAME_VERSION = "v112";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -7652,7 +7652,7 @@ function drawKraken(m, t) {
 
 // ── 월드 2 보스 행동 ── 체력 50% 아래에서 분노: 기술이 강해지고 더 자주 씀. 같은 기술은 연달아 쓰지 않음
 // 크라켄 근접 밀쳐내기: 몸에서 이 거리 안으로 들어오면 발동, 폭발 반경
-const KRAKEN_REPEL_NEAR = 95, KRAKEN_REPEL_R = 170;
+const KRAKEN_REPEL_NEAR = 95, KRAKEN_REPEL_R = 170, KRAKEN_REPEL_CD = 9;   // 재사용 9초 (v112: 3.5 → 9)
 const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken", "mushKing", "griffon", "timeKnight", "shadowTwin", "colossus", "devourer"]);
 // 별을 삼킨 자: 체력에 따라 3단계, 단계마다 앞의 보스들 기술을 섞어 씀
 const DEVOURER_PHASES = [
@@ -7765,7 +7765,7 @@ function w2BossAI(m, dt) {
       m.cd -= dt;
       // 크라켄: 몸 가까이 붙으면 기술 쿨타임과 상관없이 해류 폭발로 맵 끝까지 날려 버림
       if (m.kind === "kraken" && m.repelCd <= 0 && Math.hypot(p.x - m.x, p.y - m.y) < m.r + KRAKEN_REPEL_NEAR) {
-        m.mode = "repel"; m.timer = E ? 0.45 : 0.6; m.repelCd = 3.5;
+        m.mode = "repel"; m.timer = E ? 0.45 : 0.6; m.repelCd = KRAKEN_REPEL_CD;
         fx(m.x, m.y + m.r + 12, "해류 폭발!", "#9fe3ff", 16); sfx("whirl");
         return;
       }
