@@ -897,7 +897,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v94";
+const GAME_VERSION = "v95";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5032,7 +5032,14 @@ function ring(x, y, r, color) {
 // 공격력 배율: 뒤로 갈수록 더 세게 (방어구 체력을 감안)
 const HARD_DMG = { storm: 1.5, hell: 1.6, lair: 1.7, dungeon: 1.7 }, HARD_HP = 1.1;
 const isHard = z => z.w2 ? 0 : (!!z.dungeon && (z.practice == null || z.practice >= 6)) ? HARD_DMG.dungeon : HARD_DMG[z.key] ?? 0;
+// 월드 2(별의 던전 포함): 스킬 트리가 생긴 만큼 조금 더 세게
+const W2_HP = 1.15, W2_DMG = 1.1;
 function hardened(m) {
+  if (run.zone.world === 2 || run.zone.w2) {
+    m.dmg = Math.round(m.dmg * W2_DMG);
+    m.hp = m.max = Math.round(m.max * W2_HP);
+    return m;
+  }
   if (!run.hard) return m;
   m.dmg = Math.round(m.dmg * run.hard);
   m.hp = m.max = Math.round(m.max * HARD_HP);
