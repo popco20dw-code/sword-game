@@ -901,7 +901,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v102";
+const GAME_VERSION = "v103";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -7589,6 +7589,8 @@ function drawKraken(m, t) {
 }
 
 // ── 월드 2 보스 행동 ── 체력 50% 아래에서 분노: 기술이 강해지고 더 자주 씀. 같은 기술은 연달아 쓰지 않음
+// 크라켄 근접 밀쳐내기: 몸에서 이 거리 안으로 들어오면 발동, 폭발 반경
+const KRAKEN_REPEL_NEAR = 95, KRAKEN_REPEL_R = 170;
 const W2_BOSS = new Set(["sandWorm", "crystalQueen", "kraken", "mushKing", "griffon", "timeKnight", "shadowTwin", "colossus", "devourer"]);
 // 별을 삼킨 자: 체력에 따라 3단계, 단계마다 앞의 보스들 기술을 섞어 씀
 const DEVOURER_PHASES = [
@@ -7679,9 +7681,16 @@ function w2BossAI(m, dt) {
   const done = () => { m.mode = "chase"; m.cd = E ? 0.6 : 1.1; m.lift = 0; };
   m.timer -= dt;
   if (m.kind === "timeKnight") { (m.hist ||= []).push([run.time, m.x, m.y]); while (m.hist.length && run.time - m.hist[0][0] > 3) m.hist.shift(); }
+  if (m.kind === "kraken") m.repelCd = (m.repelCd ?? 0) - dt;
   switch (m.mode) {
     case "chase": {
       m.cd -= dt;
+      // 크라켄: 몸 가까이 붙으면 기술 쿨타임과 상관없이 해류 폭발로 맵 끝까지 날려 버림
+      if (m.kind === "kraken" && m.repelCd <= 0 && Math.hypot(p.x - m.x, p.y - m.y) < m.r + KRAKEN_REPEL_NEAR) {
+        m.mode = "repel"; m.timer = E ? 0.45 : 0.6; m.repelCd = 3.5;
+        fx(m.x, m.y + m.r + 12, "해류 폭발!", "#9fe3ff", 16); sfx("whirl");
+        return;
+      }
       if (m.cd > 0) return;
       const mv = w2Pick(m);
       // 분노한 여왕은 기술마다 순간이동
@@ -7844,6 +7853,22 @@ function w2BossAI(m, dt) {
       return;
     }
     // 심해 크라켄
+    case "repel": {
+      if (m.timer > 0) return;
+      ring(m.x, m.y, KRAKEN_REPEL_R, "#9fe3ff"); ring(m.x, m.y, KRAKEN_REPEL_R * 0.6, "#ffffff"); run.quake = 0.25; sfx("boom");
+      const d = Math.hypot(p.x - m.x, p.y - m.y);
+      if (d < KRAKEN_REPEL_R + P_R) {
+        hitBy(m, m.dmg * 0.6);
+        // 크라켄 반대쪽(대부분 아래)으로 맵 끝까지
+        let a = Math.atan2(p.y - m.y, p.x - m.x);
+        if (Math.sin(a) < 0.35) a = Math.atan2(0.9, Math.cos(a) || (Math.random() - 0.5));
+        p.dash = null;
+        p.knock = { vx: Math.cos(a) * 1500, vy: Math.sin(a) * 1500, t: 0.45 };
+        fx(p.x, p.y - 30, "튕겨 나감!", "#9fe3ff", 15);
+      }
+      done();
+      return;
+    }
     case "whirl": {
       if (!p.dash && Math.hypot(m.x - p.x, m.y - p.y) > m.r + 46) {   // 몸 바로 앞까지만 끌어당김
         const a = Math.atan2(m.y - p.y, m.x - p.x), pull = (E ? 95 : 80) * dt;
@@ -7931,8 +7956,8 @@ const W2_START = {
     m.mode = "howl"; m.timer = 1.4;
     const n = E ? 3 : 2;
     for (let k = 0; k < n; k++) {
-      const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 170, H - 30);
-      const l = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 150, tx, H] : [0, clamp(ty - 120, 150, H), W, clamp(ty + 120, 150, H)];
+      const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 30, H - 30);
+      const l = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 0, tx, H] : [0, clamp(ty - 120, 0, H), W, clamp(ty + 120, 0, H)];
       w2Lane(l, 46, E ? 0.8 : 1.0, m.dmg, m);
     }
   },
@@ -7940,7 +7965,9 @@ const W2_START = {
     // 촉수 감옥: 양쪽에서 번갈아 안쪽으로 좁혀 들어오는 세로 촉수
     m.mode = "howl"; m.timer = 2.4;
     const xs = [40, W - 40, 120, W - 120, 200, W - 200];
-    xs.slice(0, E ? 6 : 4).forEach((x, i) => w2Lane([x, 150, x, H + 20], 54, 0.7 + i * 0.35, m.dmg * 0.9, m));
+    xs.slice(0, E ? 6 : 4).forEach((x, i) => w2Lane([x, -20, x, H + 20], 54, 0.7 + i * 0.35, m.dmg * 0.9, m));
+    // 크라켄 몸 바로 앞 가로 촉수 (가까이 숨지 못하게)
+    w2Lane([0, m.y + m.r + 30, W, m.y + m.r + 30], 60, 1.1, m.dmg * 0.9, m);
     fx(m.x, m.y + m.r + 10, "촉수 감옥!", "#9fe3ff", 15);
   },
   geyser(m, p, w, toP, E) {
@@ -7952,7 +7979,7 @@ const W2_START = {
   wave(m, p, w, toP, E) {
     // 해일: 위에서 아래로 밀려오는 물결, 틈 하나로만 피할 수 있음
     m.mode = "howl"; m.timer = 1.2;
-    const one = () => w.waves.push({ y: 150, gap: 50 + Math.random() * (W - 100), gw: 96, dmg: m.dmg * 1.1, hit: false, warn: 0.8, owner: m });
+    const one = () => w.waves.push({ y: 40, gap: 50 + Math.random() * (W - 100), gw: 96, dmg: m.dmg * 1.1, hit: false, warn: 0.8, owner: m });
     one();
     if (E) w2Later(1.3, () => !m.dead && one());
     fx(m.x, m.y + m.r + 10, "해일! 틈으로 피하세요", "#9fe3ff", 15);
@@ -7967,7 +7994,7 @@ const W2_START = {
   whirl(m, p, w, toP, E) {
     m.mode = "whirl"; m.timer = 2.6; sfx("whirl");
     fx(m.x, m.y + m.r + 10, "소용돌이!", "#9fe3ff", 16);
-    if (E) w2Later(0.9, () => { if (m.dead) return; for (const x of [p.x - 60, p.x + 60]) w2Lane([clamp(x, 30, W - 30), 150, clamp(x, 30, W - 30), H + 20], 46, 0.8, m.dmg, m); });
+    if (E) w2Later(0.9, () => { if (m.dead) return; for (const x of [p.x - 60, p.x + 60]) w2Lane([clamp(x, 30, W - 30), -20, clamp(x, 30, W - 30), H + 20], 46, 0.8, m.dmg, m); });
   },
   // ── 버섯왕 ──
   sporeRain(m, p, w, toP, E) {
@@ -8559,6 +8586,12 @@ function drawW2Under(r, t) {
       for (let x = 20; x < len; x += 34) blob(x, 0, 6, 6, "#bfeff5");
     }
     ctx.restore();
+  }
+  // 크라켄 해류 폭발 예고
+  for (const m of r.mobs) if (m.mode === "repel") {
+    const k = 1 - m.timer / (m.enraged ? 0.45 : 0.6);
+    ctx.fillStyle = `rgba(120,220,240,${0.12 + 0.25 * k})`; ctx.beginPath(); ctx.arc(m.x, m.y, KRAKEN_REPEL_R, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(200,245,255,.9)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(m.x, m.y, KRAKEN_REPEL_R * k, 0, Math.PI * 2); ctx.stroke();
   }
   // 웜이 튀어나올 자리
   for (const m of r.mobs) if (m.mode === "rise") {
