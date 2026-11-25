@@ -1,4 +1,4 @@
-// 별의 던전 자동 플레이: 최종 세팅 + 피하지 않고 붙어서 때리는 봇
+// 별의 던전 자동 플레이 시뮬레이션: node tools/dungeon-sim.js [inf|real] [캐릭터] [방어구]  (최종 세팅 + 피하지 않고 붙어서 때리는 봇)
 const { chromium } = require('playwright');
 const MODE = process.argv[2] || 'real';   // real: 실제 체력 / inf: 무한 체력으로 시간·피해 측정
 const CHAR = process.argv[3] || 'archmage', ARM = process.argv[4] || 'dragon';
