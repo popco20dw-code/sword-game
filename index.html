@@ -897,7 +897,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v95";
+const GAME_VERSION = "v96";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1225,9 +1225,15 @@ function boost([s, k, d, b], bonus = STONE_BONUS) {
   return [s + bonus - left, k, d, b];
 }
 // 실제 강화 확률: 기본 확률 + 손재주 특성 + (켜 두었다면) 숫돌
+// 실패할 때마다 다음 성공 확률 +2%p (성공하거나 파괴되면 0으로)
+const PITY_STEP = 2, MAT_REFUND = 30;
+const itemKey = item => item === ITEMS.sword ? "sword" : "pick";
 function finalOdds(item, lv, stone = stoneOn()) {
   let o = item.odds(lv);
   if (state.traits.dex) o = boost(o, state.traits.dex * 0.5);
+  const pt = state.pity?.[itemKey(item)] || 0;
+  if (pt) o = boost(o, pt);
+  o = o.map(v => +v.toFixed(2));
   return stone ? boost(o) : o;
 }
 const stoneOn = () => state.useStone && state.inv.stone > 0;
@@ -1246,7 +1252,7 @@ const perRock = () => rockGold() * (state.oil > 0 ? 2 : 1);
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {} };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 } };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -1644,6 +1650,7 @@ function render() {
     chipHtml = need.map(([key, n, ok]) =>
       `<span class="${ok ? "need" : "lack"}">${matName(key)} ${n}개 필요 <b>보유 ${state.mats[key]}</b></span>`).join("") + chipHtml;
   }
+  if (state.pity[current] && !maxed) chipHtml = `<span class="need">실패 보너스 <b>+${state.pity[current]}%p</b></span>` + chipHtml;
   $("inv").innerHTML = chipHtml;
   $("stone-wrap").hidden = state.inv.stone === 0 || maxed;
   $("stone").checked = stoneOn();
@@ -1820,7 +1827,7 @@ function enhance() {
   const need = needMats(item, lv);
   if (lv >= item.max || state.gold < c || !matsOk(need)) return;
   state.gold -= c;
-  for (const [k, n] of need || []) state.mats[k] -= n;   // 재료는 성공·실패와 관계없이 소모
+  for (const [k, n] of need || []) state.mats[k] -= n;   // 재료는 먼저 소모 (실패하면 30% 확률로 돌려받음)
 
   const boosted = stoneOn();
   const [s, k, d] = finalOdds(item, lv, boosted);
@@ -1873,7 +1880,17 @@ function enhance() {
     $("artbox").style.setProperty("--c", COLORS[tierIndex(lv, item)]);
     animate("shake", "break");
   }
-  state.log.unshift({ text, delta: "−" + won(c) + matsText(need, " · ") });
+  // 실패 보너스: 성공하면 0, 파괴되면 0, 그 밖의 실패는 +2%p
+  const key = itemKey(item), ok = roll < s, broke = text.endsWith(" 파괴");
+  state.pity[key] = ok || broke ? 0 : (state.pity[key] || 0) + PITY_STEP;
+  // 실패하면 30% 확률로 재료를 돌려받는다
+  let refund = false;
+  if (!ok && need && Math.random() * 100 < MAT_REFUND) {
+    for (const [k2, n] of need) state.mats[k2] += n;
+    refund = true;
+    msgs[current][0] += " 재료는 돌려받았어요!";
+  }
+  state.log.unshift({ text, delta: "−" + won(c) + (refund ? " · 재료 돌려받음" : matsText(need, " · ")) });
   commit();
 }
 
@@ -9389,7 +9406,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {} });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 } });
 
 function normalize(s) {
   const o = {
@@ -9428,6 +9445,7 @@ function normalize(s) {
     cpulls: s.cpulls ?? 0,
     charV: CHAR_V,
     astones: s.astones ?? 0,
+    pity: { sword: s.pity?.sword | 0, pick: s.pity?.pick | 0 },
     armorV: ARMOR_V,
     tree: Object.fromEntries(Object.keys(s.tree || {}).filter(id => TREE[id]).map(id => [id, true])),
     equip: [0, 1, 2, 3, 4].map(i => {

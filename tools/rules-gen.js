@@ -17,7 +17,7 @@ const ROOT = path.join(__dirname, '..');
     let out = `<section id="rules" class="rules" aria-labelledby="h-rules">\n    <h2 id="h-rules">현재 규칙과 수치 (${GAME_VERSION} 기준)</h2>\n`;
 
     // 검
-    out += `<div class="rule"><h3>검 강화</h3><p>강화 비용은 +20까지 단계마다 1.3배, +20~34는 1.2배, +35부터 1.1배. 재료는 성공·실패와 상관없이 소모. 판매가는 그 단계 강화 비용 × (2 + 0.1 × 단계). 지금 최고 단계는 <b>+${S.max} ${S.names[tierIndex(S.max, S)]}</b> (최종 +${S.max}).</p>` +
+    out += `<div class="rule"><h3>검 강화</h3><p>강화 비용은 +20까지 단계마다 1.3배, +20~34는 1.2배, +35부터 1.1배. 재료는 시도할 때 소모되지만 실패하면 ${MAT_REFUND}% 확률로 돌려받음. 실패할 때마다 다음 성공 확률 +${PITY_STEP}%p (성공하거나 파괴되면 0으로, 곡괭이도 같음). 판매가는 그 단계 강화 비용 × (2 + 0.1 × 단계). 지금 최고 단계는 <b>+${S.max} ${S.names[tierIndex(S.max, S)]}</b> (최종 +${S.max}).</p>` +
       table(['지금 단계', '이름', '성공 / 유지 / 하락 / 파괴 (%)', '1회 재료'], tiers(S, S.max).map(lv => [`+${lv}~${lv + 4}`, S.names[tierIndex(lv, S)], S.odds(lv).join(' / '), matsTxt(S.mats(lv))])) + `</div>`;
     // 곡괭이
     out += `<div class="rule"><h3>곡괭이와 광산</h3><p>곡괭이는 +${P.max}까지, 파괴 없음. 비용은 +15까지 1.4배, +35까지 1.2배, 그 뒤 1.35배. 돌 하나당 골드 10 × 1.2<sup>단계</sup>, ${VEIN_CHANCE}% 황금 광맥(${VEIN_MULT}배). 보석 확률: 루비 3%(+5부터, 단계당 +0.2%p) · 다이아 1.5%(+10부터, +0.1%p) · 별의 파편 0.5%(+15부터, +0.05%p), +35부터는 단계마다 그 두 배씩 더. 룬석은 +${RUNE_REQ}부터. 광부 최대 ${MINER_MAX}명, 게임을 닫아도 최대 ${OFFLINE_CAP / 3600}시간. 자동 클릭은 1초 ${AC_MAX_PER_SEC}번까지, 기계처럼 일정하면 광산 잠금(30초부터 두 배씩).</p>` +
