@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v124";
+const GAME_VERSION = "v125";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -6152,7 +6152,7 @@ function freezePlayer(sec) {
 // ── 보스 패턴 ──
 // 모든 보스: 조준 후 돌진. 바위 골렘: 뛰어올라 플레이어가 있던 곳에 떨어짐. 화염 드래곤: 부채꼴 브레스.
 // 거대 방패기사: 돌진 베기, 3연속 돌진 베기, 3연속 가로 베기, 방패 들기(정면 공격을 막고 천천히 돌아봄).
-const LEAP_TIME = 0.95, LEAP_R = 75, BREATH_LEN = 240, BREATH_ARC = 0.38, SWEEP_R = 115, SWEEP_ARC = 1.25;
+const LEAP_TIME = 1.1, LEAP_R = 75, BREATH_LEN = 240, BREATH_ARC = 0.38, SWEEP_R = 115, SWEEP_ARC = 1.25;
 const PATTERNS = { slimeKing: ["aim"], golem: ["aim", "leap", "leap"], dragon: ["aim", "breathPrep", "breathPrep"],
                    giantKnight: ["aim", "multi", "sweep", "guard"],
                    iceDragon: ["frostPrep", "icicles", "frostPrep", "icicles", "aim"] };
@@ -6177,7 +6177,7 @@ const CHAIN_HOLD = 0.2, CHAIN_SPEED = 680;      // 사슬: 겨눈 방향이 보�
 const CHAIN_SPREAD = 0.35;                      // 분노하면 사슬 세 갈래: 가운데 ± 0.35 라디안(약 20도)
 const chainDirs = m => m.enraged ? [m.dir - CHAIN_SPREAD, m.dir, m.dir + CHAIN_SPREAD] : [m.dir];
 // 도깨비 3연속 내려찍기: [뛰어오른 시간, 다음 점프까지 쉬는 시간]. 분노(체력 50% 미만)면 더 빠르다
-const SLAM_TIMING = { normal: [0.9, 0.35], enraged: [0.7, 0.2] };
+const SLAM_TIMING = { normal: [1.1, 0.5], enraged: [0.9, 0.35] };
 // 파이어볼: [던지는 개수, 던지는 간격]. 분노하면 더 많이, 더 빠르게
 const FIREBALL_VOLLEY = { normal: [3, 0.35], enraged: [5, 0.2] };                // 도깨비 방망이, 분노 상태의 불꽃 기운
 const FIRE_R = 55, FIRE_TIME = 5;                               // 파이어볼이 남기는 불길
@@ -8076,15 +8076,16 @@ function w2BossAI(m, dt) {
     }
     // 버섯왕: 연속 점프
     case "hop": {
-      const k = 1 - m.timer / m.hopMax;
-      m.lift = Math.sin(k * Math.PI) * 60;
-      m.x += (m.hop.x - m.x) * Math.min(1, dt * 6); m.y += (m.hop.y - m.y) * Math.min(1, dt * 6);
+      if (m.hopWait > 0) { m.hopWait -= dt; m.timer += dt; m.lift = 0; if (m.hopWait <= 0) { m.hop = { x: p.x, y: p.y, fx: m.x, fy: m.y }; m.ghost = 99; } return; }   // 착지 후 잠깐 쉼
+      const k = clamp(1 - m.timer / m.hopMax, 0, 1);
+      m.lift = Math.sin(k * Math.PI) * 70;
+      m.x = m.hop.fx + (m.hop.x - m.hop.fx) * k; m.y = m.hop.fy + (m.hop.y - m.hop.fy) * k;   // 끝까지 천천히 날아감 (예고 원 안을 피할 시간)
       if (m.timer > 0) return;
       m.lift = 0; m.x = m.hop.x; m.y = m.hop.y; m.ghost = 0;
       ring(m.x, m.y, 80, "#9be05a"); sfx("boom"); run.quake = 0.25;
       if (Math.hypot(p.x - m.x, p.y - m.y) < 75 + P_R) hitBy(m, m.dmg * 1.2);
       for (let k2 = 0; k2 < 8; k2++) w2Shot(m, k2 / 8 * Math.PI * 2, 160, m.dmg * 0.35, "#9be05a", { poison: true });
-      if (--m.hops > 0) { m.hop = { x: p.x, y: p.y }; m.timer = m.hopMax = E ? 0.5 : 0.6; m.ghost = 99; }
+      if (--m.hops > 0) { m.timer = m.hopMax = E ? 0.85 : 1.0; m.hopWait = E ? 0.3 : 0.4; m.hop = { x: m.x, y: m.y, fx: m.x, fy: m.y }; }
       else done();
       return;
     }
@@ -8271,7 +8272,7 @@ const W2_START = {
     for (let k = 0; k < n; k++) {
       const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 30, H - 30);
       const l = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 0, tx, H] : [0, clamp(ty - 120, 0, H), W, clamp(ty + 120, 0, H)];
-      w2Lane(l, 46, E ? 0.8 : 1.0, m.dmg, m);
+      w2Lane(l, 46, E ? 1.05 : 1.25, m.dmg, m);
     }
   },
   cage(m, p, w, toP, E) {
@@ -8319,7 +8320,7 @@ const W2_START = {
     fx(m.x, m.y - m.r - 20, "포자 비!", "#9be05a", 15);
   },
   bounce(m, p, w, toP, E) {
-    m.mode = "hop"; m.hops = E ? 5 : 3; m.hop = { x: p.x, y: p.y }; m.timer = m.hopMax = E ? 0.5 : 0.6; m.ghost = 99;
+    m.mode = "hop"; m.hops = E ? 4 : 3; m.hopWait = 0; m.hop = { x: p.x, y: p.y, fx: m.x, fy: m.y }; m.timer = m.hopMax = E ? 0.85 : 1.0; m.ghost = 99;
   },
   toxicAura(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.4;
@@ -10395,6 +10396,11 @@ function drawW2Over(r, t) {
 function drawMob(m, t) {
   ctx.save();
   if (m.mode === "ascend" || m.mode === "edgeFly") blob(m.x, m.y, m.r * Math.max(0.3, 1 - (m.lift || 0) / 500), m.r * 0.5 * Math.max(0.3, 1 - (m.lift || 0) / 500), "rgba(0,0,0,.35)");
+  if (m.mode === "hop" && !(m.hopWait > 0) && m.hop) {   // 버섯왕 착지 예고
+    const k = clamp(1 - m.timer / m.hopMax, 0, 1);
+    ctx.fillStyle = `rgba(155,224,90,${0.12 + 0.3 * k})`; ctx.beginPath(); ctx.arc(m.hop.x, m.hop.y, 75, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(155,224,90,.85)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.hop.x, m.hop.y, 75 * k, 0, Math.PI * 2); ctx.stroke();
+  }
   if (m.mode === "leap") {
     // 떨어질 곳: 착지가 가까울수록 진해지는 빨간 원, 공중의 보스 아래 그림자
     const k = 1 - m.timer / (m.leapTime || LEAP_TIME);
