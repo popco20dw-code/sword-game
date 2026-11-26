@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v117";
+const GAME_VERSION = "v118";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -978,7 +978,7 @@ const rockGold = () => Math.round(MINE_GOLD * Math.pow(MINE_GROWTH, state.pick) 
 
 const COLORS = ["#a0703f", "#b9c0c8", "#6fb8ff", "#b47cff", "#ffd24a", "#9ff3ff", "#ff8fd8", "#ffffff",
                 "#7dffb2", "#ff5a36", "#fff3a0", "#c0d0ff", "#9fe3ff",
-                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff", "#cfe8ff", "#bfe0ff", "#ff8fb8"];
+                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff", "#cfe8ff", "#bfe0ff", "#ff8fb8", "#b8a8ff", "#f0d890"];
 // 5단계마다 이름과 색이 바뀜
 const tierIndex = (lv, item) => Math.min(Math.floor(lv / 5), item.names.length - 1);
 
@@ -1012,8 +1012,10 @@ const BOSS_MATS = [
   { key: "mirror", name: "거울 여왕의 파편", color: "#cfe8ff" },
   { key: "plume", name: "기사단장의 깃장식", color: "#bfe0ff" },
   { key: "rose", name: "릴리스의 장미", color: "#ff8fb8" },
+  { key: "dream", name: "니르바의 깃털", color: "#b8a8ff" },
+  { key: "ink", name: "아르케의 잉크", color: "#f0d890" },
 ];
-const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0, mirror: 0, plume: 0, rose: 0 });
+const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0, mirror: 0, plume: 0, rose: 0, dream: 0, ink: 0 });
 // +35를 넘으면 단계마다 보석 확률이 두 배씩 더 붙는다
 const matChance = m => state.pick < m.req ? 0 : m.base + m.per * (state.pick - m.req) + m.per * 2 * Math.max(0, state.pick - 35);
 // 광산에서 남는 보석을 별의 파편으로 합성
@@ -1049,14 +1051,14 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 140,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
+    max: 150,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
             // 월드 2: 사냥터 하나당 5단계
             "사막왕의 검", "수정 여왕의 검", "해신검", "맹독검", "천풍검", "시간의 검", "그림자검", "거신검", "별을 벤 검",
             // 월드 3
-            "거울의 검", "천공성의 검", "붉은 달의 검"],
+            "거울의 검", "천공성의 검", "붉은 달의 검", "꿈결의 검", "차원을 가르는 검"],
     odds(lv) {
       if (lv < 5)  return [95, 5, 0, 0];
       if (lv < 10) return [70, 25, 5, 0];
@@ -1112,7 +1114,9 @@ const ITEMS = {
       // 월드 3: 장 보스 재료
       if (lv < 130) return [["mirror", 1], ["score", 1]];
       if (lv < 135) return [["plume", 1], ["mirror", 1]];
-      return [["rose", 1], ["plume", 1]];
+      if (lv < 140) return [["rose", 1], ["plume", 1]];
+      if (lv < 145) return [["dream", 1], ["rose", 1]];
+      return [["ink", 1], ["dream", 1]];
     },
     // 판매가 = 그 단계 강화 비용 × (2 + 0.1 × 단계). 높이 키울수록 배율도 커짐
     price: lv => lv === 0 ? 0 : Math.round(swordCost(lv) * (2 + 0.1 * lv) / 10) * 10,
@@ -1625,6 +1629,15 @@ function claimQuest() {
 }
 
 function showEnding(n = 1) {
+  if (n === 3) {
+    $("ending-title").textContent = "세계를 이어 그리는 자";
+    $("ending-text").innerHTML =
+      `마지막 한 줄이 그어지자, 아르케는 펜을 내려놓고 웃었습니다.<br>"이제 네가 이어서 그려."<br><br>` +
+      `최고 검 <b>+${state.best}</b> · 곡괭이 <b>+${state.pick}</b> · 장인 <b>Lv ${state.mlv}</b><br>월드 3 별 <b>${markPts()}</b>개` +
+      `<br><br>세 번째 여정이 끝났습니다. 새 전설 캐릭터 <b>화백 루미</b>가 뽑기에 등장해요. 별 3개와 차원 각인 완성에 도전해 보세요.`;
+    $("ending").hidden = false;
+    return;
+  }
   if (n === 2) {
     $("ending-title").textContent = "별을 벤 대장장이";
     $("ending-text").innerHTML =
@@ -2982,6 +2995,7 @@ function drawCharacter(g, key, x, y, r, aim, t, hurt) {
     g.beginPath(); g.arc(x, y, r * 0.82, back - 1.6, back + 1.6); g.stroke();
   }
   if (key === "hypernova") cap("#ffe0f4", 1.5, r * 0.98);
+  if (key === "painter") { cap("#6a4a2a", 1.2, r * 0.95); fill("#c8402a", () => g.ellipse(x - r * 0.1, y - r * 0.7, r * 0.95, r * 0.38, -0.2, 0, Math.PI * 2)); fill("#c8402a", () => g.arc(x + r * 0.3, y - r * 1.0, r * 0.12, 0, Math.PI * 2)); }
   if (key === "archmage") cap("#e8e4ff", 1.3, r * 0.96);
   if (key === "adventurer") {
     g.strokeStyle = "#c2304a";
@@ -3568,6 +3582,19 @@ function getFloor(zone) {
       g.fillStyle = "#0c1a1e"; g.beginPath(); g.arc(x, y, rr + 4, 0, Math.PI * 2); g.fill();
       g.fillStyle = "#3a5a66"; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
       g.fillStyle = "rgba(207,232,255,.35)"; g.beginPath(); g.arc(x - rr * 0.3, y - rr * 0.3, rr * 0.45, 0, Math.PI * 2); g.fill(); }
+  }
+  if (zone.theme === "dream") {
+    const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, "#1a1c48"); grd.addColorStop(1, "#0e1030"); g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    for (let i = 0; i < 60; i++) { g.fillStyle = `rgba(255,255,255,${rnd(0.2, 0.8)})`; g.beginPath(); g.arc(rnd(0, W), rnd(0, H), rnd(0.6, 1.8), 0, Math.PI * 2); g.fill(); }
+    for (let i = 0; i < 9; i++) { g.fillStyle = "rgba(184,168,255,.10)"; g.beginPath(); g.ellipse(rnd(0, W), rnd(40, H), rnd(50, 100), rnd(18, 32), 0, 0, Math.PI * 2); g.fill(); }
+    for (let i = 0; i < 14; i++) { const left = i % 2 === 0, x = left ? rnd(-6, 20) : rnd(W - 20, W + 6), y = rnd(40, H - 20); g.fillStyle = "#2a2860"; g.fillRect(x - 10, y - 30, 20, 60); g.fillStyle = "rgba(255,233,168,.5)"; g.beginPath(); g.arc(x, y - 34, 5, 0, Math.PI * 2); g.fill(); }
+  }
+  if (zone.theme === "void") {
+    g.fillStyle = "#efe6d0"; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "rgba(42,36,24,.18)"; g.lineWidth = 1;
+    for (let y = 40; y < H; y += 26) { g.beginPath(); g.moveTo(0, y); g.lineTo(W, y + rnd(-2, 2)); g.stroke(); }
+    for (let i = 0; i < 18; i++) { g.strokeStyle = `rgba(42,36,24,${rnd(0.15, 0.4)})`; g.lineWidth = rnd(1, 2.5); g.beginPath(); let x = rnd(0, W), y = rnd(0, H); g.moveTo(x, y); for (let k = 0; k < 5; k++) { x += rnd(-40, 40); y += rnd(-30, 30); g.lineTo(x, y); } g.stroke(); }
+    for (let i = 0; i < 8; i++) { g.fillStyle = "rgba(42,36,24,.08)"; g.beginPath(); g.ellipse(rnd(0, W), rnd(0, H), rnd(20, 50), rnd(10, 25), rnd(0, 3), 0, Math.PI * 2); g.fill(); }
   }
   if (zone.theme === "sky") {
     // 천공성: 구름 위 돌바닥 타일
@@ -4827,8 +4854,10 @@ function enterZone(key) {
     stage: zone.w3 ? { def: zone.w3.def, ch: zone.w3.ch, n: zone.w3.n, t: 0, kills: 0, spawned: 0 } : null,
   };
   run.mark = zone.world === 3 ? markStats() : null;
+  run.noRevive = !!zone.w3?.def.noRevive;
   run.awakeCd = 0;
   $("awakebtn").hidden = !awakeOpen();
+  $("awakebtn").querySelector(".g").innerHTML = state.sword >= 150 ? "차원<br>절단" : "차원<br>베기";
   if (run.stage) {
     if (zone.w3.def.type === "escape") { run.p.y = H - 50; }
     fx(W / 2, H / 2 - 90, `${zone.name}`, "#cfe8ff", 20);
@@ -4937,6 +4966,9 @@ function castUlt() {
   } else if (k === "hypernova") {
     run.hole = { x: p.x, y: p.y, t: 5, tick: 0.5, fin: 15 + (lv - 1) };
     sfx("thunder");
+  } else if (k === "painter") {
+    painterUlt(lv);
+    sfx("fanfare");
   }
   return true;
 }
@@ -5194,6 +5226,7 @@ function drawPlayerDragon(p, t) {
 
 function useSkill(slot) {
   if (run?.dragon) return dragonSkill(slot);
+  if (run?.stage?.rule?.key === "seal") { if (run.p) fx(run.p.x, run.p.y - 30, "봉인됨", "#f0d890", 12); return; }
   const key = state.equip[slot], s = SK[key];
   if (!run || run.over || slot >= slotCount() || !s || !s.active || run.cds[slot] > 0) return;
   const lv = state.skills[key], p = run.p;
@@ -5505,6 +5538,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
       return;
     }
   }
+  if (m.final && awakeOpen() && !run.awakeHit) return;   // 아르케 마지막 한 줄: 검 각성으로만
   if (m.decoy) {   // 릴리스의 환영: 때리면 매혹당하고 사라짐
     if (from === run.p) { charmPlayer(1.2, m.real); }
     m.dead = true; ring(m.x, m.y, 30, "#ff8fb8"); fx(m.x, m.y - 30, "환영!", "#ff8fb8", 13);
@@ -5634,6 +5668,7 @@ function update(dt) {
     if (jm > 6) { dx = jx / Math.max(jm, 40); dy = jy / Math.max(jm, 40); }
   }
   if (p.invertT > 0) { p.invertT -= dt; dx = -dx; dy = -dy; }
+  if (p.sleepT > 0) { p.sleepT -= dt; p.sleepGrace = (p.sleepGrace || 0) - dt; dx = 0; dy = 0; }
   if (p.charmT > 0) {   // 매혹: 조작 대신 매혹한 쪽으로 천천히 걸어감
     p.charmT -= dt;
     const c = p.charmSrc;
@@ -5666,7 +5701,7 @@ function update(dt) {
     const swift = passiveLv("swift");
     const chill = p.slowT > 0 ? 1 - p.slowAmt : 1;
     const wet = r.floor.puddles?.some(q => ((p.x - q.x) / q.rx) ** 2 + ((p.y - q.y) / q.ry) ** 2 < 1) ? 0.7 : 1;
-    const speed = P_SPEED * (1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + r.arm.move / 100 + (r.dragon?.spd || 0) + r.tree.move / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0)) * chill * wet;
+    const speed = P_SPEED * (1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + r.arm.move / 100 + (r.dragon?.spd || 0) + r.tree.move / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0)) * chill * wet * (r.stage?.rule?.key === "slow" ? 0.5 : 1);
     p.x = clamp(p.x + dx * speed * dt, P_R, W - P_R);
     p.y = clamp(p.y + dy * speed * dt, P_R, H - P_R);
     moved = Math.hypot(dx, dy) > 0.1;
@@ -5769,7 +5804,8 @@ function update(dt) {
   const range = RANGE * (frenzy ? 1.5 : 1) * (1 + r.tree.range / 100);
   p.atkCd -= dt;
   p.swing -= dt;
-  if (p.atkCd <= 0 && !(p.frozen > 0 || p.stun > 0)) {
+  r.manualT = (r.manualT || 0) - dt;
+  if (p.atkCd <= 0 && !(p.frozen > 0 || p.stun > 0 || p.sleepT > 0) && !(r.stage?.rule?.key === "manual" && !(r.manualT > 0))) {
     const inRange = r.mobs.filter(m => !m.dead && Math.hypot(m.x - p.x, m.y - p.y) - m.r <= range);
     if (inRange.length) {
       const near = inRange.reduce((a, b) =>
@@ -5782,6 +5818,7 @@ function update(dt) {
       if (isChar("demon")) p.hp = Math.max(1, p.hp - p.max * 0.01);
       for (const m of inRange) hit(m, 1);
       if (isChar("archmage")) arcaneChain(near);
+      if (isChar("painter") && (r.sketchN = (r.sketchN || 0) + 1) % 4 === 0) painterStroke(near);
     }
   }
 
@@ -5830,6 +5867,7 @@ function update(dt) {
       if (got && sh.spark) stunPlayer(0.35);
       if (got && sh.poison) poisonPlayer(2.5, sh.dmg * 0.15);
       if (got && sh.charm) charmPlayer(sh.charm, sh.owner);
+      if (got && sh.sleep) addDrowsy(sh.sleep);
       if (got && sh.ink) { run.w2.ink = 4.5; fx(p.x, p.y - 30, "먹물!", "#9fe3ff", 14); }
       if (got && sh.knock && !p.dash) { const sp = Math.hypot(sh.vx, sh.vy) || 1; p.knock = { vx: sh.vx / sp * 300, vy: sh.vy / sp * 300, t: 0.2 }; }
       curMob = null;
@@ -5906,20 +5944,20 @@ function update(dt) {
   updateSkillButtons();
   if (dev.god) p.hp = p.max;
   if (p.hp <= 0) {
-    if (isChar("angel") && !r.revived) {
+    if (isChar("angel") && !r.revived && !r.noRevive) {
       r.revived = true;
       p.hp = p.max * (0.5 + 0.03 * (cl("angel") - 1));
       p.invuln = 2;
       ring(p.x, p.y, 80, "#fff6c8");
       fx(p.x, p.y - 30, "부활!", "#fff6c8", 20);
-    } else if (r.tree.revive && !r.treeRevived) {
+    } else if (r.tree.revive && !r.treeRevived && !r.noRevive) {
       // 스킬 트리 '불굴': 사냥마다 1회 부활
       r.treeRevived = true;
       p.hp = p.max * 0.5;
       p.invuln = 2;
       ring(p.x, p.y, 80, "#5aa0e8");
       fx(p.x, p.y - 30, "불굴! 부활", "#9fd0ff", 20);
-    } else if (r.arm.star && !r.starRevived) {
+    } else if (r.arm.star && !r.starRevived && !r.noRevive) {
       // 별 세트: 사냥마다 1회 부활
       r.starRevived = true;
       p.hp = p.max * 0.5;
@@ -5956,8 +5994,11 @@ function hurtPlayer(dmg, el = null) {
   if ((isChar("rogue") && Math.random() * 100 < 8 + 0.5 * (cl("rogue") - 1)) || ((run.arm.dodge || run.tree.dodge) && Math.random() * 100 < Math.min(50, run.arm.dodge + run.tree.dodge))) { fx(p.x, p.y - 22, "회피", "#c9d6e0", 12); return false; }
   // 돌진 베기 중에는 무적이 아니라 피해 감소
   const guardMul = (isChar("knight") ? 1 - (15 + (cl("knight") - 1)) / 100 : 1) * (1 - run.arm.red / 100) * (1 - run.tree.red / 100);
+  if (curMob?.nightmare && p.sleepT > 0) dmg *= 2;   // 악몽: 잠든 상대에게 2배
   dmg = Math.max(1, Math.round(dmg * resistMul(el) * (p.dash ? 1 - (p.dash.red || 0) : 1) * (run.dragon ? 0.7 : 1) * guardMul));
   p.hp -= dmg;
+  if (p.sleepT > 0 && !(p.sleepGrace > 0)) { p.sleepT = 0; fx(p.x, p.y - 36, "깼다!", "#efe6d8", 13); }
+  if (curMob?.sleepy) addDrowsy(curMob.sleepy);
   armorRetaliate(curMob);
   p.hurt = 0.2;
   sfx("hurt");
@@ -8750,7 +8791,11 @@ function w3MakeMob(kind, x, y, opts = {}) {
               speed: b.speed, baseSpeed: b.speed, r: b.r * (opts.elite ? 1.35 : 1), gold: 0, face: Math.atan2(run.p.y - y, run.p.x - x), hitCd: 0, flash: 0,
               phase: Math.random() * 6, contact: b.contact, w3: true, state: opts.idle ? "idle" : "fight", elite: !!opts.elite, cd: 1 + Math.random() };
   if (b.boss) Object.assign(m, { boss: true, mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, combo: 1 });
-  if (kind === "mGuard") m.shield = true;
+  if (kind === "mGuard" || b.ai === "mGuard") m.shield = true;
+  if (b.sleepy) m.sleepy = b.sleepy;
+  if (b.nightmare) m.nightmare = true;
+  if (b.shot) m.shotExtra = b.shot;
+  if (b.ai === "mShade") { m.hide = true; m.ghost = 99; }
   if (kind === "mShade") { m.hide = true; m.ghost = 99; }
   if (opts.toCrystal) m.toCrystal = true;
   run.mobs.push(m);
@@ -8834,7 +8879,7 @@ Object.assign(W2AI, {
       m.aim -= dt;
       if (m.aim <= 0) {
         const lead = T === run.p ? 0.35 : 0, px = T.x + (S?.pvx || 0) * lead, py = T.y + (S?.pvy || 0) * lead;
-        w2Shot(m, Math.atan2(py - m.y, px - m.x), 250, m.dmg, "#e6f2ff");
+        w2Shot(m, Math.atan2(py - m.y, px - m.x), 250, m.dmg, m.shotExtra ? "#c8b8ff" : "#e6f2ff", m.shotExtra || {});
         m.cd = 1.7 + Math.random() * 0.6;
       }
     } else if (m.cd <= 0) m.aim = 0.45;
@@ -9069,6 +9114,7 @@ function stageClear() {
     if (chNow >= c.need && !state.w3.chests[ch].includes(i)) { state.w3.chests[ch].push(i); c.give(); got.push(`★${c.need} 상자: ${c.text}`); }
   });
   state.log.unshift({ text: `월드 3 ${id} 클리어`, delta: "★".repeat(stars) + "☆".repeat(3 - stars) });
+  if (first && ch === 5 && S.n === 10) { state.ended3 = true; got.push("세 번째 엔딩 · 전설 캐릭터 '화백 루미' 등장"); setTimeout(() => showEnding(3), 1800); }
   S.result = { stars, got, first, chBefore, chNow };
   sfx(stars === 3 ? "fanfare" : "success");
   commit();
@@ -9091,7 +9137,11 @@ function stageHud(r) {
     case "elite": return `정예 ${S.elites ? S.elites.filter(m => m.dead).length : 0}/${d.elites.length}`;
     case "hunt": return `요정 잡기 ${Math.max(0, Math.ceil(d.limit - S.t))}초`;
     case "waves": return `웨이브 ${S.wave || 0}/${d.waves.length}`;
-    case "boss": return S.bossM ? W3_MOB[d.boss].name : "보스 등장…";
+    case "boss": {
+      const a = S.bossM;
+      if (a?.kind === "arche") return archeAct(a) === 4 ? (a.final ? "마지막 일격!" : `5막 · 버티기 ${Math.max(0, Math.ceil(60 - (S.surv || 0)))}초`) : ARCHE_ACTS[archeAct(a)].name;
+      return a ? W3_MOB[d.boss].name : "보스 등장…";
+    }
   }
   return "";
 }
@@ -9385,8 +9435,10 @@ function fallPlayer() {
 function w3Terrain(dt) {
   const r = run, S = r.stage, p = r.p, th = r.zone.theme;
   p.fallCd = (p.fallCd || 0) - dt;
-  if (th === "sky") {
-    if (S.def.type !== "boss") { S.crackT = (S.crackT ?? 2) - dt; if (S.crackT <= 0) { S.crackT = 1.6; crackAt(p.x + (Math.random() - 0.5) * 260, p.y + (Math.random() - 0.5) * 260); } }
+  if (p.drowsy > 0) p.drowsy = Math.max(0, p.drowsy - (Math.hypot(S.pvx || 0, S.pvy || 0) > 40 ? 20 : 5) * dt);
+  if (S.rule?.key === "gravity" && !p.dash) p.y = clamp(p.y + 75 * dt, P_R, H - P_R);
+  if ((th === "sky" || S.def.holes) && S.def.type !== "boss") { S.crackT = (S.crackT ?? 2) - dt; if (S.crackT <= 0) { S.crackT = 1.6; crackAt(p.x + (Math.random() - 0.5) * 260, p.y + (Math.random() - 0.5) * 260); } }
+  if (S.holes) {
     for (const h of S.holes || []) {
       if (h.crack > 0) h.crack -= dt; else h.open -= dt;
       if (h.crack <= 0 && h.open > 0 && !p.dash && p.x > h.x && p.x < h.x + HOLE && p.y > h.y && p.y < h.y + HOLE) fallPlayer();
@@ -9395,6 +9447,7 @@ function w3Terrain(dt) {
     // 날려 가다가 가장자리에 닿으면 추락
     if (p.knock && (p.x <= P_R + 2 || p.x >= W - P_R - 2 || p.y <= P_R + 2 || p.y >= H - P_R - 2)) fallPlayer();
   }
+  if (th === "sky" && p.knock && (p.x <= P_R + 2 || p.x >= W - P_R - 2 || p.y <= P_R + 2 || p.y >= H - P_R - 2)) fallPlayer();
   if (th === "rose" && S.def.boss === "lilith" && !S.pillars) S.pillars = [{ x: 110, y: 330, r: 22 }, { x: W - 110, y: 330, r: 22 }, { x: W / 2, y: 470, r: 22 }];
   if (S.pillars) for (const pl of S.pillars) { const dx = p.x - pl.x, dy = p.y - pl.y, d = Math.hypot(dx, dy) || 1; if (d < pl.r + P_R) { p.x = pl.x + dx / d * (pl.r + P_R); p.y = pl.y + dy / d * (pl.r + P_R); } }
   S.decoyOn = r.mobs.some(o => o.decoy && !o.dead);
@@ -9522,11 +9575,15 @@ function castAwake() {
   if (p.frozen > 0 || p.stun > 0 || p.sleepT > 0) return;
   run.awakeCd = AWAKE_CD;
   const near = run.mobs.filter(m => !m.dead && !(m.ghost > 0)).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
-  const a = near ? Math.atan2(near.y - p.y, near.x - p.x) : p.aim, L = 340;
+  // +150: 차원 절단 — 화면을 가로지르는 양방향 대참격
+  const big = state.sword >= 150, a = near ? Math.atan2(near.y - p.y, near.x - p.x) : p.aim, L = big ? 900 : 340, back = big ? L : 0;
   p.aim = a;
-  run.slash = { x: p.x, y: p.y, a, t: 0.35, L };
-  sfx("dash"); fx(p.x, p.y - 40, "차원 베기!", "#e6f2ff", 16);
-  for (const m of run.mobs) if (!m.dead && segDist(m.x, m.y, p.x, p.y, p.x + Math.cos(a) * L, p.y + Math.sin(a) * L) < 26 + m.r) hit(m, 8 * (m.boss ? 0.5 : 1));
+  run.slash = { x: p.x - Math.cos(a) * back, y: p.y - Math.sin(a) * back, a, t: 0.35, L: L + back, big };
+  sfx("dash"); fx(p.x, p.y - 40, big ? "차원 절단!" : "차원 베기!", "#e6f2ff", 16);
+  if (big) run.quake = 0.3;
+  run.awakeHit = true;
+  for (const m of run.mobs) if (!m.dead && segDist(m.x, m.y, p.x - Math.cos(a) * back, p.y - Math.sin(a) * back, p.x + Math.cos(a) * L, p.y + Math.sin(a) * L) < (big ? 34 : 26) + m.r) hit(m, (big ? 12 : 8) * (m.boss ? 0.5 : 1));
+  run.awakeHit = false;
   if (state.sword >= 140) run.blades = { t: 4, tick: 0 };
 }
 function awakeUpdate(dt) {
@@ -9617,7 +9674,7 @@ DRAW.rVineS = DRAW.rVine;
 
 // ── 월드 3 화면 (장 선택 · 차원 각인) ──
 w3View = function () {
-  if (!w3Open()) return `<div class="zone w2lock"><h3>월드 3: 무너진 차원</h3><p><b>별의 던전</b>을 클리어하면 열려요.</p><p>스테이지 형식, 상한 동기화, 새 보스와 검 +150까지의 강화가 기다려요. (지금은 3장까지)</p></div>`;
+  if (!w3Open()) return `<div class="zone w2lock"><h3>월드 3: 무너진 차원</h3><p><b>별의 던전</b>을 클리어하면 열려요.</p><p>스테이지 형식, 상한 동기화, 새 보스와 검 +150까지의 강화가 기다려요. (5장 50스테이지)</p></div>`;
   if (!w3ChOpen(w3Ch)) w3Ch = 1;
   const ch = W3_CH[w3Ch - 1], st = W3_STAGES[w3Ch], stars = w3ChStars(w3Ch);
   if (w3Sel > st.length) w3Sel = 1;
@@ -9646,6 +9703,251 @@ w3View = function () {
 };
 const w3FirstStar = (ch, n) => 15 + 5 * n + 20 * (ch - 1);
 const w3FirstRune = (ch, n) => 10 + 2 * n + 10 * (ch - 1);
+
+
+// ══════════ 월드 3 · 3차: 4장 잠의 신전, 5장 끝의 왕좌, 최종 보스 아르케 ══════════
+W3_CH.push(
+  { n: 4, name: "잠의 신전", bg: "#141838", theme: "dream", cap: { sword: 145, armor: 17, char: 9 }, mat: "dream", color: "#b8a8ff", dmgMul: 0.66 },
+  { n: 5, name: "끝의 왕좌", bg: "#e8e0cc", theme: "void", cap: { sword: 150, armor: 20, char: 10 }, mat: "ink", color: "#f0d890", dmgMul: 0.7 },
+);
+W3_STAGES[4] = [
+  { type: "kill", name: "졸린 회랑", need: 18, alive: 5, pool: ["dSheep", "dFairy", "mSprite"], pre: 4, par: 55, desc: "맞으면 졸음이 쌓이고, 가득 차면 잠들어요. 계속 움직이면 졸음이 빨리 깨요." },
+  { type: "survive", name: "양 떼의 밤", dur: 50, alive: 8, pool: ["dSheep", "dSheep", "dFairy"], par: 50, desc: "꿈 양 떼가 몰려와요. 50초 버티기." },
+  { type: "hunt", name: "꿈꾸는 요정", limit: 40, pool: ["dSheep", "dNightmare"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 잠든 사이엔 악몽이 노려요." },
+  { type: "defend", name: "꿈의 등불", dur: 50, alive: 6, pool: ["dSheep", "dNightmare", "dFairy"], par: 50, desc: "꿈의 등불(수정)을 지키세요." },
+  { type: "boss", name: "꿈 수호 양", boss: "dreamRam", par: 75, desc: "거대한 꿈 양. 돌진과 자장가로 잠재우려 해요." },
+  { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 5, par: 40, desc: "표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
+  { type: "elite", name: "악몽 사냥꾼", elites: ["dNightmare", "dNightmare"], pool: ["dFairy", "dSheep"], alive: 3, par: 65, desc: "정예 악몽 둘. 잠든 상대에게 피해 2배." },
+  { type: "waves", name: "세 번의 꿈", waves: [["dSheep", "dSheep", "dFairy", "mSprite"], ["dNightmare", "dFairy", "dFairy", "dSheep", "sMage"], ["dNightmare", "dNightmare", "dSheep", "dSheep", "dFairy", "rButterfly"]], par: 75, desc: "꿈이 세 번 이어져요." },
+  { type: "kill", name: "깊은 잠의 홀", need: 26, alive: 7, pool: ["dSheep", "dFairy", "dNightmare", "sPriest", "rVine"], pre: 6, par: 85, desc: "잠의 신전 가장 깊은 곳. 26마리 처치." },
+  { type: "boss", name: "꿈의 여신 니르바", boss: "nirvana", par: 110, desc: "자장가 음파(틈으로 피하기), 꿈의 양 떼, 악몽 소환, 꿈 뒤집기. 분노하면 깊은 잠 — 등불 3개를 시간 안에 모두 끄세요." },
+];
+W3_STAGES[5] = [
+  { type: "kill", name: "지워진 길", need: 22, alive: 6, pool: ["mWolf", "sLancer", "rButterfly", "dSheep"], pre: 5, par: 70, desc: "지나온 장의 몹들이 스케치처럼 다시 그려져요." },
+  { type: "survive", name: "스케치의 폭풍", dur: 55, alive: 8, pool: ["mArcher", "sMage", "rImp", "dFairy"], par: 55, desc: "원거리 몹들의 폭풍. 55초 버티기." },
+  { type: "defend", name: "마지막 등불", dur: 55, alive: 7, pool: ["mShade", "rVine", "dNightmare", "sHawk"], par: 55, desc: "왕좌로 가는 등불을 지키세요." },
+  { type: "escape", name: "무너지는 원고", pool: ["sMage", "mShade", "dNightmare"], pre: 5, holes: true, par: 45, desc: "원고가 찢어지며 바닥이 무너져요. 표식 5개를 켜고 출구로." },
+  { type: "waves", name: "기억의 연전", waves: [["mirrorKnight"], ["skyGolem"], ["roseKnight"], ["dreamRam"]], par: 150, desc: "지나온 중간 보스 넷과 연달아 싸워요." },
+  { type: "elite", name: "그려진 근위대", elites: ["mGuard", "rGolem", "sLancer"], pool: ["sPriest", "dFairy"], alive: 3, par: 75, desc: "정예 셋과 치유하는 사제." },
+  { type: "hunt", name: "도망치는 붓", limit: 40, pool: ["mWolf", "dSheep", "rMaid"], alive: 4, par: 25, desc: "아르케의 붓을 든 요정을 잡으세요." },
+  { type: "waves", name: "모든 장의 기억", waves: [["mWolf", "mArcher", "mGuard", "mShade", "mSprite"], ["sHawk", "sLancer", "sMage", "sPriest", "sArcher"], ["rButterfly", "rMaid", "rVine", "rGolem", "rImp"], ["dSheep", "dFairy", "dNightmare", "dNightmare", "dSheep"]], par: 95, desc: "네 장의 몹 무리가 차례로 몰려와요." },
+  { type: "kill", name: "왕좌의 계단", need: 30, alive: 7, pool: ["sPriest", "mGuard", "dNightmare", "rImp", "sLancer", "mArcher"], pre: 6, par: 100, desc: "왕좌 앞 마지막 계단. 30마리 처치." },
+  { type: "boss", name: "세계를 그린 자, 아르케", boss: "arche", par: 600, noRevive: true,
+    desc: "최종 보스. 5막 연속 전투, 부활 금지, 쓰러지면 처음부터. 1막 초안 → 2막 규칙 다시 쓰기 → 3막 거울(나 자신) → 4막 지우개 → 5막 마지막 한 줄(60초 버티고 검 각성으로 마무리)." },
+];
+Object.assign(W3_MOB, {
+  dSheep: { name: "꿈 양", color: "#f0ecff", hp: 6, dmg: 0.11, speed: 105, r: 14, ai: "mWolf", sleepy: 22 },
+  dFairy: { name: "잠 요정", color: "#c8b8ff", hp: 5, dmg: 0.08, speed: 85, r: 11, contact: false, ai: "mArcher", shot: { sleep: 18 } },
+  dNightmare: { name: "악몽 그림자", color: "#2a2040", hp: 8, dmg: 0.15, speed: 105, r: 14, ai: "mShade", nightmare: true },
+  dreamRam: { name: "꿈 수호 양", color: "#e8e0ff", hp: 300, dmg: 0.15, speed: 65, r: 28, boss: true, sleepy: 18 },
+  nirvana: { name: "꿈의 여신 니르바", color: "#b8a8ff", hp: 560, dmg: 0.16, speed: 55, r: 28, boss: true, sleepy: 20 },
+  arche: { name: "세계를 그린 자, 아르케", color: "#2a2418", hp: 3500, dmg: 0.17, speed: 60, r: 32, boss: true },
+  aClone: { name: "그려진 나", color: "#efe6d8", hp: 120, dmg: 0.14, speed: 120, r: 13, boss: false },
+});
+for (const [k, b] of Object.entries(W3_MOB)) if (b.ai && !W2AI[k]) W2AI[k] = (...a) => W2AI[b.ai](...a);
+
+// ── 졸음과 수면 ── 맞으면 졸음이 쌓이고 100이 되면 잠듦. 피해를 받으면 깸. 움직이면 졸음이 빨리 줄어듦
+function addDrowsy(n) {
+  const p = run.p;
+  if (p.sleepT > 0) return;
+  const res = 1 - Math.min(0.8, (run.mark?.charmRes || 0) / 100);
+  p.drowsy = Math.min(100, (p.drowsy || 0) + n * res * ccMul());
+  if (p.drowsy >= 100) sleepPlayer(2.5);
+}
+function sleepPlayer(sec) {
+  const p = run.p, res = 1 - Math.min(0.8, (run.mark?.charmRes || 0) / 100);
+  p.sleepT = sec * res * ccMul(); p.drowsy = 0; p.sleepGrace = 0.4;
+  fx(p.x, p.y - 36, "잠들었어요… 💤", "#b8a8ff", 15); sfx("freeze");
+}
+
+// ── 아르케: 막 진행 ──
+const ARCHE_ACTS = [
+  { name: "1막 · 초안", pool: ["qPrism", "kSlash", "roses", "lullaby", "kShards", "collapse"] },
+  { name: "2막 · 규칙 다시 쓰기", pool: ["qPrism", "kShards", "lullaby", "bats", "kDash"] },
+  { name: "3막 · 거울", pool: [] },
+  { name: "4막 · 지우개", pool: ["qShards", "qPrism", "kSlash", "roses", "sheepRun", "kDash"] },
+  { name: "5막 · 마지막 한 줄", pool: [] },
+];
+const ARCHE_RULES = [
+  { key: "seal", text: "스킬 봉인" }, { key: "hidehp", text: "체력 숨김" }, { key: "gravity", text: "중력이 아래로" },
+  { key: "manual", text: "자동 공격 꺼짐 · 화면을 톡톡(PC: X)으로 베기" }, { key: "slow", text: "느린 시간 · 이동 속도 절반" },
+];
+const archeAct = m => m.act || 0;
+function archeTick(m, dt) {
+  const S = run.stage, p = run.p, w = run.w2;
+  m.act ||= 0;
+  const go = (n, text) => { m.act = n; m.mode = "howl"; m.timer = 1.4; run.quake = 0.4; ring(m.x, m.y, 140, "#f0d890"); sfx("bossIn"); fx(W / 2, H / 2 - 80, text, "#f0d890", 20); };
+  if (m.act === 0 && m.hp < m.max * 0.8) { go(1, "2막 · 규칙 다시 쓰기"); S.ruleT = 0; }
+  if (m.act === 1) {
+    S.ruleT -= dt;
+    if (S.ruleT <= 0) { S.ruleT = 15; const r = ARCHE_RULES.filter(x => x.key !== S.rule?.key)[Math.floor(Math.random() * (ARCHE_RULES.length - 1))]; S.rule = r; fx(W / 2, 110, `규칙: ${r.text}`, "#f0d890", 16); sfx("learn"); }
+    if (m.hp < m.max * 0.6) {
+      go(2, "3막 · 거울 — 그려진 나를 쓰러뜨리세요"); S.rule = null;
+      m.ghost = 99;
+      const c = w3MakeMob("aClone", W / 2, 160); c.clone = true; c.hp = c.max = Math.round(m.max * 0.08); c.charKey = state.char; S.clone = c;
+    }
+  }
+  if (m.act === 2) {
+    if (S.clone?.dead) { m.ghost = 0; go(3, "4막 · 지우개"); w.collapse = { r: 330, tick: 0, owner: m }; }
+    else { m.mode = "archeWait"; m.x += (W / 2 - m.x) * dt; m.y += (90 - m.y) * dt; return true; }
+  }
+  if (m.act === 3) {
+    S.sketchT = (S.sketchT ?? 3) - dt;
+    if (S.sketchT <= 0 && w3Alive(o => !o.boss).length < 4) { S.sketchT = 4; w3Spawn(w3Pick(["mWolf", "sLancer", "dNightmare", "rMaid", "mArcher"])); }
+    if (m.hp < m.max * 0.25) { go(4, "5막 · 마지막 한 줄 — 60초 버티세요"); m.ghost = 99; S.surv = 0; w.collapse = null; for (const o of run.mobs) if (!o.boss && !o.dead) { o.dead = true; ring(o.x, o.y, 20, "#f0d890"); } }
+  }
+  if (m.act === 4) {
+    S.surv += dt; m.mode = "archeWait"; m.x += (W / 2 - m.x) * dt; m.y += (100 - m.y) * dt;
+    if (!m.final) {
+      S.barT = (S.barT ?? 1) - dt;
+      if (S.barT <= 0) {
+        const k = Math.floor(S.surv / 0.9) % 4, d = m.dmg;
+        S.barT = Math.max(0.55, 1 - S.surv / 120);
+        if (k === 0) { const off = Math.random(); for (let j = 0; j < 18; j++) w2Shot(m, off + j / 18 * Math.PI * 2, 170 + S.surv, d * 0.5, "#2a2418"); }
+        if (k === 1) { const a0 = Math.random() * Math.PI; for (let j = 0; j < 3; j++) { const a = a0 + j * Math.PI / 3; w2Lane([p.x - Math.cos(a) * 700, p.y - Math.sin(a) * 700, p.x + Math.cos(a) * 700, p.y + Math.sin(a) * 700], 28, 0.9, d * 0.8, m, "star"); } }
+        if (k === 2) for (let j = 0; j < 6; j++) w2Boom(j ? 40 + Math.random() * (W - 80) : p.x, j ? 140 + Math.random() * (H - 200) : p.y, 40, 0.9 + j * 0.08, d * 0.7, "60,50,30", m);
+        if (k === 3) { const a = Math.atan2(p.y - m.y, p.x - m.x); for (let j = -3; j <= 3; j++) w2Shot(m, a + j * 0.16, 230, d * 0.5, "#2a2418", { home: 0.6 }); }
+      }
+      if (S.surv >= 60) {
+        m.final = true; m.ghost = 0; m.hp = 1;
+        run.awakeCd = 0; run.shots = []; w.lanes = []; w.booms = [];
+        fx(W / 2, H / 2 - 80, awakeOpen() ? "지금! 검 각성으로 마지막 한 줄을 그으세요" : "지금! 마지막 일격을!", "#fff6d8", 18); sfx("fanfare");
+      }
+    }
+    return true;
+  }
+  return false;
+}
+// 거울 분신: 내 장착 스킬을 흉내 냄
+W2AI.aClone = function (m, ax, ay, d, slow, dt) {
+  const p = run.p;
+  if (d > 34) { m.x += ax / d * m.speed * slow * dt; m.y += ay / d * m.speed * slow * dt; }
+  m.face = Math.atan2(ay, ax);
+  m.cd -= dt;
+  if (m.cd > 0) return;
+  m.cd = 2.4;
+  const acts = activeEquip().filter(k => k && SK[k]?.active), k = acts[Math.floor(Math.random() * acts.length)] || "bomb";
+  fx(m.x, m.y - 24, `따라 하기: ${SK[k]?.name || "폭탄"}`, "#f0d890", 12);
+  if (k === "whirl") { ring(m.x, m.y, 90, "#efe6d8"); if (Math.hypot(p.x - m.x, p.y - m.y) < 90 + P_R) hitBy(m, m.dmg * 1.2); }
+  else if (k === "dash") { const a = Math.atan2(p.y - m.y, p.x - m.x); m.x = clamp(m.x + Math.cos(a) * 140, 20, W - 20); m.y = clamp(m.y + Math.sin(a) * 140, 60, H - 20); if (Math.hypot(p.x - m.x, p.y - m.y) < 40) hitBy(m, m.dmg); }
+  else if (k === "thunder") w2Boom(p.x, p.y, 55, 0.6, m.dmg * 1.1, "255,224,102", m);
+  else if (k === "guard") { m.mode = "reflect"; m.timer = 1.2; setTimeout(() => { if (m.mode === "reflect") m.mode = null; }, 1200); }
+  else if (k === "drain") { m.hp = Math.min(m.max, m.hp + m.max * 0.08); fx(m.x, m.y - 30, "+회복", "#d9475b", 12); }
+  else if (k === "frenzy") { m.speed = m.baseSpeed * 1.6; setTimeout(() => { m.speed = m.baseSpeed; }, 3000); }
+  else w2Boom(p.x, p.y, 70, 1.6, m.dmg * 1.3, "255,95,86", m);
+};
+W2_BOSS.add("dreamRam"); W2_BOSS.add("nirvana"); W2_BOSS.add("arche");
+W2_PATTERNS.dreamRam = ["kDash", "sheepRun", "lullaby", "kShards", "kDash"];
+W2_PATTERNS.nirvana = ["lullaby", "sheepRun", "nightmare", "dreamFlip", "lullaby", "deepSleep"];
+W2_PATTERNS.arche = ARCHE_ACTS[0].pool;
+const _w2Pick = w2Pick;
+w2Pick = function (m) {
+  if (m.kind === "arche") { const pool = ARCHE_ACTS[archeAct(m)].pool.filter(v => v !== m.last); return (m.last = pool[Math.floor(Math.random() * pool.length)] || "kShards"); }
+  return _w2Pick(m);
+};
+Object.assign(W2_START, {
+  lullaby(m, p, w, toP, E) {   // 틈이 있는 음파 고리 셋
+    m.mode = "howl"; m.timer = 1.4;
+    for (let k = 0; k < 3; k++) { const gap = Math.random() * Math.PI * 2, R = 90 + k * 85, n = 18;
+      for (let j = 0; j < n; j++) { const a = j / n * Math.PI * 2; let df = a - gap; df = Math.atan2(Math.sin(df), Math.cos(df)); if (Math.abs(df) < 0.55) continue;
+        w2Boom(m.x + Math.cos(a) * R, m.y + Math.sin(a) * R, 26, 0.7 + k * 0.4, m.dmg * 0.6, "200,184,255", m); } }
+    fx(m.x, m.y - m.r - 18, "자장가… 틈으로", "#c8b8ff", 15); sfx("learn");
+  },
+  sheepRun(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.8; for (let k = 0; k < (E ? 4 : 3); k++) { const y = clamp(p.y + (k - 1) * 90 + (Math.random() - 0.5) * 40, 80, H - 30); w2Lane([0, y, W, y], 40, 0.9 + k * 0.3, m.dmg * 0.7, m, "wind"); } fx(W / 2, 140, "양 떼가 지나가요!", "#f0ecff", 15); },
+  nightmare(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; const n = (p.sleepT > 0 ? 3 : 2) + (E ? 1 : 0); if (w3Alive(o => !o.boss).length < 6) for (let k = 0; k < n; k++) w3Spawn("dNightmare"); fx(m.x, m.y - m.r - 18, "악몽!", "#8a78c8", 15); },
+  dreamFlip(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; p.invertT = (E ? 3 : 2.4) * ccMul(); fx(p.x, p.y - 36, "꿈 뒤집기! 조작이 반대로", "#c8b8ff", 15); sfx("stun"); },
+  deepSleep(m, p, w, toP, E) {
+    if (!E) return W2_START.lullaby(m, p, w, toP, E);
+    m.mode = "deepsleep"; m.timer = 8;
+    run.stage.lamps = [[80, 200], [W - 80, 220], [W / 2, H - 90]].map(([x, y]) => ({ x, y, lit: true }));
+    fx(W / 2, 140, "깊은 잠! 등불 3개를 모두 끄세요", "#b8a8ff", 18); sfx("bossIn");
+  },
+});
+const _w3BossMode2 = w3BossMode;
+w3BossMode = function (m, dt, done) {
+  if (m.kind === "arche" && archeTick(m, dt)) return true;
+  if (m.mode === "archeWait") { done(); return true; }
+  if (m.mode === "deepsleep") {
+    const S = run.stage, p = run.p;
+    for (const l of S.lamps || []) if (l.lit && Math.hypot(p.x - l.x, p.y - l.y) < 30) { l.lit = false; ring(l.x, l.y, 30, "#ffe9a8"); sfx("gem"); }
+    if ((S.lamps || []).every(l => !l.lit)) { S.lamps = null; fx(W / 2, 140, "깊은 잠을 막았어요!", "#ffe9a8", 16); done(); return true; }
+    if (m.timer <= 0) { S.lamps = null; run.quake = 0.4; hitBy(m, m.dmg * 1.2); sleepPlayer(3); done(); }
+    return true;
+  }
+  return _w3BossMode2(m, dt, done);
+};
+
+// ── 새 전설 캐릭터: 화백 루미 (아르케 처치 후 등장) ──
+CHARS.push({ key: "painter", name: "화백 루미", tier: "legend", color: "#ffd08a", title: "세계를 이어 그리는 자",
+  line: "이번엔 내가 그릴 차례야.", ultName: "다시 그리기", ultCd: lv => 90 - 2 * (lv - 1), unlock: () => (state.w3?.best?.["5-10"] || 0) > 0, lockText: "아르케 처치 후 등장",
+  desc: lv => `패시브 스케치: 네 번 벨 때마다 붓 일격 — 가장 가까운 적에게 공격력 ×${fmt(1.5 + 0.1 * (lv - 1))}, 주변 적에게 그 절반. ` +
+    `궁극기 다시 그리기 (재사용 ${90 - 2 * (lv - 1)}초): 화면의 적 탄·장판을 모두 지우고 모든 적에게 공격력 ×${10 + (lv - 1)} (보스 절반), 체력 30% 회복.` });
+CH.painter = CHARS[CHARS.length - 1];
+function painterStroke(near) {
+  const lv = cl("painter"), mult = 1.5 + 0.1 * (lv - 1);
+  hit(near, mult * (near.boss ? 0.5 : 1), null);
+  for (const m of run.mobs) if (!m.dead && m !== near && Math.hypot(m.x - near.x, m.y - near.y) < 70) { hit(m, mult * 0.5 * (m.boss ? 0.5 : 1), null); run.chains.push({ pts: [[near.x, near.y], [m.x, m.y]], t: 0.3, col: "255,208,138" }); }
+  ring(near.x, near.y, 30, "#ffd08a");
+}
+function painterUlt(lv) {
+  const p = run.p, w = run.w2;
+  run.shots = []; w.lanes = []; w.booms = []; w.clouds = []; w.beams = []; w.sweep = null;
+  for (const m of run.mobs) if (!m.dead) hit(m, (10 + (lv - 1)) * (m.boss ? 0.5 : 1), null);
+  p.hp = Math.min(p.max, p.hp + p.max * 0.3);
+  ring(p.x, p.y, 200, "#ffd08a"); ring(p.x, p.y, 120, "#ffffff");
+}
+
+// ── 그리기 (4·5장) ──
+const _drawW3b = drawW3;
+drawW3 = function (r, t) {
+  const S = r.stage, p = r.p;
+  _drawW3b(r, t);
+  if (S?.lamps) for (const l of S.lamps) { ctx.save(); if (l.lit) { ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 20; } blob(l.x, l.y, 12, 12, l.lit ? "#ffe9a8" : "#3a3450"); ctx.restore();
+    ctx.strokeStyle = l.lit ? "rgba(255,233,168,.8)" : "rgba(120,110,150,.6)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(l.x, l.y, 28, 0, Math.PI * 2); ctx.stroke(); }
+  for (const m of r.mobs) if (m.mode === "deepsleep" && !m.dead) { const k = 1 - m.timer / 8; ctx.fillStyle = `rgba(30,20,70,${0.1 + 0.35 * k})`; ctx.fillRect(0, 0, W, H); }
+  if (p.sleepT > 0) { ctx.fillStyle = "#c8b8ff"; ctx.font = "16px sans-serif"; ctx.textAlign = "center"; for (let i = 0; i < 3; i++) ctx.fillText("z", p.x + 10 + i * 7, p.y - 18 - i * 9 - (t * 20 % 9)); }
+  // 아르케: 막마다 화면 연출
+  const a = S?.bossM && S.bossM.kind === "arche" ? S.bossM : null;
+  if (a && !a.dead) {
+    const act = archeAct(a);
+    if (act === 0) { ctx.fillStyle = "rgba(240,228,200,.10)"; ctx.fillRect(0, 0, W, H); }
+    if (act === 4) { ctx.fillStyle = "rgba(120,120,120,.28)"; ctx.fillRect(0, 0, W, H); }
+    if (S.rule && act === 1) {
+      ctx.save(); ctx.fillStyle = "rgba(42,36,24,.85)"; ctx.fillRect(W / 2 - 150, 48, 300, 26); ctx.strokeStyle = "#f0d890"; ctx.strokeRect(W / 2 - 150, 48, 300, 26);
+      ctx.fillStyle = "#f0d890"; ctx.font = "12px 'Nanum Gothic Coding', monospace"; ctx.textAlign = "center"; ctx.fillText(`규칙 · ${S.rule.text} (${Math.ceil(S.ruleT)})`, W / 2, 65); ctx.restore();
+    }
+  }
+};
+const drawSheep = (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color; for (let i = 0; i < 7; i++) { const a = i / 7 * Math.PI * 2; blob(Math.cos(a) * r * 0.55 - r * 0.1, Math.sin(a) * r * 0.55, r * 0.45, r * 0.45, c); }
+  blob(r * 0.75, 0, r * 0.4, r * 0.34, "#5a4a6a"); blob(r * 0.9, -r * 0.12, 1.6, 1.6, "#fff"); blob(r * 0.9, r * 0.12, 1.6, 1.6, "#fff"); };
+Object.assign(DRAW, {
+  dSheep: drawSheep,
+  dFairy: (m, t) => { const r = m.r, f = Math.sin(t * 12 + m.phase); for (const s of [-1, 1]) blob(-r * 0.2, s * r * (0.8 + 0.2 * f), r * 0.6, r * 0.3, "rgba(200,184,255,.6)"); blob(0, 0, r * 0.6, r * 0.6, m.flash > 0 ? "#fff" : m.color); blob(r * 0.2, 0, r * 0.25, r * 0.25, "#fff6d8"); },
+  dNightmare: (m, t) => { if (m.hide && !(m.rise > 0)) return; const r = m.r, k = m.rise > 0 ? 1 - m.rise / 0.45 : 1; ctx.globalAlpha = 0.4 + 0.6 * k; blob(0, 0, r, r * 1.1, m.flash > 0 ? "#fff" : m.color);
+    for (let i = 0; i < 3; i++) poly([[-r * 0.5, (i - 1) * r * 0.5], [-r * 1.8, (i - 1) * r * 0.9 + Math.sin(t * 6 + i) * 4], [-r * 0.6, (i - 1) * r * 0.5 + 4]], m.color);
+    blob(r * 0.35, -r * 0.25, 3, 2, "#ff4f7a"); blob(r * 0.35, r * 0.25, 3, 2, "#ff4f7a"); ctx.globalAlpha = 1; },
+  dreamRam: (m, t) => { drawSheep(m, t); const r = m.r; for (const s of [-1, 1]) { ctx.strokeStyle = "#c8a860"; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(r * 0.6, s * r * 0.5, r * 0.3, 0, Math.PI * 1.6); ctx.stroke(); } },
+  nirvana: (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color, E = m.enraged;
+    for (let i = 0; i < 8; i++) { const a = Math.PI * 0.6 + i * 0.1 * Math.PI; poly([[Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5], [Math.cos(a - 0.1) * r * 1.6, Math.sin(a - 0.1) * r * 1.6], [Math.cos(a + 0.1) * r * 1.6, Math.sin(a + 0.1) * r * 1.6]], i % 2 ? "#e6dcff" : "#a898e0"); }
+    ctx.save(); ctx.shadowColor = E ? "#ff9fe0" : "#c8b8ff"; ctx.shadowBlur = 24; blob(0, 0, r * 0.85, r * 0.85, c); ctx.restore();
+    blob(0, -r * 0.05, r * 0.55, r * 0.5, "#f6f2ff");
+    ctx.strokeStyle = "#3a2a6a"; ctx.lineWidth = 2; for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * r * 0.2, -r * 0.1, 4, 0.2, Math.PI - 0.2); ctx.stroke(); }
+    ctx.save(); ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 14; ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(r * 0.2, -r * 0.2, r * 1.1, -2.4, -1.2); ctx.stroke(); ctx.restore();
+    blob(0, -r * 1.05, 4, 4, "#ffe9a8"); },
+  arche: (m, t) => { const r = m.r, act = archeAct(m), fill = ["rgba(0,0,0,0)", "rgba(240,216,144,.25)", "rgba(240,216,144,.4)", "rgba(240,216,144,.6)", "#f0d890"][act];
+    ctx.save(); if (m.ghost > 0) ctx.globalAlpha = 0.55;
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = m.flash > 0 ? "#fff" : "#2a2418"; ctx.lineWidth = 2.5;
+    for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(Math.sin(t * 2 + k) * 1.5, Math.cos(t * 2 + k) * 1.5, r * (1 - k * 0.04), 0, Math.PI * 2); ctx.stroke(); }
+    for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + t * 0.3; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); ctx.lineTo(Math.cos(a) * r * 1.5, Math.sin(a) * r * 1.5 + Math.sin(t * 3 + k) * 4); ctx.stroke(); }
+    blob(-r * 0.3, -r * 0.15, 3, 4, "#2a2418"); blob(r * 0.3, -r * 0.15, 3, 4, "#2a2418");
+    // 펜
+    ctx.save(); ctx.translate(r * 1.1, r * 0.3); ctx.rotate(-0.6 + Math.sin(t * 3) * 0.3); ctx.fillStyle = "#2a2418"; ctx.fillRect(-3, -r * 0.9, 6, r * 1.1); poly([[-3, r * 0.2], [3, r * 0.2], [0, r * 0.45]], "#f0d890"); ctx.restore();
+    ctx.restore(); },
+  aClone: (m, t) => { ctx.save(); ctx.globalAlpha = 0.85; drawCharacter(ctx, m.charKey || "adventurer", 0, 0, P_R, m.face, t, m.flash > 0); ctx.restore();
+    ctx.strokeStyle = "rgba(42,36,24,.8)"; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, m.r + 4, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); },
+});
+for (const k of ["dFairy", "dreamRam", "nirvana", "arche", "aClone"]) UPRIGHT.add(k);
 
 // 지형 특징과 보스 소품 (회오리, 먹물, 모래 폭풍, 예고 원, 띠 공격, 해일, 유사, 해파리 연결)
 function w2Update(dt) {
@@ -10610,11 +10912,12 @@ function draw() {
     }
     ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.lineWidth = 1; path(w); ctx.stroke();
   };
-  bar(10, 8, 150, 13, clamp(p.hp / p.max, 0, 1), p.hp / p.max > 0.3 ? "#5fbf6e" : "#ff5f56");
+  if (r.stage?.rule?.key !== "hidehp") bar(10, 8, 150, 13, clamp(p.hp / p.max, 0, 1), p.hp / p.max > 0.3 ? "#5fbf6e" : "#ff5f56");
+  if (p.drowsy > 0) bar(10, 24, 150, 5, clamp(p.drowsy / 100, 0, 1), "#b8a8ff");
   ctx.font = "12px 'Nanum Gothic Coding', monospace";
   ctx.textAlign = "left";
   ctx.fillStyle = "#efe6d8";
-  ctx.fillText(`${Math.ceil(Math.max(0, p.hp)).toLocaleString("ko-KR")}/${p.max.toLocaleString("ko-KR")}`, 167, 19);
+  ctx.fillText(r.stage?.rule?.key === "hidehp" ? "???" : `${Math.ceil(Math.max(0, p.hp)).toLocaleString("ko-KR")}/${p.max.toLocaleString("ko-KR")}`, 167, 19);
   ctx.textAlign = "right";
   const boss = r.mobs.find(m => m.boss);
   const hudRight = r.stage ? stageHud(r) : r.dungeon
@@ -10703,6 +11006,7 @@ function toWorld(e) {
 
 $("arena").addEventListener("pointerdown", e => {
   if (run && !run.over && run.p.charmT > 0) charmTap();
+  if (run && !run.over) run.manualT = 0.35;
   if (!run || run.over || joy || e.target.closest("button")) return;
   e.preventDefault();
   const w = toWorld(e);
@@ -10763,6 +11067,7 @@ window.addEventListener("keydown", e => {
   if (run.p.charmT > 0 && !e.repeat) charmTap();
   if (e.code === "Space") { e.preventDefault(); if (!e.repeat) castUlt(); return; }
   if (e.code === "KeyV") { e.preventDefault(); if (!e.repeat) castAwake(); return; }
+  if (e.code === "KeyX") { e.preventDefault(); run.manualT = 0.35; return; }
   if (CIRCLE_KEYS[e.code]) { e.preventDefault(); circleKeys.add(CIRCLE_KEYS[e.code]); return; }
   if (!KEYMAP[e.code]) return;
   e.preventDefault();
@@ -10852,6 +11157,7 @@ function normalize(s) {
     quest: s.quest ?? 0,
     bossKills: { ...(s.bossKills || {}) },
     ended: !!s.ended,
+    ended3: !!s.ended3,
     char: s.char && CH[s.char] && (s.chars || {})[s.char] ? s.char : "adventurer",
     charLv: { ...(s.charLv || {}) },
     shards: { ...(s.shards || {}) },

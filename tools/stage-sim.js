@@ -21,19 +21,20 @@ const ONLY = process.argv.slice(5).map(Number);
       state.equip = ['frenzy', 'drain', 'whirl', 'crit', 'bomb', null];
       showTab('hunt'); enterZone(`w3:${CH}:${s}`); pause(); dev.god = false;
       const realMax = run.p.max; let dmg = 0;
-      if (MODE === 'inf') run.p.max = run.p.hp = realMax * 1e5;
+      if (MODE === 'inf') { run.p.max = run.p.hp = realMax * 1e5; fallPlayer = () => {}; }
       const o = hurtPlayer; hurtPlayer = (d, e) => { const h = run.p.hp, rr = o(d, e); dmg += Math.max(0, h - run.p.hp); return rr; };
       let f = 0;
-      for (; f < 60 * 240 && !run.over; f++) {
+      for (; f < 60 * 900 && !run.over; f++) {
         const P = run.p, S = run.stage, mobs = run.mobs.filter(m => !m.dead && !(m.ghost > 0));
         const score = m => (m.boss || m.elite || m.kind === 'mTreasure' ? -1e4 : 0) + Math.hypot(m.x - P.x, m.y - P.y) + (S.crystal ? Math.hypot(m.x - S.crystal.x, m.y - S.crystal.y) * 0.5 : 0);
         let goal = null;
-        if (S.exit) { const g = S.gates[S.gate]; goal = g ? { x: g.x, y: g.y, want: 0 } : { x: S.exit.x, y: S.exit.y, want: 0 }; }
+        if (S.lamps && S.lamps.some(l => l.lit)) { const l = S.lamps.filter(l => l.lit).sort((a, b) => Math.hypot(a.x - P.x, a.y - P.y) - Math.hypot(b.x - P.x, b.y - P.y))[0]; goal = { x: l.x, y: l.y, want: 0 }; }
+        else if (S.exit) { const g = S.gates[S.gate]; goal = g ? { x: g.x, y: g.y, want: 0 } : { x: S.exit.x, y: S.exit.y, want: 0 }; }
         else { const tg = mobs.sort((a, b) => score(a) - score(b))[0]; if (tg) goal = { x: tg.x, y: tg.y, want: tg.r + 26 }; else if (S.crystal) goal = { x: S.crystal.x, y: S.crystal.y + 30, want: 0 }; }
         keys.clear();
         if (goal) { const d = Math.hypot(goal.x - P.x, goal.y - P.y); if (d > goal.want + 4) { if (goal.x > P.x + 4) keys.add('right'); if (goal.x < P.x - 4) keys.add('left'); if (goal.y > P.y + 4) keys.add('down'); if (goal.y < P.y - 4) keys.add('up'); } }
         for (let i = 0; i < 5; i++) useSkill(i);
-        castUlt(); castAwake();
+        castUlt(); castAwake(); run.manualT = 1;
         if (run.p.charmT > 0 && f % 6 === 0) charmTap();
         update(1 / 60);
       }

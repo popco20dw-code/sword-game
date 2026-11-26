@@ -33,8 +33,8 @@ const path = require('path');
     console.log(k, '진행 단계', r);
   }
   // 월드 3 스테이지 10개: 잠깐씩 돌려 보기
-  for (let st = 1; st <= 30; st++) {
-    const r = await p.evaluate(async st => { state.dungeon2Clears = 1; state.w3.best['1-10'] = 1; state.w3.best['2-10'] = 1; enterZone(`w3:${Math.ceil(st / 10)}:${(st - 1) % 10 + 1}`); pause(); castAwake();
+  for (let st = 1; st <= 50; st++) {
+    const r = await p.evaluate(async st => { state.dungeon2Clears = 1; for (let c = 1; c <= 4; c++) state.w3.best[c + '-10'] = 1; enterZone(`w3:${Math.ceil(st / 10)}:${(st - 1) % 10 + 1}`); pause(); castAwake();
       for (let i = 0; i < 60 * 6; i++) { if (run.over) break; update(1 / 60); } draw();
       const out = run.zone.name + ' ' + stageHud(run); if (!run.over) endRun(false); run = null; return out; }, st);
     if (st % 10 === 0) console.log('월드 3', r);
