@@ -352,6 +352,19 @@ html.hunting, html.hunting body { overflow: hidden; overscroll-behavior: none; }
 .ult .g { font-size: 13px; font-weight: 700; line-height: 1.1; text-align: center; padding: 0 4px; }
 .ult .t { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1;
   font-family: var(--mono); font-size: 20px; color: var(--fg); }
+.awake { --cd: 0; position: absolute; left: 10px; bottom: 44px; width: 56px; height: 56px; border-radius: 50%; padding: 0; overflow: hidden;
+  border: 2px solid #cfe8ff; background: rgba(22,19,15,.78); color: #e6f2ff; display: grid; place-items: center; touch-action: none; }
+.awake::after { content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none; background: conic-gradient(rgba(0,0,0,.7) calc(var(--cd) * 360deg), transparent 0); }
+.awake .g { font-size: 11px; font-weight: 700; line-height: 1.15; text-align: center; }
+.awake .t { position: absolute; inset: 0; display: grid; place-items: center; z-index: 1; font-family: var(--mono); font-size: 18px; }
+.w3-chs { margin-top: 8px; }
+.w3-mark { margin-top: 10px; padding: 12px; border-radius: 14px; border: 1px solid rgba(207,232,255,.4); background: rgba(20,34,38,.9); }
+.w3-mh { display: flex; justify-content: space-between; } .w3-mh span { font-family: var(--mono); color: #ffd24a; font-size: 13px; }
+.w3-mgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 8px 0; }
+.w3-mk { display: grid; gap: 2px; padding: 8px 4px; border-radius: 10px; border: 1px solid rgba(207,232,255,.3); background: #142226; color: var(--muted); font-size: 11px; line-height: 1.25; }
+.w3-mk small { font-family: var(--mono); color: #b8a8ff; } .w3-mk.open { border-color: #cfe8ff; color: var(--fg); } .w3-mk.own { background: #cfe8ff; color: #14202a; border-color: #fff; }
+.w3-mk.own small { color: #14202a; } .w3-mk.lock { opacity: .45; }
+.w3-mark > button { width: 100%; }
 .ult .knob { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%;
   background: var(--c); opacity: 0; pointer-events: none; z-index: 2; box-shadow: 0 0 10px var(--c); }
 .ult.steer .knob { opacity: .85; }
@@ -874,6 +887,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
           <button class="sk" hidden><span class="g"></span><span class="t"></span></button>
           <button class="sk" hidden><span class="g"></span><span class="t"></span></button>
         </div>
+        <button class="awake" id="awakebtn" hidden aria-label="검 각성"><span class="g">차원<br>베기</span><span class="t"></span></button>
         <button class="ult" id="ultbtn" hidden aria-label="궁극기"><span class="knob"></span><span class="g"></span><span class="t"></span></button>
       </div>
       <div class="arena-bar">
@@ -936,7 +950,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v115";
+const GAME_VERSION = "v116";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -951,7 +965,7 @@ const rockGold = () => Math.round(MINE_GOLD * Math.pow(MINE_GROWTH, state.pick) 
 
 const COLORS = ["#a0703f", "#b9c0c8", "#6fb8ff", "#b47cff", "#ffd24a", "#9ff3ff", "#ff8fd8", "#ffffff",
                 "#7dffb2", "#ff5a36", "#fff3a0", "#c0d0ff", "#9fe3ff",
-                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff", "#cfe8ff"];
+                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff", "#cfe8ff", "#bfe0ff", "#ff8fb8"];
 // 5단계마다 이름과 색이 바뀜
 const tierIndex = (lv, item) => Math.min(Math.floor(lv / 5), item.names.length - 1);
 
@@ -983,8 +997,10 @@ const BOSS_MATS = [
   { key: "score", name: "별의 핵", color: "#fff6ff" },
   { key: "kingheart", name: "용왕의 심장", color: "#f7d7ff" },
   { key: "mirror", name: "거울 여왕의 파편", color: "#cfe8ff" },
+  { key: "plume", name: "기사단장의 깃장식", color: "#bfe0ff" },
+  { key: "rose", name: "릴리스의 장미", color: "#ff8fb8" },
 ];
-const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0, mirror: 0 });
+const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0, mirror: 0, plume: 0, rose: 0 });
 // +35를 넘으면 단계마다 보석 확률이 두 배씩 더 붙는다
 const matChance = m => state.pick < m.req ? 0 : m.base + m.per * (state.pick - m.req) + m.per * 2 * Math.max(0, state.pick - 35);
 // 광산에서 남는 보석을 별의 파편으로 합성
@@ -1020,14 +1036,14 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 130,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
+    max: 140,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
             // 월드 2: 사냥터 하나당 5단계
             "사막왕의 검", "수정 여왕의 검", "해신검", "맹독검", "천풍검", "시간의 검", "그림자검", "거신검", "별을 벤 검",
             // 월드 3
-            "거울의 검"],
+            "거울의 검", "천공성의 검", "붉은 달의 검"],
     odds(lv) {
       if (lv < 5)  return [95, 5, 0, 0];
       if (lv < 10) return [70, 25, 5, 0];
@@ -1081,7 +1097,9 @@ const ITEMS = {
       if (lv < 120) return [["gheart", 1], ["mask", 1]];
       if (lv < 125) return [["score", 1], ["gheart", 1]];
       // 월드 3: 장 보스 재료
-      return [["mirror", 1], ["score", 1]];
+      if (lv < 130) return [["mirror", 1], ["score", 1]];
+      if (lv < 135) return [["plume", 1], ["mirror", 1]];
+      return [["rose", 1], ["plume", 1]];
     },
     // 판매가 = 그 단계 강화 비용 × (2 + 0.1 × 단계). 높이 키울수록 배율도 커짐
     price: lv => lv === 0 ? 0 : Math.round(swordCost(lv) * (2 + 0.1 * lv) / 10) * 10,
@@ -1299,7 +1317,7 @@ const perRock = () => Math.round(rockGold() * MINE_HAND) * (state.oil > 0 ? 2 : 
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {} } };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -3518,6 +3536,23 @@ function getFloor(zone) {
       g.fillStyle = "#3a5a66"; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
       g.fillStyle = "rgba(207,232,255,.35)"; g.beginPath(); g.arc(x - rr * 0.3, y - rr * 0.3, rr * 0.45, 0, Math.PI * 2); g.fill(); }
   }
+  if (zone.theme === "sky") {
+    // 천공성: 구름 위 돌바닥 타일
+    const grd = g.createLinearGradient(0, 0, 0, H); grd.addColorStop(0, "#5a7a9a"); grd.addColorStop(1, "#3a5a7a"); g.fillStyle = grd; g.fillRect(0, 0, W, H);
+    for (let x = 0; x < W; x += 56) for (let y = 56; y < H; y += 56) { g.fillStyle = `rgba(${200 + rnd(-15, 15)},${210 + rnd(-15, 15)},${225 + rnd(-10, 10)},.55)`; g.fillRect(x + 2, y + 2, 52, 52);
+      g.strokeStyle = "rgba(40,60,90,.5)"; g.lineWidth = 1; g.strokeRect(x + 2, y + 2, 52, 52); }
+    for (let i = 0; i < 10; i++) { g.fillStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.ellipse(rnd(0, W), rnd(0, 56), rnd(30, 60), rnd(10, 18), 0, 0, Math.PI * 2); g.fill(); }
+  }
+  if (zone.theme === "rose") {
+    // 붉은 달의 정원: 어두운 붉은 잔디, 장미 덤불, 꽃잎
+    blobs(26, ["rgba(90,20,40,.35)", "rgba(40,10,20,.4)", "rgba(140,40,70,.12)"], 30, 90);
+    for (let i = 0; i < 40; i++) { g.fillStyle = `rgba(255,${rnd(60, 120)},${rnd(120, 170)},${rnd(0.25, 0.6)})`; g.beginPath(); g.ellipse(rnd(0, W), rnd(40, H), 3, 1.6, rnd(0, 3), 0, Math.PI * 2); g.fill(); }
+    for (let i = 0; i < 16; i++) { const left = i % 2 === 0, x = left ? rnd(-10, 26) : rnd(W - 26, W + 10), y = rnd(30, H - 10), rr = rnd(16, 28);
+      g.fillStyle = "#1a0a10"; g.beginPath(); g.arc(x, y, rr + 4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#2a4a2a"; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+      for (let k = 0; k < 4; k++) { g.fillStyle = "#c8284a"; g.beginPath(); g.arc(x + rnd(-rr, rr) * 0.6, y + rnd(-rr, rr) * 0.6, 4, 0, Math.PI * 2); g.fill(); } }
+    g.fillStyle = "rgba(255,80,100,.25)"; g.beginPath(); g.arc(W - 70, 70, 34, 0, Math.PI * 2); g.fill();
+  }
   // 모든 사냥터: 가장자리를 살짝 어둡게
   const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)");
@@ -3904,7 +3939,10 @@ function treeStats() {
     if (n.special) t[n.special] = true;
     for (const [k, v] of n.eff || []) t[k] += v;
   }
-  if (syncCap) for (const k in TSTAT) t[k] *= 0.5;   // 월드 3: 스킬 트리 효과 절반
+  if (syncCap) {   // 월드 3: 스킬 트리 효과 절반 + 차원 각인
+    for (const k in TSTAT) t[k] *= 0.5;
+    const mk = markStats(); for (const k in mk) if (k in t) t[k] += mk[k];
+  }
   return t;
 }
 const treeSpent = () => Object.keys(state.tree || {}).reduce((a, id) => a + (TREE[id] ? treeCost(TREE[id]) : 0), 0);
@@ -4755,6 +4793,9 @@ function enterZone(key) {
     loot: { gold: 0, kills: 0, bosses: 0, runes: 0, mats: {} },
     stage: zone.w3 ? { def: zone.w3.def, ch: zone.w3.ch, n: zone.w3.n, t: 0, kills: 0, spawned: 0 } : null,
   };
+  run.mark = zone.world === 3 ? markStats() : null;
+  run.awakeCd = 0;
+  $("awakebtn").hidden = !awakeOpen();
   if (run.stage) {
     if (zone.w3.def.type === "escape") { run.p.y = H - 50; }
     fx(W / 2, H / 2 - 90, `${zone.name}`, "#cfe8ff", 20);
@@ -5397,6 +5438,11 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
       return;
     }
   }
+  if (m.decoy) {   // 릴리스의 환영: 때리면 매혹당하고 사라짐
+    if (from === run.p) { charmPlayer(1.2, m.real); }
+    m.dead = true; ring(m.x, m.y, 30, "#ff8fb8"); fx(m.x, m.y - 30, "환영!", "#ff8fb8", 13);
+    return;
+  }
   if (m.shield) {   // 수정 방패병: 방패 쪽(정면) 공격은 크게 줄고, 광역(위에서 떨어지는) 공격도 절반
     if (from) { let df = Math.atan2(from.y - m.y, from.x - m.x) - m.face; df = Math.atan2(Math.sin(df), Math.cos(df)); if (Math.abs(df) < 1.1) { mult *= 0.25; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "막힘", "#8fd8ff", 11); } }
     else mult *= 0.5;
@@ -5521,6 +5567,11 @@ function update(dt) {
     if (jm > 6) { dx = jx / Math.max(jm, 40); dy = jy / Math.max(jm, 40); }
   }
   if (p.invertT > 0) { p.invertT -= dt; dx = -dx; dy = -dy; }
+  if (p.charmT > 0) {   // 매혹: 조작 대신 매혹한 쪽으로 천천히 걸어감
+    p.charmT -= dt;
+    const c = p.charmSrc;
+    if (c && !c.dead) { const l = Math.hypot(c.x - p.x, c.y - p.y) || 1; dx = (c.x - p.x) / l * 0.6; dy = (c.y - p.y) / l * 0.6; } else { dx = 0; dy = 0; }
+  }
   const mag = Math.hypot(dx, dy);
   if (mag > 1) { dx /= mag; dy /= mag; }
   if (mag > 0.1) p.dir = { x: dx / Math.max(mag, 1e-6), y: dy / Math.max(mag, 1e-6) };
@@ -5641,6 +5692,7 @@ function update(dt) {
   curMob = null;
   w2Update(dt);
   ultUpdate(dt);
+  awakeUpdate(dt);
   r.chainCd -= dt;
   for (const c of r.chains) c.t -= dt;
   r.chains = r.chains.filter(c => c.t > 0);
@@ -5710,6 +5762,7 @@ function update(dt) {
       if (got && sh.chain) rootPlayer(1.2);
       if (got && sh.spark) stunPlayer(0.35);
       if (got && sh.poison) poisonPlayer(2.5, sh.dmg * 0.15);
+      if (got && sh.charm) charmPlayer(sh.charm, sh.owner);
       if (got && sh.ink) { run.w2.ink = 4.5; fx(p.x, p.y - 30, "먹물!", "#9fe3ff", 14); }
       if (got && sh.knock && !p.dash) { const sp = Math.hypot(sh.vx, sh.vy) || 1; p.knock = { vx: sh.vx / sp * 300, vy: sh.vy / sp * 300, t: 0.2 }; }
       curMob = null;
@@ -8624,8 +8677,9 @@ function stageZone(key) {
 }
 function w3MakeMob(kind, x, y, opts = {}) {
   const b = W3_MOB[kind], cap = run.zone.cap, A = atkOf(cap.sword);
-  const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1));
-  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(W3_HP_REF * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1)),
+  const normal = run.stage.def.type !== "boss" && !b.boss, ref = W3_HP_REF * hpOf(cap.sword) / hpOf(130);
+  const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1) * (normal ? W3_NORMAL_HP : 1));
+  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(ref * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1) * (normal ? W3_NORMAL_DMG : 1)),
               speed: b.speed, baseSpeed: b.speed, r: b.r * (opts.elite ? 1.35 : 1), gold: 0, face: Math.atan2(run.p.y - y, run.p.x - x), hitCd: 0, flash: 0,
               phase: Math.random() * 6, contact: b.contact, w3: true, state: opts.idle ? "idle" : "fight", elite: !!opts.elite, cd: 1 + Math.random() };
   if (b.boss) Object.assign(m, { boss: true, mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, combo: 1 });
@@ -8833,6 +8887,7 @@ function w3BossMode(m, dt, done) {
 function stageStep(dt) {
   const r = run, S = r.stage, d = S.def, p = r.p;
   S.t += dt;
+  w3Terrain(dt);
   S.pvx = (p.x - (S.px ?? p.x)) / Math.max(dt, 1e-3); S.pvy = (p.y - (S.py ?? p.y)) / Math.max(dt, 1e-3); S.px = p.x; S.py = p.y;
   // 서로 밀어내기 (보스 제외): 뭉치지 않고 퍼짐
   const ms = r.mobs.filter(m => !m.dead && !m.boss && !m.hide);
@@ -8916,6 +8971,7 @@ function stageKill(m) {
   const S = run.stage;
   S.kills++;
   run.loot.kills++;
+  if (m.kind === "rVine") for (const s of [-1, 1]) w3MakeMob("rVineS", clamp(m.x + s * 18, 20, W - 20), m.y);
   if (m.boss) run.loot.bosses++;
   lootFx(m, m.kind === "mTreasure" ? "잡았다!" : "처치", m.kind === "mTreasure" ? "#ffe9a8" : "#cfe8ff");
 }
@@ -8929,7 +8985,7 @@ function stageClear() {
   state.w3.best[id] = Math.max(before, stars);
   const got = [];
   if (first) {
-    const fs = 15 + 5 * S.n, fr = 10 + 2 * S.n;
+    const fs = w3FirstStar(ch, S.n), fr = w3FirstRune(ch, S.n);
     state.mats.star += fs; state.runes += fr; state.astones += 8; state.souls += 40;
     got.push(`별의 파편 ${fs}`, `룬석 ${fr}`, "강화석 8", "소울 40");
     if (d.type === "boss") { state.ctickets += 1; got.push("캐릭터 뽑기권 1"); }
@@ -9141,6 +9197,388 @@ function w3View() {
       <button class="go" data-zone="w3:1:${w3Sel}" ${open ? "" : "disabled"}>${open ? "도전" : "앞 스테이지를 먼저 깨야 해요"}</button>
     </div>`;
 }
+
+
+// ══════════ 월드 3 · 2차: 2장 천공성, 3장 붉은 달의 정원, 차원 각인, 검 각성 ══════════
+W3_CH.push(
+  { n: 2, name: "무너지는 천공성", bg: "#3a5a7a", theme: "sky", cap: { sword: 135, armor: 11, char: 7 }, mat: "plume", color: "#bfe0ff", dmgMul: 0.62 },
+  { n: 3, name: "붉은 달의 정원", bg: "#2a1018", theme: "rose", cap: { sword: 140, armor: 14, char: 8 }, mat: "rose", color: "#ff8fb8", dmgMul: 0.66 },
+);
+W3_STAGES[2] = [
+  { type: "kill", name: "구름 다리", need: 16, alive: 5, pool: ["sHawk", "sArcher", "sLancer"], pre: 4, par: 50, desc: "구름 위 다리. 발판이 금 가면 곧 무너져요. 창기병은 내가 갈 길을 막아서요." },
+  { type: "escape", name: "무너지는 회랑", pool: ["sHawk", "sMage"], pre: 4, par: 40, desc: "표식 5개를 켜고 출구로. 무너지는 발판에 빠지면 추락해요." },
+  { type: "waves", name: "바람의 탑", waves: [["sHawk", "sHawk", "sArcher", "sLancer"], ["sMage", "sMage", "sLancer", "sArcher", "sHawk"], ["sPriest", "sLancer", "sLancer", "sMage", "sArcher", "sHawk"]], par: 70, desc: "세 번 몰려와요. 사제가 있으면 먼저 잡으세요." },
+  { type: "defend", name: "깃발 지키기", dur: 50, alive: 6, pool: ["sHawk", "sLancer", "sMage"], par: 50, desc: "천공성의 깃발(수정)을 50초 동안 지키세요." },
+  { type: "boss", name: "천공 수호병", boss: "skyGolem", par: 70, desc: "돌로 된 거대한 수호병. 발판을 무너뜨리고 바람을 일으켜요." },
+  { type: "hunt", name: "구름 요정 쫓기", limit: 40, pool: ["sHawk", "sArcher"], alive: 3, par: 25, desc: "보물을 든 요정이 무너지는 발판 위로 도망쳐요." },
+  { type: "elite", name: "근위대", elites: ["sLancer", "sLancer"], pool: ["sPriest", "sArcher"], alive: 3, par: 60, desc: "정예 창기병 둘과 그들을 치유하는 사제." },
+  { type: "survive", name: "폭풍의 옥상", dur: 55, alive: 8, pool: ["sHawk", "sMage", "sArcher", "sLancer"], par: 55, desc: "폭풍 속에서 55초 버티세요." },
+  { type: "kill", name: "하늘 사제단", need: 24, alive: 6, pool: ["sPriest", "sLancer", "sMage", "sArcher", "sHawk"], pre: 6, par: 80, desc: "치유하는 사제단과 호위대. 24마리 처치." },
+  { type: "boss", name: "천공의 기사단장", boss: "skyCaptain", par: 95, desc: "창 돌격으로 멀리 날려 버리고, 폭풍과 발판 붕괴로 몰아붙여요. 가장자리로 날아가면 추락해요." },
+];
+W3_STAGES[3] = [
+  { type: "kill", name: "장미 울타리", need: 18, alive: 5, pool: ["rButterfly", "rMaid", "rVine"], pre: 4, par: 55, desc: "매혹 나비에 닿으면 잠깐 끌려가요. 덩굴은 잡으면 둘로 갈라져요." },
+  { type: "survive", name: "나비 떼", dur: 50, alive: 8, pool: ["rButterfly", "rButterfly", "rMaid"], par: 50, desc: "나비 떼 속에서 50초 버티세요. 매혹은 화면을 연타하면 빨리 풀려요." },
+  { type: "defend", name: "달빛 분수 지키기", dur: 50, alive: 6, pool: ["rVine", "rMaid", "rButterfly"], par: 50, desc: "달빛 분수(수정)를 지키세요." },
+  { type: "hunt", name: "장미 도둑", limit: 40, pool: ["rMaid", "rImp"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 도깨비불은 도망치며 회복해요." },
+  { type: "boss", name: "장미 기사", boss: "roseKnight", par: 75, desc: "가시 장미를 깔고 하트 탄으로 매혹해요." },
+  { type: "waves", name: "가시 미로", waves: [["rVine", "rVine", "rMaid", "rButterfly"], ["rGolem", "rImp", "rImp", "rButterfly", "rButterfly"], ["rGolem", "rVine", "rVine", "rMaid", "rMaid", "rImp"]], par: 75, desc: "세 번 몰려와요." },
+  { type: "escape", name: "붉은 정원 탈출", pool: ["rVine", "rButterfly", "rImp"], pre: 5, par: 40, desc: "표식 5개를 켜고 출구로." },
+  { type: "elite", name: "정원지기", elites: ["rGolem", "rGolem"], pool: ["rImp", "rButterfly"], alive: 3, par: 65, desc: "정예 장미 골렘 둘. 방패 뒤로 돌아가세요." },
+  { type: "kill", name: "달의 연회", need: 26, alive: 7, pool: ["rButterfly", "rMaid", "rVine", "rGolem", "rImp"], pre: 6, par: 85, desc: "정원의 모든 것이 모인 연회. 26마리 처치." },
+  { type: "boss", name: "서큐버스 릴리스", boss: "lilith", par: 110, desc: "붉은 달의 정원의 주인. 매혹 입맞춤, 가시 장미, 환영 분신, 박쥐 떼. 분노하면 붉은 달 — 기둥 뒤에 숨어야 해요." },
+];
+Object.assign(W3_MOB, {
+  sHawk: { name: "천공 매", color: "#e8f0ff", hp: 5, dmg: 0.13, speed: 120, r: 12, ai: "mWolf" },
+  sArcher: { name: "천공 궁수", color: "#cfe0f0", hp: 5, dmg: 0.09, speed: 80, r: 12, contact: false, ai: "mArcher" },
+  sLancer: { name: "천공 창기병", color: "#9fb8e0", hp: 9, dmg: 0.15, speed: 95, r: 14 },
+  sMage: { name: "폭풍 술사", color: "#8fd0ff", hp: 5, dmg: 0.12, speed: 70, r: 12, contact: false },
+  sPriest: { name: "하늘 사제", color: "#fff6d8", hp: 7, dmg: 0.06, speed: 70, r: 12, contact: false },
+  rButterfly: { name: "매혹 나비", color: "#ff9fd0", hp: 4, dmg: 0.08, speed: 105, r: 11 },
+  rMaid: { name: "그림자 시녀", color: "#5a3048", hp: 6, dmg: 0.14, speed: 115, r: 13, ai: "mWolf" },
+  rVine: { name: "가시 덩굴", color: "#4a8a3a", hp: 8, dmg: 0.11, speed: 60, r: 15 },
+  rVineS: { name: "작은 덩굴", color: "#6aaa4a", hp: 3, dmg: 0.08, speed: 85, r: 10 },
+  rGolem: { name: "장미 골렘", color: "#c04060", hp: 18, dmg: 0.13, speed: 55, r: 16, ai: "mGuard" },
+  rImp: { name: "도깨비불", color: "#ff7040", hp: 6, dmg: 0.1, speed: 100, r: 11, contact: false },
+  skyGolem: { name: "천공 수호병", color: "#a8b8c8", hp: 260, dmg: 0.15, speed: 50, r: 30, boss: true },
+  skyCaptain: { name: "천공의 기사단장", color: "#d8e4f8", hp: 340, dmg: 0.16, speed: 70, r: 28, boss: true },
+  roseKnight: { name: "장미 기사", color: "#c83a5a", hp: 280, dmg: 0.15, speed: 70, r: 26, boss: true },
+  lilith: { name: "서큐버스 릴리스", color: "#d04080", hp: 520, dmg: 0.16, speed: 65, r: 28, boss: true },
+  lilithDecoy: { name: "릴리스의 환영", color: "#d04080", hp: 6, dmg: 0, speed: 65, r: 28, contact: false },
+});
+// 일반 스테이지 몹은 더 단단하고 세게 (v116)
+const W3_NORMAL_HP = 1.5, W3_NORMAL_DMG = 1.25;
+let w3Ch = 1, w3MarkOpen = false;
+const w3ChOpen = ch => ch === 1 || w3Best(ch - 1, 10) > 0;
+
+// ── 차원 각인: 월드 3 별 1개 = 1점. 월드 3 안에서만 적용 ──
+const MARKS = [
+  [["atk", 4], ["hp", 5], ["move", 4], ["cdr", 3]],
+  [["crit", 3], ["red", 3], ["boss", 5], ["regen", 0.5]],
+  [["atk", 6], ["hp", 8], ["dodge", 3], ["charmRes", 25]],
+  [["atk", 8], ["red", 5], ["cdr", 6], ["critDmg", 20]],
+  [["atk", 12], ["hp", 15], ["boss", 12], ["charmRes", 30]],
+];
+const MARK_COST = [1, 2, 3, 4, 6];
+const markPts = () => W3_CH.reduce((a, c) => a + w3ChStars(c.n), 0);
+const markUsed = () => Object.keys(state.w3.mark || {}).reduce((a, id) => a + (MARK_COST[+id[0]] || 0), 0);
+const markCanTier = tier => tier === 0 || Object.keys(state.w3.mark).filter(id => +id[0] < tier).length >= tier * 2;
+function markStats() {
+  const t = {};
+  for (const id in state.w3.mark || {}) { const [k, v] = MARKS[+id[0]]?.[+id[1]] || []; if (k) t[k] = (t[k] || 0) + v; }
+  return t;
+}
+const markTxt = ([k, v]) => k === "charmRes" ? `매혹·수면 시간 −${v}%` : effTxt([k, v]);
+function buyMark(id) {
+  const tier = +id[0];
+  if (state.w3.mark[id] || !markCanTier(tier) || markPts() - markUsed() < MARK_COST[tier]) return;
+  state.w3.mark[id] = true; sfx("learn"); commit();
+}
+function resetMark() { state.w3.mark = {}; commit(); }
+function markView() {
+  const left = markPts() - markUsed();
+  return `<div class="w3-mark"><div class="w3-mh"><b>차원 각인</b><span>남은 점수 ${left} / 별 ${markPts()}</span></div>
+    <p class="hint">월드 3 별 1개가 1점. 월드 3 안에서만 적용돼요. 윗줄을 2개 이상 배울 때마다 다음 줄이 열려요. 초기화는 무료.</p>
+    <div class="w3-mgrid">${MARKS.map((row, ti) => row.map((e, ci) => { const id = `${ti}${ci}`, has = state.w3.mark[id], can = !has && markCanTier(ti) && left >= MARK_COST[ti];
+      return `<button class="w3-mk ${has ? "own" : can ? "open" : "lock"}" data-mark="${id}" ${has || !can ? "disabled" : ""}><span>${markTxt(e)}</span><small>${has ? "배움" : MARK_COST[ti] + "점"}</small></button>`; }).join("")).join("")}</div>
+    <button data-markreset ${markUsed() ? "" : "disabled"}>각인 초기화</button></div>`;
+}
+
+// ── 매혹 ── 조작이 무시되고 매혹한 쪽으로 끌려감. 화면(또는 키)을 연타하면 빨리 풀림
+function charmPlayer(sec, src) {
+  const p = run.p, res = 1 - Math.min(0.8, (run.mark?.charmRes || 0) / 100);
+  sec *= ccMul() * res;
+  if (!(p.charmT > 0)) { fx(p.x, p.y - 36, "매혹! 연타해서 풀기", "#ff8fb8", 15); sfx("bind"); }
+  p.charmT = Math.max(p.charmT || 0, sec);
+  p.charmSrc = src;
+}
+function charmTap() { const p = run?.p; if (p && p.charmT > 0) { p.charmT -= 0.12; fx(p.x + (Math.random() - 0.5) * 20, p.y - 30, "♥", "#ff8fb8", 12); } }
+
+// ── 붕괴 발판 (2장) ── 금이 간 뒤 구멍이 되고, 빠지면 추락: 최대 체력 18% 피해 + 가운데로
+const HOLE = 56;
+function crackAt(x, y) {
+  const S = run.stage; if (!S) return;
+  const gx = clamp(Math.floor(x / HOLE), 0, Math.floor(W / HOLE) - 1) * HOLE, gy = clamp(Math.floor(y / HOLE), 1, Math.floor(H / HOLE) - 1) * HOLE;
+  (S.holes ||= []);
+  if (S.holes.some(h => h.x === gx && h.y === gy)) return;
+  if (S.exit && Math.hypot(gx + HOLE / 2 - S.exit.x, gy + HOLE / 2 - S.exit.y) < 60) return;
+  if (S.crystal && Math.hypot(gx + HOLE / 2 - S.crystal.x, gy + HOLE / 2 - S.crystal.y) < 70) return;
+  S.holes.push({ x: gx, y: gy, crack: 1.2, open: 4 });
+}
+function fallPlayer() {
+  const p = run.p;
+  if (p.invuln > 0 || p.fallCd > 0) return;
+  p.fallCd = 1.2;
+  hurtPlayer(Math.round(p.max * 0.12));
+  p.knock = null; p.dash = null;
+  p.x = W / 2 + (Math.random() - 0.5) * 60; p.y = H / 2 + (Math.random() - 0.5) * 60;
+  p.invuln = Math.max(p.invuln, 0.8);
+  fx(p.x, p.y - 36, "추락!", "#bfe0ff", 16); sfx("drop");
+}
+function w3Terrain(dt) {
+  const r = run, S = r.stage, p = r.p, th = r.zone.theme;
+  p.fallCd = (p.fallCd || 0) - dt;
+  if (th === "sky") {
+    if (S.def.type !== "boss") { S.crackT = (S.crackT ?? 2) - dt; if (S.crackT <= 0) { S.crackT = 1.6; crackAt(p.x + (Math.random() - 0.5) * 260, p.y + (Math.random() - 0.5) * 260); } }
+    for (const h of S.holes || []) {
+      if (h.crack > 0) h.crack -= dt; else h.open -= dt;
+      if (h.crack <= 0 && h.open > 0 && !p.dash && p.x > h.x && p.x < h.x + HOLE && p.y > h.y && p.y < h.y + HOLE) fallPlayer();
+    }
+    if (S.holes) S.holes = S.holes.filter(h => h.open > 0);
+    // 날려 가다가 가장자리에 닿으면 추락
+    if (p.knock && (p.x <= P_R + 2 || p.x >= W - P_R - 2 || p.y <= P_R + 2 || p.y >= H - P_R - 2)) fallPlayer();
+  }
+  if (th === "rose" && S.def.boss === "lilith" && !S.pillars) S.pillars = [{ x: 110, y: 330, r: 22 }, { x: W - 110, y: 330, r: 22 }, { x: W / 2, y: 470, r: 22 }];
+  if (S.pillars) for (const pl of S.pillars) { const dx = p.x - pl.x, dy = p.y - pl.y, d = Math.hypot(dx, dy) || 1; if (d < pl.r + P_R) { p.x = pl.x + dx / d * (pl.r + P_R); p.y = pl.y + dy / d * (pl.r + P_R); } }
+  S.decoyOn = r.mobs.some(o => o.decoy && !o.dead);
+}
+
+// ── 새 몹 AI ──
+Object.assign(W2AI, {
+  // 천공 창기병: 내가 갈 곳을 예측해서 앞을 막고, 예고 후 창 찌르기
+  sLancer(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const p = run.p, S = run.stage, T = w3Tgt(m);
+    if (m.thrust) {
+      m.thrust.t -= dt;
+      if (m.thrust.t <= 0) { m.thrust = null; m.cd = 2; for (let k = 1; k <= 3; k++) { const x = m.x + Math.cos(m.face) * 22 * k, y = m.y + Math.sin(m.face) * 22 * k; if (Math.hypot(p.x - x, p.y - y) < 20 + P_R) { hitBy(m, m.dmg); break; } } ring(m.x + Math.cos(m.face) * 50, m.y + Math.sin(m.face) * 50, 20, "#9fb8e0"); }
+      return;
+    }
+    const lead = T === p ? 0.9 : 0, gx = T.x + (S?.pvx || 0) * lead, gy = T.y + (S?.pvy || 0) * lead;
+    w3Move(m, gx - m.x, gy - m.y, m.speed * slow, dt);
+    m.face = Math.atan2(T.y - m.y, T.x - m.x);
+    m.cd -= dt;
+    if (m.cd <= 0 && Math.hypot(T.x - m.x, T.y - m.y) < 80) m.thrust = { t: 0.5 };
+  },
+  // 폭풍 술사: 멀리서 내가 갈 곳에 폭풍 장판
+  sMage(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const S = run.stage, T = w3Tgt(m), tx = T.x - m.x, ty = T.y - m.y, td = Math.hypot(tx, ty) || 1;
+    m.face = Math.atan2(ty, tx);
+    if (td < 180) w3Move(m, -tx, -ty, m.speed * slow, dt); else if (td > 280) w3Move(m, tx, ty, m.speed * slow, dt);
+    m.cd -= dt;
+    if (m.cd <= 0) { m.cd = 3 + Math.random(); const px = T.x + (S?.pvx || 0) * 0.8, py = T.y + (S?.pvy || 0) * 0.8;
+      w2Boom(px, py, 50, 1.0, m.dmg, "143,208,255", m, "slow"); }
+  },
+  // 하늘 사제: 동료 뒤에 숨어서 체력이 가장 낮은 동료를 치유
+  sPriest(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const p = run.p, allies = run.mobs.filter(o => !o.dead && o !== m && o.w3 && o.kind !== "sPriest");
+    const back = allies.length ? allies.reduce((a, o) => ({ x: a.x + o.x / allies.length, y: a.y + o.y / allies.length }), { x: 0, y: 0 }) : { x: m.x, y: m.y };
+    const ang = Math.atan2(back.y - p.y, back.x - p.x), gx = back.x + Math.cos(ang) * 80, gy = back.y + Math.sin(ang) * 80;
+    w3Move(m, gx - m.x, gy - m.y, m.speed * slow, dt);
+    m.cd -= dt;
+    if (m.cd <= 0) {
+      m.cd = 2.2;
+      const tg = allies.filter(o => o.hp < o.max).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
+      if (tg) { tg.hp = Math.min(tg.max, tg.hp + tg.max * 0.12); run.chains.push({ pts: [[m.x, m.y], [tg.x, tg.y]], t: 0.3, col: "255,240,170" }); fx(tg.x, tg.y - tg.r - 6, "+회복", "#fff6a8", 12); }
+    }
+  },
+  // 매혹 나비: 하늘하늘 다가오고, 닿으면 짧은 매혹
+  rButterfly(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const T = w3Tgt(m); m.flut = (m.flut || 0) + dt * 6;
+    const tx = T.x - m.x, ty = T.y - m.y, l = Math.hypot(tx, ty) || 1;
+    m.x = clamp(m.x + (tx / l * m.speed + Math.cos(m.flut) * 60) * slow * dt, 14, W - 14);
+    m.y = clamp(m.y + (ty / l * m.speed + Math.sin(m.flut * 1.3) * 60) * slow * dt, 40, H - 14);
+    m.face = Math.atan2(ty, tx);
+    if (T === run.p && l < m.r + P_R + 2 && (m.charmCd = (m.charmCd || 0) - dt) <= 0) { m.charmCd = 2.5; charmPlayer(0.8, m); }
+  },
+  // 가시 덩굴: 느리게 다가옴 (죽으면 둘로 갈라짐)
+  rVine(m, ax, ay, d, slow, dt) { if (!w3Awake(m, d)) return; const T = w3Tgt(m); w3Move(m, T.x - m.x, T.y - m.y, m.speed * slow, dt); m.face = Math.atan2(T.y - m.y, T.x - m.x); },
+  rVineS(m, ax, ay, d, slow, dt) { W2AI.rVine(m, ax, ay, d, slow, dt); },
+  // 도깨비불: 불씨를 던지고, 체력이 낮으면 도망치며 회복
+  rImp(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const T = w3Tgt(m), tx = T.x - m.x, ty = T.y - m.y, td = Math.hypot(tx, ty) || 1;
+    m.face = Math.atan2(ty, tx);
+    if (m.hp < m.max * 0.4) { w3Move(m, -tx, -ty, m.speed * 1.2 * slow, dt); m.hp = Math.min(m.max, m.hp + m.max * 0.06 * dt); if (Math.random() < 0.02) fx(m.x, m.y - 16, "도망!", "#ff9060", 11); return; }
+    if (td > 200) w3Move(m, tx, ty, m.speed * slow, dt); else if (td < 130) w3Move(m, -tx, -ty, m.speed * slow, dt);
+    m.cd -= dt;
+    if (m.cd <= 0) { m.cd = 2.2; w2Shot(m, m.face, 210, m.dmg, "#ff7040"); }
+  },
+  lilithDecoy(m, ax, ay, d, slow, dt) { m.life -= dt; if (m.life <= 0) { m.dead = true; ring(m.x, m.y, 30, "#ff8fb8"); return; } m.wob = (m.wob || Math.random() * 6) + dt; w3Move(m, Math.cos(m.wob) * 40 + ax * 0.3, Math.sin(m.wob * 1.3) * 40 + ay * 0.3, 50, dt); },
+});
+for (const [k, b] of Object.entries(W3_MOB)) if (b.ai && !W2AI[k]) W2AI[k] = (...a) => W2AI[b.ai](...a);
+
+// ── 보스 ──
+for (const k of ["skyGolem", "skyCaptain", "roseKnight", "lilith"]) W2_BOSS.add(k);
+W2_PATTERNS.skyGolem = ["kSlash", "collapse", "kShards", "gale", "collapse"];
+W2_PATTERNS.skyCaptain = ["lance", "gale", "shock", "lance", "collapse", "squad"];
+W2_PATTERNS.roseKnight = ["kSlash", "roses", "kiss", "kDash", "roses"];
+W2_PATTERNS.lilith = ["kiss", "roses", "illusion", "bats", "kiss", "redmoon"];
+Object.assign(W2_START, {
+  collapse(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; for (let k = 0; k < (E ? 9 : 6); k++) crackAt(p.x + (Math.random() - 0.5) * 220, p.y + (Math.random() - 0.5) * 220); crackAt(p.x, p.y); fx(p.x, p.y - 40, "발판이 무너져요!", "#bfe0ff", 14); },
+  gale(m, p, w, toP, E) { m.mode = "gale"; m.timer = E ? 3 : 2.4; m.galeA = Math.random() < 0.5 ? 0 : Math.PI; fx(W / 2, 140, m.galeA ? "← 돌풍" : "돌풍 →", "#bfe0ff", 18); sfx("whirl");
+    for (let k = 0; k < 6; k++) w2Later(0.3 + k * 0.35, () => !m.dead && w2Shot(m, toP() + (Math.random() - 0.5) * 0.6, 220, m.dmg * 0.5, "#e8f0ff")); },
+  lance(m, p, w, toP, E) { m.mode = "kDashAim"; m.timer = E ? 0.5 : 0.65; m.dashA = toP(); m.lanceKnock = true; },
+  shock(m, p, w, toP, E) { m.mode = "howl"; m.timer = 1.4; for (let k = 0; k < 3; k++) for (let j = 0; j < 10; j++) { const a = j / 10 * Math.PI * 2 + k * 0.3, R = 70 + k * 70; w2Boom(m.x + Math.cos(a) * R, m.y + Math.sin(a) * R, 34, 0.6 + k * 0.35, m.dmg * 0.8, "191,224,255", m); } },
+  squad(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; if (w3Alive(o => !o.boss).length < 5) { w3Spawn("sLancer"); w3Spawn(E ? "sPriest" : "sHawk"); } fx(m.x, m.y - m.r - 18, "근위대!", "#bfe0ff", 15); },
+  kiss(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.7; const a = toP(), n = E ? 7 : 5; for (let k = 0; k < n; k++) w2Shot(m, a + (k - (n - 1) / 2) * 0.22, 210, m.dmg * 0.5, "#ff6fa8", { charm: 1.4 }); fx(m.x, m.y - m.r - 18, "입맞춤 ♥", "#ff8fb8", 15); sfx("learn"); },
+  roses(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; for (let k = 0; k < (E ? 6 : 4); k++) { const x = clamp(p.x + (Math.random() - 0.5) * 240, 30, W - 30), y = clamp(p.y + (Math.random() - 0.5) * 240, 70, H - 30); w.clouds.push({ x, y, r: 48, t: 5, max: 5, dps: m.dmg * 0.25, rose: true }); } fx(p.x, p.y - 40, "가시 장미!", "#ff6f8f", 14); },
+  illusion(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6; m.ghost = 0;
+    ring(m.x, m.y, 50, "#ff8fb8");
+    const spots = [[90, 180], [W - 90, 180], [W / 2, 260], [100, 420], [W - 100, 420]].sort(() => Math.random() - 0.5).slice(0, E ? 4 : 3);
+    const real = spots.pop(); m.x = real[0]; m.y = real[1];
+    for (const [x, y] of spots) { const dcy = w3MakeMob("lilithDecoy", x, y); dcy.decoy = true; dcy.life = 6; dcy.real = m; dcy.noLoot = true; }
+    fx(W / 2, 140, "환영! 그림자가 있는 쪽이 진짜", "#ff8fb8", 15);
+  },
+  bats(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.8; for (let k = 0; k < (E ? 14 : 10); k++) w2Later(k * 0.12, () => { if (m.dead) return; const [x, y] = w3Edge(), a = Math.atan2(run.p.y - y, run.p.x - x); run.shots.push({ x, y, vx: Math.cos(a) * 230, vy: Math.sin(a) * 230, dmg: Math.round(m.dmg * 0.45), t: 3, ball: "#5a2040", owner: m }); }); fx(W / 2, 140, "박쥐 떼!", "#ff8fb8", 15); },
+  redmoon(m, p, w, toP, E) { if (!E) return W2_START.kiss(m, p, w, toP, E); m.mode = "redmoon"; m.timer = 2.4; fx(W / 2, 140, "붉은 달! 기둥 뒤로 숨으세요", "#ff5f8a", 18); sfx("bossIn"); },
+});
+// 보스 모드: 돌풍, 붉은 달 (기사단장 돌격은 kDash에서 넉백)
+const _w3BossMode = w3BossMode;
+w3BossMode = function (m, dt, done) {
+  const p = run.p;
+  if (m.mode === "gale") { if (!p.dash) p.x = clamp(p.x + Math.cos(m.galeA) * 120 * dt, P_R, W - P_R); if (m.timer <= 0) done(); return true; }
+  if (m.mode === "redmoon") {
+    if (m.timer > 0) return true;
+    const S = run.stage, blocked = (S.pillars || []).some(pl => segDist(pl.x, pl.y, m.x, m.y, p.x, p.y) < pl.r);
+    run.quake = 0.4; ring(m.x, m.y, 300, "#ff5f8a");
+    if (!blocked) { hitBy(m, m.dmg * 1.2); charmPlayer(2.2, m); }
+    done(); return true;
+  }
+  if (m.mode === "kDash" && m.lanceKnock && !m.dashHit && Math.hypot(p.x - m.x, p.y - m.y) < m.r + P_R) {
+    m.dashHit = true; hitBy(m, m.dmg * 1.2); const a = Math.atan2(p.y - m.y, p.x - m.x); p.dash = null; p.knock = { vx: Math.cos(a) * 1100, vy: Math.sin(a) * 1100, t: 0.4 }; fx(p.x, p.y - 30, "날아감!", "#bfe0ff", 14);
+  }
+  if (m.mode !== "kDash") m.lanceKnock = m.mode === "kDashAim" ? m.lanceKnock : false;
+  return _w3BossMode(m, dt, done);
+};
+
+// ── 검 각성 기술: +130 차원 베기 (+140이면 검기 폭풍이 이어짐) ──
+const AWAKE_REQ = 130, AWAKE_CD = 12;
+const awakeOpen = () => state.sword >= AWAKE_REQ;
+function castAwake() {
+  if (!run || run.over || !awakeOpen() || (run.awakeCd || 0) > 0) return;
+  const p = run.p;
+  if (p.frozen > 0 || p.stun > 0 || p.sleepT > 0) return;
+  run.awakeCd = AWAKE_CD;
+  const near = run.mobs.filter(m => !m.dead && !(m.ghost > 0)).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y))[0];
+  const a = near ? Math.atan2(near.y - p.y, near.x - p.x) : p.aim, L = 340;
+  p.aim = a;
+  run.slash = { x: p.x, y: p.y, a, t: 0.35, L };
+  sfx("dash"); fx(p.x, p.y - 40, "차원 베기!", "#e6f2ff", 16);
+  for (const m of run.mobs) if (!m.dead && segDist(m.x, m.y, p.x, p.y, p.x + Math.cos(a) * L, p.y + Math.sin(a) * L) < 26 + m.r) hit(m, 8 * (m.boss ? 0.5 : 1));
+  if (state.sword >= 140) run.blades = { t: 4, tick: 0 };
+}
+function awakeUpdate(dt) {
+  const r = run, p = r.p;
+  if (r.awakeCd > 0) r.awakeCd = Math.max(0, r.awakeCd - dt);
+  if (r.slash) { r.slash.t -= dt; if (r.slash.t <= 0) r.slash = null; }
+  if (r.blades) {
+    r.blades.t -= dt; r.blades.tick -= dt;
+    if (r.blades.tick <= 0) { r.blades.tick = 0.25; for (const m of r.mobs) if (!m.dead && Math.hypot(m.x - p.x, m.y - p.y) - m.r < 78) hit(m, 0.8 * (m.boss ? 0.5 : 1)); }
+    if (r.blades.t <= 0) r.blades = null;
+  }
+  const b = $("awakebtn");
+  if (b && !b.hidden) { b.style.setProperty("--cd", r.awakeCd > 0 ? r.awakeCd / AWAKE_CD : 0); b.querySelector(".t").textContent = r.awakeCd > 0 ? Math.ceil(r.awakeCd) : ""; }
+}
+function drawAwake(t) {
+  const r = run, p = r.p;
+  if (r.slash) { const s = r.slash, k = s.t / 0.35; ctx.save(); ctx.shadowColor = "#cfe8ff"; ctx.shadowBlur = 18; ctx.strokeStyle = `rgba(240,248,255,${k})`; ctx.lineWidth = 6 + 14 * k;
+    ctx.beginPath(); ctx.moveTo(s.x, s.y); ctx.lineTo(s.x + Math.cos(s.a) * s.L, s.y + Math.sin(s.a) * s.L); ctx.stroke(); ctx.restore(); }
+  if (r.blades) for (let i = 0; i < 4; i++) { const a = t * 6 + i * Math.PI / 2, x = p.x + Math.cos(a) * 58, y = p.y + Math.sin(a) * 58;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a + Math.PI / 2); ctx.shadowColor = "#ff8fb8"; ctx.shadowBlur = 10; poly([[0, -14], [4, 0], [0, 14], [-4, 0]], "#ffe6f2"); ctx.restore(); }
+}
+
+// ── 그리기: 붕괴 발판, 기둥, 매혹, 붉은 달, 환영 ──
+const _drawW3 = drawW3;
+drawW3 = function (r, t) {
+  const S = r.stage;
+  if (S?.holes) for (const h of S.holes) {
+    if (h.crack > 0) { const k = 1 - h.crack / 1.2; ctx.strokeStyle = `rgba(255,95,86,${0.4 + 0.5 * k})`; ctx.lineWidth = 2; ctx.strokeRect(h.x + 3, h.y + 3, HOLE - 6, HOLE - 6);
+      ctx.beginPath(); ctx.moveTo(h.x + 10, h.y + 12); ctx.lineTo(h.x + HOLE / 2, h.y + HOLE / 2); ctx.lineTo(h.x + HOLE - 12, h.y + 18); ctx.moveTo(h.x + HOLE / 2, h.y + HOLE / 2); ctx.lineTo(h.x + HOLE / 2 - 4, h.y + HOLE - 10); ctx.stroke(); }
+    else { const g = ctx.createRadialGradient(h.x + HOLE / 2, h.y + HOLE / 2, 4, h.x + HOLE / 2, h.y + HOLE / 2, HOLE * 0.7); g.addColorStop(0, "#0a1420"); g.addColorStop(1, "rgba(60,90,130,.8)"); ctx.fillStyle = g; ctx.fillRect(h.x + 2, h.y + 2, HOLE - 4, HOLE - 4); }
+  }
+  if (S?.pillars) for (const pl of S.pillars) { blob(pl.x, pl.y + 6, pl.r, pl.r * 0.5, "rgba(0,0,0,.4)"); blob(pl.x, pl.y, pl.r, pl.r, "#6a3040"); blob(pl.x - 5, pl.y - 6, pl.r * 0.5, pl.r * 0.5, "#8a4a5a"); }
+  _drawW3(r, t);
+  for (const m of r.mobs) {
+    if (m.dead) continue;
+    if (m.thrust) { ctx.fillStyle = "rgba(255,95,86,.25)"; ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.face); ctx.fillRect(0, -10, 70, 20); ctx.restore(); }
+    if (m.mode === "redmoon") {
+      const k = 1 - m.timer / 2.4; ctx.fillStyle = `rgba(200,20,60,${0.08 + 0.2 * k})`; ctx.fillRect(0, 0, W, H);
+      ctx.strokeStyle = "rgba(255,95,138,.8)"; ctx.setLineDash([6, 6]); ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(r.p.x, r.p.y); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (m.kind === "lilith" && S?.decoyOn) blob(m.x, m.y + m.r * 0.9, m.r, m.r * 0.32, "rgba(0,0,0,.55)");
+  }
+  for (const c of r.w2.clouds) if (c.rose) { for (let i = 0; i < 6; i++) { const a = i / 6 * Math.PI * 2 + c.x; blob(c.x + Math.cos(a) * c.r * 0.6, c.y + Math.sin(a) * c.r * 0.6, 6, 6, "#d0305a"); } }
+  const p = r.p;
+  if (p.charmT > 0) for (let i = 0; i < 3; i++) { const a = t * 3 + i * 2.1; ctx.fillStyle = "#ff8fb8"; ctx.font = "14px sans-serif"; ctx.textAlign = "center"; ctx.fillText("♥", p.x + Math.cos(a) * 18, p.y - 22 + Math.sin(a) * 6); }
+  drawAwake(t);
+};
+
+// ── 몹 그림 (2·3장) ──
+const drawW3Simple = (body, accent, eye = "#2a3a48") => (m, t) => {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  blob(-r * 0.15, 0, r * 0.9, r * 0.9, shade(c, -0.3));
+  blob(0, 0, r * 0.72, r * 0.72, c);
+  accent(m, t, r, c);
+  blob(r * 0.35, -r * 0.2, 2, 2, eye); blob(r * 0.35, r * 0.2, 2, 2, eye);
+};
+Object.assign(DRAW, {
+  sHawk: (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color, f = Math.sin(t * 16 + m.phase) * 0.4;
+    for (const s of [-1, 1]) poly([[0, 0], [-r * 0.6, s * r * (1.6 + f)], [-r * 1.1, s * r * (1.2 + f)]], shade(c, -0.15));
+    blob(0, 0, r * 0.75, r * 0.45, c); poly([[r * 0.7, -r * 0.15], [r * 1.2, 0], [r * 0.7, r * 0.15]], "#ffd24a"); blob(r * 0.4, 0, 1.8, 1.8, "#2a3a48"); },
+  sArcher: drawMArcher,
+  sLancer: drawW3Simple("", (m, t, r) => { ctx.strokeStyle = "#e6f0ff"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(-r * 0.2, r * 0.5); ctx.lineTo(r * 2, r * 0.5); ctx.stroke(); poly([[r * 2, r * 0.3], [r * 2.4, r * 0.5], [r * 2, r * 0.7]], "#ffffff"); poly([[r * 0.1, -r * 0.7], [r * 0.4, -r * 1.2], [r * 0.5, -r * 0.65]], "#ffd24a"); }),
+  sMage: drawW3Simple("", (m, t, r) => { poly([[-r * 0.7, -r * 0.4], [r * 0.4, -r * 0.6], [-r * 0.2, -r * 1.4]], "#3a6aa0"); ctx.save(); ctx.shadowColor = "#8fd0ff"; ctx.shadowBlur = 10; blob(r * 1.1, r * 0.5, 4, 4, "#bfe8ff"); ctx.restore(); }),
+  sPriest: drawW3Simple("", (m, t, r) => { ctx.save(); ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 10; ctx.strokeStyle = "#ffe9a8"; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(-r * 0.1, -r * 0.95, r * 0.5, r * 0.18, 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); }, "#6a5a2a"),
+  rButterfly: (m, t, r = m.r) => { const c = m.flash > 0 ? "#fff" : m.color, f = Math.abs(Math.sin(t * 14 + m.phase));
+    for (const s of [-1, 1]) { blob(-r * 0.1, s * r * (0.4 + 0.6 * f), r * 0.75, r * 0.5 * (0.4 + f), c); blob(-r * 0.5, s * r * (0.3 + 0.4 * f), r * 0.45, r * 0.3, shade(c, -0.25)); }
+    blob(0, 0, r * 0.5, r * 0.18, "#3a1028"); },
+  rMaid: drawW3Simple("", (m, t, r) => { blob(-r * 0.5, 0, r * 0.6, r * 0.9, "#2a1020"); poly([[-r * 0.2, -r * 0.8], [r * 0.3, -r * 0.6], [0, -r * 0.3]], "#ffffff"); }, "#ff8fb8"),
+  rVine: (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color; for (let i = 0; i < 5; i++) { const a = i / 5 * Math.PI * 2 + Math.sin(t * 2 + i) * 0.3; ctx.strokeStyle = shade(c, -0.2); ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(Math.cos(a + 0.5) * r, Math.sin(a + 0.5) * r, Math.cos(a) * r * 1.4, Math.sin(a) * r * 1.4); ctx.stroke(); }
+    blob(0, 0, r * 0.7, r * 0.7, c); blob(0, 0, r * 0.35, r * 0.35, "#d0305a"); },
+  rGolem: drawMGuard,
+  rImp: (m, t) => { const r = m.r; ctx.save(); ctx.shadowColor = "#ff7040"; ctx.shadowBlur = 14; poly([[-r, r * 0.6], [0, -r * 1.3 - Math.sin(t * 12) * 3], [r, r * 0.6]], m.flash > 0 ? "#fff" : m.color); ctx.restore(); blob(0, r * 0.1, r * 0.55, r * 0.55, "#ffd080"); blob(-r * 0.2, 0, 1.8, 2.2, "#3a1008"); blob(r * 0.2, 0, 1.8, 2.2, "#3a1008"); },
+  skyGolem: (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color; blob(0, r * 0.2, r * 1.05, r * 0.9, shade(c, -0.25)); blob(0, -r * 0.1, r * 0.85, r * 0.75, c);
+    for (const s of [-1, 1]) blob(s * r * 1.05, r * 0.2, r * 0.42, r * 0.5, shade(c, -0.15)); ctx.save(); ctx.shadowColor = "#8fd0ff"; ctx.shadowBlur = 12; blob(0, -r * 0.15, r * 0.25, r * 0.12, "#bfe8ff"); ctx.restore(); },
+  skyCaptain: (m, t) => { drawMirrorKnight(m, t); const r = m.r; for (const s of [-1, 1]) poly([[-r * 0.3, s * r * 0.4], [-r * 1.5, s * r * 1.4], [-r * 1.1, s * r * 0.3]], "rgba(232,240,255,.85)"); },
+  roseKnight: (m, t) => { drawMirrorKnight(m, t); const r = m.r; for (let i = 0; i < 4; i++) blob(-r * 0.6 + i * r * 0.35, -r * 0.75, 4, 4, "#ff4f7a"); },
+  lilith: (m, t) => { const r = m.r, c = m.flash > 0 ? "#fff" : m.color, f = Math.sin(t * 4) * 0.15;
+    for (const s of [-1, 1]) { poly([[0, s * r * 0.3], [-r * 0.6, s * r * (1.9 + f)], [-r * 1.4, s * r * (1.4 + f)], [-r * 0.9, s * r * 0.9], [-r * 1.3, s * r * 0.5]], "#3a1028"); }
+    ctx.save(); ctx.shadowColor = m.enraged ? "#ff2050" : "#ff8fb8"; ctx.shadowBlur = 20; blob(0, 0, r * 0.85, r * 0.85, c); ctx.restore();
+    blob(r * 0.1, 0, r * 0.55, r * 0.55, "#ffd0e0");
+    for (const s of [-1, 1]) poly([[-r * 0.1, s * r * 0.5], [-r * 0.2, s * r * 1.1], [r * 0.25, s * r * 0.6]], "#2a0818");
+    blob(r * 0.35, -r * 0.18, 2.6, 2.6, m.enraged ? "#ff2050" : "#a01050"); blob(r * 0.35, r * 0.18, 2.6, 2.6, m.enraged ? "#ff2050" : "#a01050");
+    blob(r * 0.55, 0, 3, 2, "#ff4f7a"); },
+  lilithDecoy: (m, t) => { ctx.globalAlpha = 0.75 + 0.15 * Math.sin(t * 8); DRAW.lilith(m, t); ctx.globalAlpha = 1; },
+});
+for (const k of ["rImp", "skyGolem"]) UPRIGHT.add(k);
+DRAW.rVineS = DRAW.rVine;
+
+// ── 월드 3 화면 (장 선택 · 차원 각인) ──
+w3View = function () {
+  if (!w3Open()) return `<div class="zone w2lock"><h3>월드 3: 무너진 차원</h3><p><b>별의 던전</b>을 클리어하면 열려요.</p><p>스테이지 형식, 상한 동기화, 새 보스와 검 +150까지의 강화가 기다려요. (지금은 3장까지)</p></div>`;
+  if (!w3ChOpen(w3Ch)) w3Ch = 1;
+  const ch = W3_CH[w3Ch - 1], st = W3_STAGES[w3Ch], stars = w3ChStars(w3Ch);
+  if (w3Sel > st.length) w3Sel = 1;
+  const tabs = `<div class="seg w3-chs">${W3_CH.map(c => `<button data-w3ch="${c.n}" aria-selected="${c.n === w3Ch}" ${w3ChOpen(c.n) ? "" : "disabled"}>${w3ChOpen(c.n) ? `${c.n}장` : `${c.n}장 🔒`}</button>`).join("")}<button data-w3mark aria-selected="${w3MarkOpen}">각인</button></div>`;
+  if (w3MarkOpen) return tabs + markView();
+  const nodes = st.map((d, i) => {
+    const n = i + 1, best = w3Best(w3Ch, n), open = w3Unlocked(w3Ch, n), [ic] = W3_TYPES[d.type];
+    return `<button class="w3n ${open ? "" : "lock"} ${best ? "done" : ""} ${w3Sel === n ? "sel" : ""} ${d.type === "boss" ? "boss" : ""}" data-w3sel="${n}" ${open ? "" : "disabled"}>
+      <span class="ic">${open ? ic : "🔒"}</span><b>${w3Ch}-${n}</b><small>${best ? "★".repeat(best) + "☆".repeat(3 - best) : open ? "도전!" : ""}</small></button>`;
+  }).join("");
+  const sel = st[w3Sel - 1], open = w3Unlocked(w3Ch, w3Sel), best = w3Best(w3Ch, w3Sel), [ic, tn] = W3_TYPES[sel.type];
+  const chests = W3_CHESTS.map((c, i) => `<span class="${(state.w3.chests[w3Ch] || []).includes(i) ? "on" : ""}">★${c.need} ${c.text}</span>`).join("");
+  const goal = { kill: `몹 ${sel.need}마리 처치`, survive: `${sel.dur}초 버티기`, defend: `${sel.dur}초 동안 수정 지키기`, escape: "표식 5개를 켜고 출구까지 가기",
+    elite: `정예 ${sel.elites?.length}마리 처치`, hunt: `${sel.limit}초 안에 보물 요정 잡기`, waves: `웨이브 ${sel.waves?.length}번 막기`, boss: `${W3_MOB[sel.boss]?.name} 처치` }[sel.type];
+  return tabs + `<div class="w3-head" style="--c:${ch.color}"><h3>${w3Ch}장 · ${ch.name}</h3><span>★ ${stars}/30</span></div>
+    <p class="hint"><b>상한 동기화</b>: 검 최대 +${ch.cap.sword} (넘는 단계는 1단계당 공격력 +1%, 최대 +15%) · 방어구 강화 최대 +${ch.cap.armor} · 캐릭터 최대 Lv ${ch.cap.char} · 스킬 트리 효과 절반 · 차원 각인 적용${awakeOpen() ? " · 검 각성(V 키 / 왼쪽 아래 버튼)" : ""}</p>
+    <div class="w3-chests">${chests}</div>
+    <div class="w3-map">${nodes}</div>
+    <div class="w3-card ${sel.type === "boss" ? "boss" : ""}">
+      <div class="w3-t"><span>${ic} ${tn}</span><b>${w3Ch}-${w3Sel} ${sel.name}</b>${best ? `<em>${"★".repeat(best)}${"☆".repeat(3 - best)}</em>` : ""}</div>
+      <p>${sel.desc}</p>
+      <ul><li>목표: ${goal}</li><li>★ 클리어 · ★ 체력 50% 이상 남기기 · ★ ${sel.par}초 안에</li>
+        <li>${best ? "다시 깨기: 룬석 3 · 소울 5" : `첫 클리어: 별의 파편 ${w3FirstStar(w3Ch, w3Sel)} · 룬석 ${w3FirstRune(w3Ch, w3Sel)} · 강화석 8 · 소울 40${sel.type === "boss" ? " · 뽑기권 1" : ""}`}${sel.type === "boss" ? ` · 매번 ${matName(ch.mat)} 1~5개${w3Sel === 10 ? "(+2)" : ""} · 뽑기권 25%` : ""}</li></ul>
+      <button class="go" data-zone="w3:${w3Ch}:${w3Sel}" ${open ? "" : "disabled"}>${open ? "도전" : "앞 스테이지를 먼저 깨야 해요"}</button>
+    </div>`;
+};
+const w3FirstStar = (ch, n) => 15 + 5 * n + 20 * (ch - 1);
+const w3FirstRune = (ch, n) => 10 + 2 * n + 10 * (ch - 1);
 
 // 지형 특징과 보스 소품 (회오리, 먹물, 모래 폭풍, 예고 원, 띠 공격, 해일, 유사, 해파리 연결)
 function w2Update(dt) {
@@ -10184,7 +10622,7 @@ function endRun(dead) {
     const S = run.stage, R = S.result;
     $("result-title").textContent = R ? "스테이지 클리어!" : dead === true ? "스테이지 실패" : "스테이지를 나왔어요";
     $("result-loot").innerHTML = R
-      ? `<span class="w3-stars">${"★".repeat(R.stars)}${"☆".repeat(3 - R.stars)}</span><br>${run.zone.name} · ${Math.round(S.t)}초<br>${R.got.join(" · ")}<br><small>1장 별 ${R.chNow}/30</small>`
+      ? `<span class="w3-stars">${"★".repeat(R.stars)}${"☆".repeat(3 - R.stars)}</span><br>${run.zone.name} · ${Math.round(S.t)}초<br>${R.got.join(" · ")}<br><small>${S.ch}장 별 ${R.chNow}/30</small>`
       : `${run.zone.name}${S.fail ? `<br>${S.fail}` : ""}<br><small>다시 도전하거나 다른 스테이지를 골라 보세요.</small>`;
   }
   $("result").hidden = false;
@@ -10196,6 +10634,7 @@ function toWorld(e) {
 }
 
 $("arena").addEventListener("pointerdown", e => {
+  if (run && !run.over && run.p.charmT > 0) charmTap();
   if (!run || run.over || joy || e.target.closest("button")) return;
   e.preventDefault();
   const w = toWorld(e);
@@ -10218,6 +10657,7 @@ document.querySelectorAll("#skillbar .sk").forEach((b, i) => {
 });
 
 // 궁극기 버튼: 누르면 시전. 앨리온은 누른 채 끌면 마법진이 움직이고, 떼면 그 자리에 남는다 (다시 누르면 이어서 조종)
+$("awakebtn").addEventListener("pointerdown", e => { e.preventDefault(); castAwake(); });
 {
   const ub = $("ultbtn");
   const steer = e => {
@@ -10250,7 +10690,9 @@ window.addEventListener("keydown", e => {
     if (!e.repeat) useSkill(SKILL_KEYS[e.code]);
     return;
   }
+  if (run.p.charmT > 0 && !e.repeat) charmTap();
   if (e.code === "Space") { e.preventDefault(); if (!e.repeat) castUlt(); return; }
+  if (e.code === "KeyV") { e.preventDefault(); if (!e.repeat) castAwake(); return; }
   if (CIRCLE_KEYS[e.code]) { e.preventDefault(); circleKeys.add(CIRCLE_KEYS[e.code]); return; }
   if (!KEYMAP[e.code]) return;
   e.preventDefault();
@@ -10261,6 +10703,11 @@ window.addEventListener("blur", () => { keys.clear(); circleKeys.clear(); joy = 
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else resume(); });
 
 $("zones").addEventListener("click", e => {
+  const w3c = e.target.closest("[data-w3ch]"), w3m = e.target.closest("[data-w3mark]"), mk = e.target.closest("[data-mark]"), mkr = e.target.closest("[data-markreset]");
+  if (w3c) { w3Ch = +w3c.dataset.w3ch; w3Sel = 1; w3MarkOpen = false; renderZones(); return; }
+  if (w3m) { w3MarkOpen = !w3MarkOpen; renderZones(); return; }
+  if (mk) { buyMark(mk.dataset.mark); renderZones(); return; }
+  if (mkr) { resetMark(); renderZones(); return; }
   const w3s = e.target.closest("[data-w3sel]");
   if (w3s) { w3Sel = +w3s.dataset.w3sel; renderZones(); return; }
   const tz = e.target.closest("[data-tz]"), tbuy = e.target.closest("[data-tbuy]"), trs = e.target.closest("[data-treset]");
@@ -10306,7 +10753,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {} } });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } });
 
 function normalize(s) {
   const o = {
@@ -10349,7 +10796,8 @@ function normalize(s) {
     armorV: ARMOR_V,
     tree: Object.fromEntries(Object.keys(s.tree || {}).filter(id => TREE[id]).map(id => [id, true])),
     w3: { best: Object.fromEntries(Object.entries(s.w3?.best || {}).filter(([k, v]) => /^\d+-\d+$/.test(k)).map(([k, v]) => [k, clamp(v | 0, 0, 3)])),
-          chests: Object.fromEntries(Object.entries(s.w3?.chests || {}).map(([k, v]) => [k, Array.isArray(v) ? v.filter(x => Number.isInteger(x)) : []])) },
+          chests: Object.fromEntries(Object.entries(s.w3?.chests || {}).map(([k, v]) => [k, Array.isArray(v) ? v.filter(x => Number.isInteger(x)) : []])),
+          mark: Object.fromEntries(Object.keys(s.w3?.mark || {}).filter(id => /^[0-4][0-3]$/.test(id)).map(id => [id, true])) },
     equip: [0, 1, 2, 3, 4].map(i => {
       const k = Array.isArray(s.equip) ? s.equip[i] : null;
       return k && SK[k] && (s.skills || {})[k] > 0 ? k : null;

@@ -9,7 +9,7 @@ const ONLY = process.argv.slice(5).map(Number);
   for (let s = 1; s <= n; s++) {
     if (ONLY.length && !ONLY.includes(s)) continue;
     const r = await p.evaluate(async ([BUILD, MODE, CH, s]) => {
-      state.dungeon2Clears = 1; state.sword = 130; state.mlv = 200;
+      state.dungeon2Clears = 1; state.sword = W3_CH[CH - 1].cap.sword; state.mlv = 200; for (let c = 1; c < CH; c++) state.w3.best[c + '-10'] = 1;
       for (const z of [...ZONES, ...ZONES2]) state.bossKills[z.key] = 1;
       state.traits = BUILD === 'strong' ? { str: 20, vit: 20, dex: 10, luck: 20 } : BUILD === 'mid' ? { str: 10, vit: 10, dex: 0, luck: 0 } : { str: 0, vit: 0, dex: 0, luck: 0 };
       state.tree = {}; const nodes = Object.values(TREE).sort((a, b) => a.d - b.d);
@@ -33,7 +33,8 @@ const ONLY = process.argv.slice(5).map(Number);
         keys.clear();
         if (goal) { const d = Math.hypot(goal.x - P.x, goal.y - P.y); if (d > goal.want + 4) { if (goal.x > P.x + 4) keys.add('right'); if (goal.x < P.x - 4) keys.add('left'); if (goal.y > P.y + 4) keys.add('down'); if (goal.y < P.y - 4) keys.add('up'); } }
         for (let i = 0; i < 5; i++) useSkill(i);
-        castUlt();
+        castUlt(); castAwake();
+        if (run.p.charmT > 0 && f % 6 === 0) charmTap();
         update(1 / 60);
       }
       hurtPlayer = o;
