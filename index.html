@@ -146,6 +146,14 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .sound-row input[type="range"] { flex: 1; max-width: 220px; accent-color: var(--ember); }
 .sound-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--ember); }
 
+/* 떠돌이 상인 */
+.merch { display: grid; gap: 8px; }
+.mslot { border-left: 0; box-shadow: inset 0 3px 0 var(--mc); }
+.mslot h3 small { font-family: var(--mono); color: var(--muted); font-size: 13px; }
+.mslot.sold { opacity: .5; }
+.mslot.rare { border-color: #ffd24a; background: linear-gradient(180deg, #3a2f12, var(--panel)); }
+.merch-refresh { border: 1px solid var(--line); border-radius: 10px; padding: 12px; color: var(--fg); }
+.merch-refresh:disabled { opacity: .45; }
 /* 아래쪽 탭바 (엄지로 누르기 쉽게) */
 .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px;
   max-width: 560px; margin: 0 auto; padding: 6px 8px max(8px, env(safe-area-inset-bottom, 0px));
@@ -931,11 +939,10 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
         <dl class="odds" id="odds"></dl>
         <div class="inv" id="inv"></div>
         <label class="stone" id="stone-wrap" hidden>
-          <input type="checkbox" id="stone"> 행운의 숫돌 사용 (성공 +10%p)
+          <input type="checkbox" id="stone"> 확률 50% 주문서 사용
         </label>
         <div class="actions">
           <button class="primary" id="enhance"><strong>강화</strong><span id="cost"></span></button>
-          <button id="sell"><strong>판매</strong><span id="price"></span></button>
         </div>
       </section>
     </div>
@@ -1036,7 +1043,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v143";
+const GAME_VERSION = "v144";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1368,7 +1375,7 @@ const SHOP = [
   { key: "oil", name: "곡괭이 기름", price: 1500,
     desc: `광산에서 다음 ${OIL_CLICKS}번 캘 때 얻는 골드가 2배가 됩니다.` },
 ];
-const emptyInv = () => ({ noBreak: 0, noDrop: 0, stone: 0 });
+const emptyInv = () => ({ noBreak: 0, noDrop: 0, stone: 0, half: 0 });
 
 // 숫돌 보너스만큼 성공 확률을 올리고, 유지 → 하락 → 파괴 순서로 덜어 냄
 function boost([s, k, d, b], bonus = STONE_BONUS) {
@@ -1381,15 +1388,15 @@ function boost([s, k, d, b], bonus = STONE_BONUS) {
 // 실패할 때마다 다음 성공 확률 +2%p (성공하거나 파괴되면 0으로)
 const PITY_STEP = 2, MAT_REFUND = 30;
 const itemKey = item => item === ITEMS.sword ? "sword" : "pick";
-function finalOdds(item, lv, stone = stoneOn()) {
-  let o = item.odds(lv);
-  if (state.traits.dex) o = boost(o, state.traits.dex * 0.5);
-  const pt = state.pity?.[itemKey(item)] || 0;
-  if (pt) o = boost(o, pt);
-  o = o.map(v => +v.toFixed(2));
-  return (stone ? boost(o) : o).map(v => v === undefined ? v : +v.toFixed(2));
+// v144: 하락·파괴 없음 (실패하면 유지). 기본 성공 +5%p, 확률 50% 주문서는 50% 미만일 때 50%로
+const BASE_BONUS = 5;
+function finalOdds(item, lv, half = halfOn(item, lv)) {
+  let sc = item.odds(lv)[0] + BASE_BONUS + (state.traits.dex ? state.traits.dex * 0.5 : 0) + (state.pity?.[itemKey(item)] || 0);
+  if (half) sc = Math.max(sc, 50);
+  sc = +Math.min(100, sc).toFixed(2);
+  return [sc, +(100 - sc).toFixed(2), 0, 0];
 }
-const stoneOn = () => state.useStone && state.inv.stone > 0;
+const halfOn = (item = ITEMS[current], lv = state[current]) => state.useHalf && state.inv.half > 0 && (item.odds(lv)[0] + BASE_BONUS + (state.traits.dex ? state.traits.dex * 0.5 : 0) + (state.pity?.[itemKey(item)] || 0)) < 50;
 // 곡괭이 +20부터 광산에서 룬석도 나온다
 const RUNE_REQ = 20;
 const runeChance = () => state.pick < RUNE_REQ ? 0 : 0.5 + 0.1 * (state.pick - RUNE_REQ);
@@ -1404,7 +1411,7 @@ const minerCost = n => 20000 * Math.pow(2, n);
 const MINE_HAND = 1.6;
 const perRock = () => Math.round(rockGold() * MINE_HAND) * (state.oil > 0 ? 2 : 1);
 
-let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
+let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 1, merchant: null,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
               best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } };
@@ -1641,7 +1648,7 @@ const QUESTS = [
   { text: "곡괭이를 +5까지 강화하기", prog: () => [state.pick, 5], reward: { gold: 5000 } },
   { text: "초원에서 슬라임 킹 처치하기", prog: bossGoal("field", "crown"), reward: { runes: 5, tickets: 1 } },
   { text: "스킬 하나 배우기", prog: () => [Object.keys(state.skills).length, 1], reward: { runes: 5 } },
-  { text: "검을 +15까지 강화하기", prog: () => [state.best, 15], reward: { gold: 30000, inv: ["noBreak", 2] } },
+  { text: "검을 +15까지 강화하기", prog: () => [state.best, 15], reward: { gold: 36000 } },
   { text: "어둠의 동굴에서 바위 골렘 처치하기", prog: bossGoal("cave", "heart"), reward: { mats: ["ruby", 5] } },
   { text: "상점 → 캐릭터에서 캐릭터 뽑기 한 번 하기", prog: () => [state.cpulls, 1], reward: { runes: 10, tickets: 1 } },
   { text: "검을 +30까지 강화하기", prog: () => [state.best, 30], reward: { gold: 300000, mats: ["diamond", 5] } },
@@ -1811,36 +1818,27 @@ function render() {
   const maxed = lv >= item.max;
   const need = needMats(item, lv);
   const [s, k, d, b] = finalOdds(item, lv);
-  const cells = [["성공", s], ["유지", k], ["하락", d]];
-  if (current === "sword") cells.push(["파괴", b]);
+  const cells = [["성공", s], ["실패 (단계 유지)", k]];
   $("odds").style.gridTemplateColumns = `repeat(${cells.length}, 1fr)`;
-  $("odds").classList.toggle("boosted", stoneOn());
+  $("odds").classList.toggle("boosted", halfOn());
 
-  const chips = [["하락방지권", state.inv.noDrop]];
-  if (current === "sword") chips.unshift(["파괴방지권", state.inv.noBreak]);
-  let chipHtml = chips
-    .map(([l, n]) => `<span class="${n ? "" : "zero"}">${l} <b>${n}</b></span>`).join("");
+  let chipHtml = "";
   if (need && !maxed) {
     chipHtml = need.map(([key, n, ok]) =>
       `<span class="${ok ? "need" : "lack"}">${matName(key)} ${n}개 필요 <b>보유 ${state.mats[key]}</b></span>`).join("") + chipHtml;
   }
   if (state.pity[current] && !maxed) chipHtml = `<span class="need">실패 보너스 <b>+${state.pity[current]}%p</b></span>` + chipHtml;
   $("inv").innerHTML = chipHtml;
-  $("stone-wrap").hidden = state.inv.stone === 0 || maxed;
-  $("stone").checked = stoneOn();
-  $("stone-wrap").lastChild.textContent = ` 행운의 숫돌 사용 (성공 +${STONE_BONUS}%p · ${state.inv.stone}개)`;
+  $("stone-wrap").hidden = !state.inv.half || maxed;
+  $("stone").checked = !!state.useHalf;
+  $("stone-wrap").lastChild.textContent = ` 확률 50% 주문서 사용 (성공 확률이 50%보다 낮을 때 50%로 · ${state.inv.half}장)`;
   $("odds").innerHTML = maxed ? "" :
     cells.map(([l, v]) => `<div class="${v ? { 성공: "good", 하락: "warn", 파괴: "bad" }[l] || "" : "none"}"><dt>${l}</dt><dd>${+(+v).toFixed(2)}%</dd></div>`).join("");
 
   const lack = state.gold < item.cost(lv) ? "골드 부족" : !matsOk(need) ? "재료 부족" : "";
   $("cost").textContent = maxed ? "최고 단계" : won(item.cost(lv)) + (lack ? " · " + lack : "");
   $("enhance").disabled = maxed || state.gold < item.cost(lv) || !matsOk(need);
-  $("enhance").classList.toggle("only", !item.price);
-  $("sell").hidden = !item.price;
-  if (item.price) {
-    $("price").textContent = won(item.price(lv));
-    $("sell").disabled = lv === 0;
-  }
+  $("enhance").classList.add("only");
 
   $("per-rock").textContent = won(perRock());
   $("rock").setAttribute("aria-label", `돌 캐기 (+${perRock()} G)`);
@@ -2025,15 +2023,15 @@ function enhance() {
   state.gold -= c;
   for (const [k, n] of need || []) state.mats[k] -= n;   // 재료는 먼저 소모 (실패하면 30% 확률로 돌려받음)
 
-  const boosted = stoneOn();
+  const boosted = halfOn(item, lv);
   const [s, k, d] = finalOdds(item, lv, boosted);
   gainXp(3 + lv);
   if (boosted) {
-    state.inv.stone--;
-    if (!state.inv.stone) state.useStone = false;
+    state.inv.half--;
+    if (!state.inv.half) state.useHalf = false;
   }
   const roll = Math.random() * 100;
-  const who = item.label + (boosted ? " (숫돌)" : "");
+  const who = item.label + (boosted ? " (50% 주문서)" : "");
   let text;
   if (roll < s) {
     state[current]++;
@@ -2092,35 +2090,7 @@ function enhance() {
   commit();
 }
 
-// 판매는 실수로 누르기 쉬우니 3초 안에 한 번 더 눌러야 팔린다
-let sellArmed = null;
-function disarmSell() {
-  clearTimeout(sellArmed);
-  sellArmed = null;
-  $("sell").classList.remove("armed");
-  $("sell").querySelector("strong").textContent = "판매";
-}
-
-function sell() {
-  const lv = state.sword;
-  if (current !== "sword" || lv === 0) return;
-  if (!sellArmed) {
-    $("sell").classList.add("armed");
-    $("sell").querySelector("strong").textContent = "정말 판매?";
-    sfx("click");
-    sellArmed = setTimeout(disarmSell, 3000);
-    return;
-  }
-  disarmSell();
-  const p = ITEMS.sword.price(lv);
-  state.gold += p;
-  state.sword = 0;
-  state.log.unshift({ text: `검 +${lv} 판매`, delta: "+" + won(p) });
-  sfx("coins");
-  say(`+${lv} 검을 ${won(p)}에 팔았습니다.`, "good");
-  animate("flash");
-  commit();
-}
+function disarmSell() {}   // 검 판매 삭제 (v144)
 
 // ── 자동 클릭 막기 ── 사람이 누르면 간격과 위치가 조금씩 흔들린다.
 // 1초에 15번 넘게 누르면 넘친 만큼 무시, 간격이 기계처럼 일정하거나 계속 같은 점을 누르면 잠시 잠금
@@ -2319,7 +2289,6 @@ function showItem(name) {
 }
 
 $("enhance").addEventListener("click", enhance);
-$("sell").addEventListener("click", sell);
 $("rock").addEventListener("click", mine);
 $("journey").addEventListener("click", e => {
   const t = e.target.closest("[data-trait]");
@@ -2376,6 +2345,8 @@ $("shop").addEventListener("click", e => {
   const view = e.target.closest("[data-sview]");
   const cuse = e.target.closest("[data-char-use]");
   if (btn) buy(btn.dataset.buy);
+  else if (e.target.closest("[data-merch]")) merchBuy(+e.target.closest("[data-merch]").dataset.merch);
+  else if (e.target.closest("[data-mrefresh]")) merchRefresh();
   else if (view) { shopView = view.dataset.sview; renderShop(); }
   else if (e.target.closest("[data-pull]")) doGacha(+e.target.closest("[data-pull]").dataset.pull);
   else if (e.target.closest("[data-cpull10]")) pullChar10();
@@ -2384,7 +2355,7 @@ $("shop").addEventListener("click", e => {
   else if (cuse) useChar(cuse.dataset.charUse);
 });
 $("stone").addEventListener("change", e => {
-  state.useStone = e.target.checked;
+  state.useHalf = e.target.checked;
   commit();
 });
 $("item-sword").addEventListener("click", () => showItem("sword"));
@@ -4897,24 +4868,114 @@ function playCutscene(res, done) {
   $("cg-skip").onclick = end;
 }
 
+// ── 떠돌이 상인 ── 매일(한국 시간 자정) 바뀌는 6칸. 칸마다 골드·루비·다이아몬드 중 하나로 값을 받는다
+const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const MERCH_SLOTS = 6, MERCH_REFRESH = 2, HALF_CHANCE = 0.2;
+const GEM_VALUE = { ruby: 3, diamond: 8 };   // 보석 1개 = 기준 골드(내가 간 가장 먼 사냥터의 몹 골드) × 이 값
+function zoneOfMat(key) { return [...ZONES, ...ZONES2].find(z => z.boss?.mat === key); }
+function matMobGold(key) {   // 그 재료가 나오는 사냥터의 일반 몹 골드 (월드 3 재료는 별의 균열 × 2)
+  const z = zoneOfMat(key);
+  return z ? z.mob.gold : ZONES2.at(-1).mob.gold * 2;
+}
+function refGold() {   // 지금 내가 잡은 가장 먼 보스의 사냥터 몹 골드
+  let g = ZONES[0].mob.gold;
+  for (const z of [...ZONES, ...ZONES2]) if ((state.bossKills[z.key] || 0) > 0) g = Math.max(g, z.mob.gold);
+  return g;
+}
+function neededMatKeys() {   // 지금부터 검 5단계 안에 필요한 보스 재료
+  const keys = new Set();
+  for (let lv = state.sword; lv < Math.min(ITEMS.sword.max, state.sword + 5); lv++) for (const [k] of ITEMS.sword.mats(lv) || []) if (!MATS.some(m => m.key === k)) keys.add(k);
+  return [...keys];
+}
+function merchSlot(kind) {
+  const R = refGold(), pickCur = () => ["gold", "ruby", "diamond"][Math.floor(Math.random() * 3)];
+  let slot;
+  if (kind === "half") slot = { kind, key: "half", qty: 1, gold: Math.max(ITEMS.sword.cost(Math.min(state.sword, ITEMS.sword.max - 1)) * 4, R * 300) };
+  else if (kind === "shard") {
+    const pool = CHARS.filter(c => !state.chars[c.key] && CHAR_TIER[c.tier]?.need > 0);
+    if (!pool.length) return null;
+    const c = pool[Math.floor(Math.random() * pool.length)], epic = c.tier === "epic";
+    const qty = epic ? 2 + Math.floor(Math.random() * 3) : 3 + Math.floor(Math.random() * 4);
+    slot = { kind, key: c.key, qty, gold: R * (epic ? 120 : 40) * qty };
+  } else {
+    const qty = 5 + Math.floor(Math.random() * 6);
+    slot = { kind: "mat", key: kind, qty, gold: matMobGold(kind) * 100 * qty };
+  }
+  slot.cur = pickCur();
+  slot.price = slot.cur === "gold" ? Math.round(slot.gold) : Math.max(1, Math.ceil(slot.gold / (R * GEM_VALUE[slot.cur]) * 0.8));
+  return slot;
+}
+function merchRoll() {
+  const need = neededMatKeys().sort(() => Math.random() - 0.5);
+  const killed = [...ZONES, ...ZONES2].filter(z => (state.bossKills[z.key] || 0) > 0 && z.boss?.mat).map(z => z.boss.mat);
+  const kinds = need.slice(0, 3);
+  for (let k = 0; k < 2; k++) kinds.push("shard");
+  while (kinds.length < MERCH_SLOTS) kinds.push(killed.length ? killed[Math.floor(Math.random() * killed.length)] : (need[0] || "crown"));
+  if (Math.random() < HALF_CHANCE) kinds[MERCH_SLOTS - 1] = "half";
+  return kinds.map(merchSlot).map((x, i) => x || merchSlot(killed[i % Math.max(1, killed.length)] || need[0] || "crown")).filter(Boolean);
+}
+function merchant() {
+  const day = kstDay();
+  if (!state.merchant || state.merchant.day !== day) state.merchant = { day, refresh: 0, slots: merchRoll() };
+  return state.merchant;
+}
+const refreshCost = () => refGold() * 30 * ((state.merchant?.refresh || 0) + 1);
+const CUR_NAME = { gold: "G", ruby: "루비", diamond: "다이아" };
+const curHave = c => c === "gold" ? state.gold : state.mats[c];
+const priceTxt = sl => sl.cur === "gold" ? won(sl.price) : `${CUR_NAME[sl.cur]} ${sl.price.toLocaleString("ko-KR")}`;
+function merchBuy(i) {
+  const M = merchant(), sl = M.slots[i];
+  if (!sl || sl.sold || curHave(sl.cur) < sl.price) return;
+  if (sl.cur === "gold") state.gold -= sl.price; else state.mats[sl.cur] -= sl.price;
+  sl.sold = true;
+  let got;
+  if (sl.kind === "half") { state.inv.half++; got = "확률 50% 주문서"; }
+  else if (sl.kind === "shard") {
+    const t = CHAR_TIER[CH[sl.key].tier];
+    if (state.chars[sl.key]) { state.souls += t.shardSoul * sl.qty; got = `소울 ${t.shardSoul * sl.qty}`; }
+    else {
+      state.shards[sl.key] = (state.shards[sl.key] || 0) + sl.qty; got = `${CH[sl.key].name} 조각 ${sl.qty}`;
+      if (state.shards[sl.key] >= t.need) { state.shards[sl.key] -= t.need; state.chars[sl.key] = true; state.charLv[sl.key] = 1; got += " · 캐릭터 획득!"; }
+    }
+  } else { state.mats[sl.key] += sl.qty; got = `${matName(sl.key)} ${sl.qty}`; }
+  sfx("coins");
+  state.log.unshift({ text: `떠돌이 상인: ${got}`, delta: "−" + priceTxt(sl) });
+  commit(); renderShop();
+}
+function merchRefresh() {
+  const M = merchant();
+  if (M.refresh >= MERCH_REFRESH || state.gold < refreshCost()) return;
+  state.gold -= refreshCost(); M.refresh++; M.slots = merchRoll();
+  sfx("gFlip"); commit(); renderShop();
+}
+function merchView() {
+  const M = merchant();
+  const name = sl => sl.kind === "half" ? "확률 50% 주문서" : sl.kind === "shard" ? `${CH[sl.key].name} 조각` : matName(sl.key);
+  const desc = sl => sl.kind === "half" ? "다음 강화 한 번의 성공 확률을 50%까지 올려 줘요 (50%보다 낮을 때만 쓰여요). 귀한 물건이라 하나만 팔아요."
+    : sl.kind === "shard" ? `${CHAR_TIER[CH[sl.key].tier].name} 캐릭터 · 지금 조각 ${state.shards[sl.key] || 0}/${CHAR_TIER[CH[sl.key].tier].need}`
+    : `보유 ${state.mats[sl.key]}개${neededMatKeys().includes(sl.key) ? " · 지금 검 강화에 필요" : ""}`;
+  const col = sl => sl.kind === "half" ? "#ffd24a" : sl.kind === "shard" ? CH[sl.key].color : (BOSS_MATS.find(b => b.key === sl.key)?.color || "#ccc");
+  return `<p class="hint">매일 자정(한국 시간)에 물건이 바뀌어요. 칸마다 골드 · 루비 · 다이아몬드 중 하나로 값을 받아요.</p>
+    <div class="merch">${M.slots.map((sl, i) => `
+      <div class="ware mslot${sl.sold ? " sold" : ""}${sl.kind === "half" ? " rare" : ""}" style="--mc:${col(sl)}">
+        <h3>${name(sl)}${sl.qty > 1 ? ` <small>×${sl.qty}</small>` : ""}</h3>
+        <p>${desc(sl)}</p>
+        <button data-merch="${i}" ${sl.sold || curHave(sl.cur) < sl.price ? "disabled" : ""}>
+          <strong>${sl.sold ? "판매 완료" : "구매"}</strong><span>${priceTxt(sl)}</span></button>
+      </div>`).join("")}</div>
+    <button class="merch-refresh" data-mrefresh ${M.refresh >= MERCH_REFRESH || state.gold < refreshCost() ? "disabled" : ""}>
+      물건 새로 보기 (${MERCH_REFRESH - M.refresh}번 남음) · ${won(refreshCost())}</button>`;
+}
+
 function renderShop() {
   let body;
   if (shopView === "items") {
-    const owned = w => w.key === "oil" ? `남은 횟수 ${state.oil}번` : `보유 ${state.inv[w.key]}개`;
-    body = SHOP.map(w => `
-      <div class="ware">
-        <h3>${w.name}</h3>
-        <p>${w.desc}</p>
-        <div class="owned">${owned(w)}</div>
-        <button data-buy="${w.key}" ${state.gold < w.price ? "disabled" : ""}>
-          <strong>구매</strong><span>${won(w.price)}</span>
-        </button>
-      </div>`).join("");
+    body = merchView();
   } else {
     body = charShop();
   }
   if (shopView === "armor") body = gachaBox();
-  $("shop").innerHTML = seg("sview", shopView, [["items", "아이템"], ["chars", "캐릭터 뽑기"], ["armor", "방어구 뽑기"]]) + body;
+  $("shop").innerHTML = seg("sview", shopView, [["items", "떠돌이 상인"], ["chars", "캐릭터 뽑기"], ["armor", "방어구 뽑기"]]) + body;
 }
 
 let run = null, raf = 0, lastT = 0, ctx = null, joy = null;
@@ -11627,7 +11688,7 @@ w3BossMode = function (m, dt, done) {
   }
   return _w3BossMode4(m, dt, done);
 };
-const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
+const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 1, merchant: null,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
                        best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } });
@@ -11641,7 +11702,9 @@ function normalize(s) {
     log: Array.isArray(s.log) ? s.log.slice(0, 6) : [],
     inv: { ...emptyInv(), ...(s.inv || {}) },
     oil: s.oil ?? 0,
-    useStone: !!s.useStone,
+    useHalf: !!s.useHalf,
+    merchant: s.merchant && typeof s.merchant === "object" ? s.merchant : null,
+    shopV: s.shopV | 0,
     mats: { ...emptyMats(), ...(s.mats || {}) },
     runes: s.runes ?? 0,
     skills: Object.fromEntries(Object.entries(s.skills || {})
@@ -11712,6 +11775,12 @@ function normalize(s) {
   if ((s.questV ?? 1) < 3 && o.quest >= OLD_DUNGEON_QUEST) {
     o.quest = OLD_DUNGEON_QUEST;
     o.ended = true;
+  }
+  // v144: 숫돌·파괴방지권 삭제 → 산 값만큼 골드로 돌려줌 (하락방지권은 방어구 강화에서 계속 쓰임)
+  if (o.shopV < 1) {
+    const back = (o.inv.stone | 0) * 800 + (o.inv.noBreak | 0) * 3000;
+    if (back > 0) { o.gold += back; o.log.unshift({ text: `숫돌 ${o.inv.stone | 0}개 · 파괴방지권 ${o.inv.noBreak | 0}장 환불`, delta: "+" + won(back) }); }
+    o.inv.stone = 0; o.inv.noBreak = 0; o.shopV = 1;
   }
   return o;
 }
@@ -11836,7 +11905,7 @@ const FB_SAVE_GAP = 8000;
 let cloudSaveTimer = null, lastCloudSave = 0, lastSig = "";
 const saveSig = () => [state.sword, state.best, state.pick, state.mlv, state.quest, state.ctickets, state.souls, state.char, state.runes,
   Object.keys(state.w3?.best || {}).length, state.dungeonClears, state.dungeon2Clears, JSON.stringify(state.armor?.equip), (state.coupons || []).length,
-  Object.values(state.charLv || {}).join(), state.inv?.stone, state.inv?.noBreak, state.inv?.noDrop].join("|");
+  Object.values(state.charLv || {}).join(), state.inv?.half, state.inv?.noDrop, state.merchant?.day, (state.merchant?.slots || []).filter(x => x.sold).length].join("|");
 let cloudSaveAt = 0;
 function scheduleCloudSave(now = false, leaving = false) {
   if (!fbLinked()) return;
