@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v125";
+const GAME_VERSION = "v126";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -6152,7 +6152,7 @@ function freezePlayer(sec) {
 // ── 보스 패턴 ──
 // 모든 보스: 조준 후 돌진. 바위 골렘: 뛰어올라 플레이어가 있던 곳에 떨어짐. 화염 드래곤: 부채꼴 브레스.
 // 거대 방패기사: 돌진 베기, 3연속 돌진 베기, 3연속 가로 베기, 방패 들기(정면 공격을 막고 천천히 돌아봄).
-const LEAP_TIME = 1.1, LEAP_R = 75, BREATH_LEN = 240, BREATH_ARC = 0.38, SWEEP_R = 115, SWEEP_ARC = 1.25;
+const LEAP_TIME = 0.95, LEAP_R = 75, BREATH_LEN = 240, BREATH_ARC = 0.38, SWEEP_R = 115, SWEEP_ARC = 1.25;
 const PATTERNS = { slimeKing: ["aim"], golem: ["aim", "leap", "leap"], dragon: ["aim", "breathPrep", "breathPrep"],
                    giantKnight: ["aim", "multi", "sweep", "guard"],
                    iceDragon: ["frostPrep", "icicles", "frostPrep", "icicles", "aim"] };
@@ -6177,7 +6177,7 @@ const CHAIN_HOLD = 0.2, CHAIN_SPEED = 680;      // 사슬: 겨눈 방향이 보�
 const CHAIN_SPREAD = 0.35;                      // 분노하면 사슬 세 갈래: 가운데 ± 0.35 라디안(약 20도)
 const chainDirs = m => m.enraged ? [m.dir - CHAIN_SPREAD, m.dir, m.dir + CHAIN_SPREAD] : [m.dir];
 // 도깨비 3연속 내려찍기: [뛰어오른 시간, 다음 점프까지 쉬는 시간]. 분노(체력 50% 미만)면 더 빠르다
-const SLAM_TIMING = { normal: [1.1, 0.5], enraged: [0.9, 0.35] };
+const SLAM_TIMING = { normal: [0.9, 0.35], enraged: [0.7, 0.2] };
 // 파이어볼: [던지는 개수, 던지는 간격]. 분노하면 더 많이, 더 빠르게
 const FIREBALL_VOLLEY = { normal: [3, 0.35], enraged: [5, 0.2] };                // 도깨비 방망이, 분노 상태의 불꽃 기운
 const FIRE_R = 55, FIRE_TIME = 5;                               // 파이어볼이 남기는 불길
@@ -8272,7 +8272,7 @@ const W2_START = {
     for (let k = 0; k < n; k++) {
       const side = Math.floor(Math.random() * 3), tx = clamp(p.x + (k - (n - 1) / 2) * 70, 30, W - 30), ty = clamp(p.y + (k - (n - 1) / 2) * 60, 30, H - 30);
       const l = side === 0 ? [0, ty, W, ty] : side === 1 ? [tx, 0, tx, H] : [0, clamp(ty - 120, 0, H), W, clamp(ty + 120, 0, H)];
-      w2Lane(l, 46, E ? 1.05 : 1.25, m.dmg, m);
+      w2Lane(l, 46, E ? 0.8 : 1.0, m.dmg, m);
     }
   },
   cage(m, p, w, toP, E) {
