@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v132";
+const GAME_VERSION = "v133";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -2573,6 +2573,7 @@ const COUPONS = {
   "5c4599d7381dd42b": { id: "ticket-100", text: "캐릭터 뽑기권 100장", tickets: 100 },
   "4363732889d2a883": { id: "ticket-3", text: "캐릭터 뽑기권 3장", tickets: 3 },
   "5da59b87d985345e": { id: "star-700-2", text: "별의 파편 700개", mats: { star: 700 } },
+  "a27079e88539efe8": { id: "ticket-30", text: "캐릭터 뽑기권 30장", tickets: 30 },
 };
 function couponKey(code) {
   const h = transferHash(code), t = "sf-coupon:" + parseInt(h, 16).toString(16);
