@@ -705,6 +705,14 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .result-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
 .result-actions button { border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; font-family: var(--display); font-size: 16px; }
 .result-actions .go { background: var(--ember); border-color: var(--ember); color: #241306; }
+.result.rest { place-content: start center; overflow-y: auto; z-index: 5; background: rgba(18, 15, 24, .97); }
+.result.rest .slots { display: grid; gap: 6px; width: 100%; max-width: 360px; }
+.rest-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 100%; max-width: 360px; }
+.rest-sk { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 6px; align-items: center; text-align: left; padding: 6px 8px; border-radius: 10px;
+  border: 1px solid var(--c); background: rgba(22,19,15,.9); color: var(--fg); font-size: 12px; }
+.rest-sk i { grid-row: 1 / span 2; color: var(--c); } .rest-sk i svg { width: 22px; height: 22px; }
+.rest-sk small { color: var(--muted); } .rest-sk.on { background: color-mix(in srgb, var(--c) 25%, #16130f); }
+.rest-sk:disabled { opacity: .4; }
 
 /* 친구 */
 .friends { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
@@ -894,6 +902,11 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
         <span id="hunt-help">아무 곳이나 끌어서 이동 · 공격은 자동 (PC: WASD, 스킬 Q·E·R·F, 궁극기 Space, 마법진 I·J·K·L)</span>
         <button id="hunt-exit">나가기</button>
       </div>
+      <div class="result rest" id="rest" hidden>
+        <h3>🌙 별빛 쉼터</h3>
+        <div id="rest-body"></div>
+        <div class="result-actions"><button class="go" id="rest-go">다음 보스로</button></div>
+      </div>
       <div class="result" id="result" hidden>
         <h3 id="result-title"></h3>
         <p id="result-loot"></p>
@@ -950,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v116";
+const GAME_VERSION = "v117";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1514,8 +1527,8 @@ const DUNGEON2 = {
     { kind: "devourer", name: "??? 별을 삼킨 자 · 진", color: "#ff9fe0", hp: DG2_TRUE_HP, dmg: DG2_DMG + 350, speed: 70, r: 44, mat: "score", hidden: true },
   ],
 };
-const dungeon2Open = () => (state.bossKills.rift || 0) > 0;
-const world2Open = () => (state.bossKills.lair || 0) > 0;
+const dungeon2Open = () => TEST || (state.bossKills.rift || 0) > 0;
+const world2Open = () => TEST || (state.bossKills.lair || 0) > 0;
 const SAW_RAILS = [210, 420];   // 태엽 시계탑 톱날 레일의 높이
 const RIFT_WELLS = [[115, 250], [345, 470]];   // 별의 균열 중력장 위치
 const zoneByKey = key => ZONES.find(z => z.key === key) || ZONES2.find(z => z.key === key);
@@ -2618,6 +2631,12 @@ function devRender() {
     <div class="dv-row"><label><input type="checkbox" id="dv-god" ${dev.god ? "checked" : ""}> 무적</label>
       <label>공격력 ×<select id="dv-mul">${[1, 10, 100, 1000].map(v => `<option ${dev.atkMul === v ? "selected" : ""}>${v}</option>`).join("")}</select></label>
       <button data-dv="boss">바로 보스 부르기</button><button data-dv="clear">몹 모두 처치</button></div>
+    <h4>새 기능</h4>
+    <div class="dv-row"><button data-dv="treeAll">스킬 트리 전부</button><button data-dv="treeNone">스킬 트리 초기화</button><button data-dv="skillsMax">스킬 전부 Lv5</button></div>
+    <div class="dv-row"><button data-dv="w3All">월드 3 전부 ★3</button><button data-dv="w3Reset">월드 3 기록 초기화</button><button data-dv="markAll">각인 전부</button><button data-dv="markNone">각인 초기화</button></div>
+    <div class="dv-row"><button data-dv="pity0">실패 보너스 0</button><button data-dv="pity30">실패 보너스 +30%p</button><button data-dv="armorBest">용린 +20 장착</button></div>
+    <div class="dv-row"><button data-dv="stageWin">스테이지 바로 클리어</button><button data-dv="bossNext">던전 지금 보스 처치</button><button data-dv="rest">던전 쉼터 열기</button><button data-dv="awakeReset">각성·궁극기 쿨 초기화</button></div>
+    <p class="hint">테스트 모드에서는 월드 2·3, 모든 장·스테이지, 별의 던전이 처음부터 열려 있어요. 검은 위 '장비'에서 +${ITEMS.sword.max}까지 넣을 수 있어요.</p>
     <h4>저장</h4>
     <div class="dv-row"><button data-dv="copyMain">내 진짜 진행 상황 복사해 오기</button><button data-dv="reset">테스트 저장 초기화</button></div>
     <p class="hint" id="dv-msg"></p>`;
@@ -2666,6 +2685,20 @@ function devClick(e) {
     } catch { return say_("복사하지 못했어요."); }
   }
   if (act === "reset") { state = fresh(); say_("테스트 저장을 처음 상태로 돌렸어요."); }
+  if (act === "treeAll") { for (const id in TREE) state.tree[id] = true; say_("스킬 트리 100칸을 모두 배웠어요."); }
+  if (act === "treeNone") { state.tree = {}; say_("스킬 트리를 비웠어요."); }
+  if (act === "skillsMax") { for (const s of SKILLS) state.skills[s.key] = SKILL_MAX; say_("스킬을 모두 최고 단계로 만들었어요."); }
+  if (act === "w3All") { for (const c of W3_CH) W3_STAGES[c.n].forEach((_, i) => { state.w3.best[w3Id(c.n, i + 1)] = 3; }); say_("월드 3 모든 스테이지를 ★3으로 만들었어요 (각인 점수도 늘어요)."); }
+  if (act === "w3Reset") { state.w3 = { best: {}, chests: {}, mark: {} }; say_("월드 3 기록과 각인을 초기화했어요."); }
+  if (act === "markAll") { for (let a = 0; a < MARKS.length; a++) for (let b = 0; b < 4; b++) state.w3.mark[`${a}${b}`] = true; say_("차원 각인을 모두 배웠어요 (점수와 상관없이)."); }
+  if (act === "markNone") { state.w3.mark = {}; say_("차원 각인을 초기화했어요."); }
+  if (act === "pity0") { state.pity = { sword: 0, pick: 0 }; say_("실패 보너스를 0으로 했어요."); }
+  if (act === "pity30") { state.pity = { sword: 30, pick: 30 }; say_("실패 보너스를 +30%p로 했어요."); }
+  if (act === "armorBest") { state.bossKills.grave = Math.max(1, state.bossKills.grave || 0); for (const sl of ARMOR_SLOTS) { const id = armorId(sl.key, "dragon"); state.armor.owned[id] = ARMOR_MAX; state.armor.equip[sl.key] = id; } say_("용린 방어구 +20을 장착했어요."); }
+  if (act === "stageWin") { if (run?.stage && !run.over) { stageClear(); say_("스테이지를 클리어 처리했어요."); } else say_("월드 3 스테이지 안에서 눌러 주세요."); }
+  if (act === "bossNext") { const m = run && !run.over && run.mobs.find(x => x.boss && !x.dead); if (m) { m.ghost = 0; m.mode = "chase"; m.hp = 1; hit(m, 1, null); say_("지금 보스를 처치했어요."); } else say_("보스가 있는 사냥터·던전 안에서 눌러 주세요."); }
+  if (act === "rest") { if (run?.dungeon && !run.over) { openRest(); say_("쉼터를 열었어요."); } else say_("던전 안에서 눌러 주세요."); }
+  if (act === "awakeReset") { if (run) { run.awakeCd = 0; run.ult = 0; run.cds = run.cds.map(() => 0); } say_("쿨타임을 초기화했어요."); }
   commit();
   devRender();
   $("dv-msg").textContent = msg;
@@ -4645,7 +4678,7 @@ function dungeon2Card() {
       <div class="zone" style="--zc:#ff9fe0">
         <h3>${D.name}</h3>
         <p class="${lv < D.rec ? "weak" : ""}">권장 검 +${D.rec}${lv < D.rec ? " · 지금 검으로는 위험해요" : ""}</p>
-        <p>월드 2 보스 ${n - 1}마리와 연달아 싸우고, 마지막에 <b>숨은 보스</b>가 나타나요. 보스를 잡을 때마다 체력 30% 회복.</p>
+        <p>월드 2 보스 ${n - 1}마리와 연달아 싸우고, 마지막에 <b>숨은 보스</b>가 나타나요. 보스를 잡을 때마다 체력 30% 회복, <b>3마리마다 별빛 쉼터</b>(체력 모두 회복 · 스킬 바꾸기).</p>
         <p>보상은 모두 잡아야 한꺼번에: ${won(P.gold)} · ${matName("star")} ${P.mats.star} · 룬석 ${P.runes} · 월드 2 보스 재료 각 3개. 도중에 쓰러지면 보상 없음.</p>
         <p>최고 기록 ${state.dungeon2Best}/${n} · 클리어 ${state.dungeon2Clears}회</p>
         <button data-zone="dungeon2">입장</button>
@@ -4804,6 +4837,7 @@ function enterZone(key) {
   $("zones").hidden = true;
   $("arena").hidden = false;
   $("result").hidden = true;
+  $("rest").hidden = true;
   document.documentElement.classList.add("hunting");
   setupSkillButtons();
   const c = $("field");
@@ -5341,8 +5375,41 @@ function dungeonStep(dt, bossAlive) {
     if (d.clearT <= 0) endRun("clear");
     return;
   }
+  // 별의 던전: 보스 3마리마다 쉼터 (체력 모두 회복, 스킬 바꾸기)
+  if (run.zone === DUNGEON2 && d.stage > 0 && d.stage % 3 === 0 && !(d.rested ||= {})[d.stage]) return openRest();
   d.wait -= dt;
   if (d.wait <= 0) spawnDungeonBoss();
+}
+function openRest() {
+  const d = run.dungeon, p = run.p;
+  (d.rested ||= {})[d.stage] = true;
+  run.rest = true;
+  p.hp = p.max;
+  p.burnT = 0; p.poisonT = 0; p.slowT = 0; p.stun = 0; p.frozen = 0; p.root = 0; p.charmT = 0; p.invertT = 0;
+  run.cds = run.cds.map(() => 0); run.shots = []; run.w2.lanes = []; run.w2.booms = [];
+  keys.clear(); joy = null;
+  pause();
+  sfx("buff");
+  renderRest();
+  $("rest").hidden = false;
+}
+function renderRest() {
+  const d = run.dungeon, left = run.zone.bosses.length - d.stage, n = slotCount();
+  const slots = [...Array(n).keys()].map(i => { const s = SK[state.equip[i]]; return s ? `<span class="slot" style="--c:${s.color}"><i>${skillIcon(s.key)}</i><span>${s.name}</span></span>` : `<span class="slot empty">빈 칸</span>`; }).join("");
+  const full = activeEquip().every(Boolean);
+  const list = SKILLS.filter(s => state.skills[s.key] > 0).map(s => { const on = activeEquip().includes(s.key);
+    return `<button class="rest-sk ${on ? "on" : ""}" style="--c:${s.color}" data-rest-sk="${s.key}" ${!on && full ? "disabled" : ""}><i>${skillIcon(s.key)}</i><span>${s.name} Lv ${state.skills[s.key]}</span><small>${on ? "해제" : "장착"}</small></button>`; }).join("");
+  $("rest-body").innerHTML = `<p>보스 ${d.stage}마리 처치 · 남은 보스 ${left}마리${left === 1 ? " (숨은 보스)" : ""}<br>체력을 모두 회복하고 상태 이상을 풀었어요. 다음 보스에 맞게 스킬을 바꿀 수 있어요.</p>
+    <div class="slots" style="grid-template-columns: repeat(${n}, 1fr)">${slots}</div>
+    <div class="rest-list">${list || "<p>배운 스킬이 없어요.</p>"}</div>`;
+}
+function closeRest() {
+  if (!run?.rest) return;
+  run.rest = false;
+  $("rest").hidden = true;
+  setupSkillButtons();
+  run.dungeon.wait = 1.2;
+  resume();
 }
 
 function dungeonReward(m) {
@@ -8662,7 +8729,7 @@ let w3Sel = 1;
 const w3Open = () => (state.dungeon2Clears | 0) > 0 || TEST;
 const w3Id = (ch, n) => `${ch}-${n}`;
 const w3Best = (ch, n) => state.w3.best[w3Id(ch, n)] || 0;
-const w3Unlocked = (ch, n) => n === 1 || w3Best(ch, n - 1) > 0;
+const w3Unlocked = (ch, n) => TEST || n === 1 || w3Best(ch, n - 1) > 0;
 const w3ChStars = ch => W3_STAGES[ch].reduce((a, _, i) => a + w3Best(ch, i + 1), 0);
 const W3_CHESTS = [
   { need: 10, text: "캐릭터 뽑기권 3장", give: () => { state.ctickets += 3; } },
@@ -9249,7 +9316,7 @@ Object.assign(W3_MOB, {
 // 일반 스테이지 몹은 더 단단하고 세게 (v116)
 const W3_NORMAL_HP = 1.5, W3_NORMAL_DMG = 1.25;
 let w3Ch = 1, w3MarkOpen = false;
-const w3ChOpen = ch => ch === 1 || w3Best(ch - 1, 10) > 0;
+const w3ChOpen = ch => TEST || ch === 1 || w3Best(ch - 1, 10) > 0;
 
 // ── 차원 각인: 월드 3 별 1개 = 1점. 월드 3 안에서만 적용 ──
 const MARKS = [
@@ -10579,7 +10646,7 @@ function draw() {
 }
 
 function resume() {
-  if (!run || run.over || raf || $("hunt").hidden || document.hidden) return;
+  if (!run || run.over || run.rest || raf || $("hunt").hidden || document.hidden) return;
   lastT = performance.now();
   raf = requestAnimationFrame(frame);
 }
@@ -10602,6 +10669,7 @@ function endRun(dead) {
   if (!run || run.over) return;
   run.over = true;
   syncCap = null;
+  run.rest = false; $("rest").hidden = true;
   if (dead === true) sfx("lose");
   updateMusic();
   pause();
@@ -10658,6 +10726,8 @@ document.querySelectorAll("#skillbar .sk").forEach((b, i) => {
 
 // 궁극기 버튼: 누르면 시전. 앨리온은 누른 채 끌면 마법진이 움직이고, 떼면 그 자리에 남는다 (다시 누르면 이어서 조종)
 $("awakebtn").addEventListener("pointerdown", e => { e.preventDefault(); castAwake(); });
+$("rest-go").addEventListener("click", closeRest);
+$("rest").addEventListener("click", e => { const b = e.target.closest("[data-rest-sk]"); if (!b) return; toggleEquip(b.dataset.restSk); renderRest(); });
 {
   const ub = $("ultbtn");
   const steer = e => {
