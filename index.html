@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v119";
+const GAME_VERSION = "v120";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -2648,7 +2648,7 @@ function devRender() {
     <div class="dv-row"><button data-dv="treeAll">스킬 트리 전부</button><button data-dv="treeNone">스킬 트리 초기화</button><button data-dv="skillsMax">스킬 전부 Lv5</button></div>
     <div class="dv-row"><button data-dv="w3All">월드 3 전부 ★3</button><button data-dv="w3Reset">월드 3 기록 초기화</button><button data-dv="markAll">각인 전부</button><button data-dv="markNone">각인 초기화</button></div>
     <div class="dv-row"><button data-dv="pity0">실패 보너스 0</button><button data-dv="pity30">실패 보너스 +30%p</button><button data-dv="armorBest">용린 +20 장착</button></div>
-    <div class="dv-row"><button data-dv="stageWin">스테이지 바로 클리어</button><button data-dv="bossNext">던전 지금 보스 처치</button><button data-dv="rest">던전 쉼터 열기</button><button data-dv="awakeReset">각성·궁극기 쿨 초기화</button></div>
+    <div class="dv-row"><button data-dv="stageWin">스테이지 바로 클리어</button><button data-dv="bossNext">던전 지금 보스 처치</button><button data-dv="rest">던전 쉼터 열기</button><button data-dv="awakeReset">궁극기 쿨 초기화</button></div>
     <p class="hint">테스트 모드에서는 월드 2·3, 모든 장·스테이지, 별의 던전이 처음부터 열려 있어요. 검은 위 '장비'에서 +${ITEMS.sword.max}까지 넣을 수 있어요.</p>
     <h4>저장</h4>
     <div class="dv-row"><button data-dv="copyMain">내 진짜 진행 상황 복사해 오기</button><button data-dv="reset">테스트 저장 초기화</button></div>
@@ -8739,8 +8739,8 @@ const W3_STAGES = {
       desc: "사방에서 몰려와요. 45초 동안 버티세요." },
     { type: "defend", name: "수정 등불 지키기", dur: 45, alive: 6, pool: ["mSprite", "mWolf", "mSprite"], par: 45,
       desc: "가운데 수정 등불이 꺼지지 않게 지키세요. 정령은 등불을 노려요." },
-    { type: "escape", name: "거울 미로 탈출", pool: ["mShade", "mSprite", "mArcher"], pre: 6, par: 50, maze: true,
-      desc: "거울벽으로 막힌 진짜 미로. 표식 5개를 차례로 1초씩 밟아 켜면 위쪽 출구가 열려요. 가운데 통로의 거울문은 2.5초마다 번갈아 닫혀요." },
+    { type: "escape", name: "거울 미로 탈출", pool: ["mShade", "mSprite", "mArcher"], pre: 6, par: 50, limit: 80, maze: true,
+      desc: "거울벽으로 막힌 진짜 미로. 80초 안에 표식 5개를 차례로 1초씩 밟아 켜면 위쪽 출구가 열려요. 가운데 통로의 거울문은 2.5초마다 번갈아 닫혀요." },
     { type: "boss", name: "거울 기사", boss: "mirrorKnight", par: 60,
       desc: "숲을 지키는 거울 기사. 반사 상태일 때 때리면 피해가 돌아와요." },
     { type: "elite", name: "수정 수문장", elites: ["mGuard", "mGuard"], pool: ["mArcher", "mSprite"], alive: 3, par: 60,
@@ -8761,7 +8761,7 @@ const W3_MOB = {   // hp: 장 상한 검 공격력의 배수, dmg: 기준 체력
   mArcher: { name: "은빛 사수", color: "#d8e4ec", hp: 5, dmg: 0.09, speed: 80, r: 12, contact: false },
   mGuard: { name: "수정 방패병", color: "#8fd8ff", hp: 18, dmg: 0.12, speed: 55, r: 16 },
   mShade: { name: "그림자 매복자", color: "#3a3550", hp: 7, dmg: 0.16, speed: 100, r: 13 },
-  mTreasure: { name: "보물 거울 요정", color: "#ffe9a8", hp: 110, dmg: 0, speed: 158, r: 11, contact: false },
+  mTreasure: { name: "보물 거울 요정", color: "#ffe9a8", hp: 85, dmg: 0, speed: 158, r: 11, contact: false },
   mirrorKnight: { name: "거울 기사", color: "#c8d6e6", hp: 240, dmg: 0.14, speed: 70, r: 26, boss: true },
   mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 450, dmg: 0.15, speed: 55, r: 30, boss: true },
 };
@@ -8818,7 +8818,8 @@ function w3Alive(f = () => true) { return run.mobs.filter(m => !m.dead && f(m));
 // 몹이 노리는 지점 (방어 스테이지에서는 일부가 수정을 노림)
 function w3Tgt(m) {
   const c = run.stage?.crystal;
-  return m.toCrystal && c && c.hp > 0 ? c : run.p;
+  if (!c || c.hp <= 0) return run.p;
+  return Math.hypot(m.x - c.x, m.y - c.y) < Math.hypot(m.x - run.p.x, m.y - run.p.y) ? c : run.p;   // 나와 수정 중 가까운 쪽
 }
 // 경계 → 발견: 가까이 오거나 맞으면 깨어나고 주변 몹을 부름
 function w3Awake(m, d) {
@@ -8931,11 +8932,8 @@ Object.assign(W2AI, {
     if (m.x < 50) vx += 120; if (m.x > W - 50) vx -= 120; if (m.y < 90) vy += 120; if (m.y > H - 50) vy -= 120;
     w3Move(m, vx, vy, m.speed * slow, dt);
     m.cd -= dt;
-    if (m.hp < m.max && !(m.lastHp > m.hp)) m.calm = (m.calm || 0) + dt; else m.calm = 0;
-    m.lastHp = m.hp;
-    if (m.calm > 2.5) m.hp = Math.min(m.max, m.hp + m.max * 0.12 * dt);   // 2.5초 안 맞으면 회복
-    if (m.cd <= 0 && d < 120) {
-      m.cd = 3;
+    if (m.cd <= 0 && d < 110) {
+      m.cd = 4;
       ring(m.x, m.y, 26, "#ffe9a8");
       const [x, y] = w3Edge(); m.x = clamp(x, 40, W - 40); m.y = clamp(y, 90, H - 40);
       fx(m.x, m.y - 20, "휙!", "#ffe9a8", 13);
@@ -9054,9 +9052,9 @@ function stageStep(dt) {
       if (S.t >= d.dur) return stageClear();
       break;
     case "defend": {
-      if (spawnTick(d.alive, 1.4)) w3Spawn(w3Pick(d.pool), { toCrystal: Math.random() < 0.75 });
+      if (spawnTick(d.alive, 1.4)) w3Spawn(w3Pick(d.pool));
       const c = S.crystal;
-      for (const m of r.mobs) if (!m.dead && m.toCrystal && Math.hypot(m.x - c.x, m.y - c.y) < m.r + c.r + 8) c.hp -= dt * 0.075 * (m.elite ? 2 : 1);
+      for (const m of r.mobs) if (!m.dead && !m.hide && m.contact !== false && Math.hypot(m.x - c.x, m.y - c.y) < m.r + c.r + 8) c.hp -= dt * 0.075 * (m.elite ? 2 : 1);
       if (c.hp <= 0) return stageFail("수정 등불이 꺼졌어요");
       if (S.t >= d.dur) return stageClear();
       break;
@@ -9075,6 +9073,7 @@ function stageStep(dt) {
         else fx(g.x, g.y - 30, `표식 ${S.gate}/${S.gates.length}`, "#cfe8ff", 14);
       }
       if (S.exit.open && Math.hypot(p.x - S.exit.x, p.y - S.exit.y) < S.exit.r) return stageClear();
+      if (d.limit && S.t >= d.limit) return stageFail("시간이 다 됐어요");
       break;
     }
     case "elite":
@@ -9154,7 +9153,7 @@ function stageHud(r) {
     case "kill": return `처치 ${Math.min(S.kills, d.need)}/${d.need}`;
     case "survive": return `버티기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
     case "defend": return `등불 지키기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
-    case "escape": return S.exit?.open ? "위쪽 출구로!" : `거울 표식 ${S.gate || 0}/${S.gates?.length || 5}`;
+    case "escape": return (S.exit?.open ? "위쪽 출구로!" : `거울 표식 ${S.gate || 0}/${S.gates?.length || 5}`) + (d.limit ? ` · 남은 시간 ${Math.max(0, Math.ceil(d.limit - S.t))}초` : "");
     case "elite": return `정예 ${S.elites ? S.elites.filter(m => m.dead).length : 0}/${d.elites.length}`;
     case "hunt": return `요정 잡기 ${Math.max(0, Math.ceil(d.limit - S.t))}초`;
     case "waves": return `웨이브 ${S.wave || 0}/${d.waves.length}`;
@@ -9371,7 +9370,7 @@ W3_STAGES[3] = [
   { type: "hunt", name: "장미 도둑", limit: 40, pool: ["rMaid", "rImp"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 도깨비불은 도망치며 회복해요." },
   { type: "boss", name: "장미 기사", boss: "roseKnight", par: 75, desc: "가시 장미를 깔고 하트 탄으로 매혹해요." },
   { type: "waves", name: "가시 미로", waves: [["rVine", "rVine", "rMaid", "rButterfly"], ["rGolem", "rImp", "rImp", "rButterfly", "rButterfly"], ["rGolem", "rVine", "rVine", "rMaid", "rMaid", "rImp"]], par: 75, desc: "세 번 몰려와요." },
-  { type: "escape", name: "붉은 정원 탈출", pool: ["rVine", "rButterfly", "rImp"], pre: 6, par: 55, maze: true, desc: "표식 5개를 켜고 출구로." },
+  { type: "escape", name: "붉은 정원 탈출", pool: ["rVine", "rButterfly", "rImp"], pre: 6, par: 55, limit: 85, maze: true, desc: "표식 5개를 켜고 출구로." },
   { type: "elite", name: "정원지기", elites: ["rGolem", "rGolem"], pool: ["rImp", "rButterfly"], alive: 3, par: 65, desc: "정예 장미 골렘 둘. 방패 뒤로 돌아가세요." },
   { type: "kill", name: "달의 연회", need: 26, alive: 7, pool: ["rButterfly", "rMaid", "rVine", "rGolem", "rImp"], pre: 6, par: 85, desc: "정원의 모든 것이 모인 연회. 26마리 처치." },
   { type: "boss", name: "서큐버스 릴리스", boss: "lilith", par: 110, desc: "붉은 달의 정원의 주인. 매혹 입맞춤, 가시 장미, 환영 분신, 박쥐 떼. 분노하면 붉은 달 — 기둥 뒤에 숨어야 해요." },
@@ -9599,7 +9598,7 @@ w3BossMode = function (m, dt, done) {
 
 // ── 검 각성 기술: +130 차원 베기 (+140이면 검기 폭풍이 이어짐) ──
 const AWAKE_REQ = 130, AWAKE_CD = 12;
-const awakeOpen = () => state.sword >= AWAKE_REQ;
+const awakeOpen = () => false;   // 검 각성 삭제 (v120)
 function castAwake() {
   if (!run || run.over || !awakeOpen() || (run.awakeCd || 0) > 0) return;
   const p = run.p;
@@ -9747,7 +9746,7 @@ W3_STAGES[4] = [
   { type: "hunt", name: "꿈꾸는 요정", limit: 40, pool: ["dSheep", "dNightmare"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 잠든 사이엔 악몽이 노려요." },
   { type: "defend", name: "꿈의 등불", dur: 50, alive: 6, pool: ["dSheep", "dNightmare", "dFairy"], par: 50, desc: "꿈의 등불(수정)을 지키세요." },
   { type: "boss", name: "꿈 수호 양", boss: "dreamRam", par: 75, desc: "거대한 꿈 양. 돌진과 자장가로 잠재우려 해요." },
-  { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 6, par: 55, maze: true, desc: "표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
+  { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 6, par: 55, limit: 85, maze: true, desc: "표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
   { type: "elite", name: "악몽 사냥꾼", elites: ["dNightmare", "dNightmare"], pool: ["dFairy", "dSheep"], alive: 3, par: 65, desc: "정예 악몽 둘. 잠든 상대에게 피해 2배." },
   { type: "waves", name: "세 번의 꿈", waves: [["dSheep", "dSheep", "dFairy", "mSprite"], ["dNightmare", "dFairy", "dFairy", "dSheep", "sMage"], ["dNightmare", "dNightmare", "dSheep", "dSheep", "dFairy", "rButterfly"]], par: 75, desc: "꿈이 세 번 이어져요." },
   { type: "kill", name: "깊은 잠의 홀", need: 26, alive: 7, pool: ["dSheep", "dFairy", "dNightmare", "sPriest", "rVine"], pre: 6, par: 85, desc: "잠의 신전 가장 깊은 곳. 26마리 처치." },
@@ -9764,7 +9763,7 @@ W3_STAGES[5] = [
   { type: "waves", name: "모든 장의 기억", waves: [["mWolf", "mArcher", "mGuard", "mShade", "mSprite"], ["sHawk", "sLancer", "sMage", "sPriest", "sArcher"], ["rButterfly", "rMaid", "rVine", "rGolem", "rImp"], ["dSheep", "dFairy", "dNightmare", "dNightmare", "dSheep"]], par: 95, desc: "네 장의 몹 무리가 차례로 몰려와요." },
   { type: "kill", name: "왕좌의 계단", need: 30, alive: 7, pool: ["sPriest", "mGuard", "dNightmare", "rImp", "sLancer", "mArcher"], pre: 6, par: 100, desc: "왕좌 앞 마지막 계단. 30마리 처치." },
   { type: "boss", name: "세계를 그린 자, 아르케", boss: "arche", par: 600, noRevive: true,
-    desc: "최종 보스. 5막 연속 전투, 부활 금지, 쓰러지면 처음부터. 1막 초안 → 2막 규칙 다시 쓰기 → 3막 거울(나 자신) → 4막 지우개 → 5막 마지막 한 줄(60초 버티고 검 각성으로 마무리)." },
+    desc: "최종 보스. 5막 연속 전투, 부활 금지, 쓰러지면 처음부터. 1막 초안 → 2막 규칙 다시 쓰기 → 3막 거울(나 자신) → 4막 지우개 → 5막 마지막 한 줄(60초 버티고 마지막 일격으로 마무리)." },
 ];
 Object.assign(W3_MOB, {
   dSheep: { name: "꿈 양", color: "#f0ecff", hp: 6, dmg: 0.11, speed: 105, r: 14, ai: "mWolf", sleepy: 22 },
