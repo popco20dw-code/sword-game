@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v127";
+const GAME_VERSION = "v128";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5542,6 +5542,12 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
     }
   }
   if (m.final && awakeOpen() && !run.awakeHit) return;   // 아르케 마지막 한 줄: 검 각성으로만
+  if (m.kind === "mqFake") {   // 거울 여왕의 가짜: 때리면 깨지며 나를 향해 파편
+    m.dead = true; ring(m.x, m.y, 36, "#ffffff"); fx(m.x, m.y - 34, "가짜! 쨍그랑", "#e6f2ff", 14); sfx("shield");
+    const a = Math.atan2(run.p.y - m.y, run.p.x - m.x);
+    for (let k = -3; k <= 3; k++) w2Shot(m, a + k * 0.16, 260, m.dmg * 0.7, "#ffffff");
+    return;
+  }
   if (m.decoy) {   // 릴리스의 환영: 때리면 매혹당하고 사라짐
     if (from === run.p) { charmPlayer(1.2, m.real); }
     m.dead = true; ring(m.x, m.y, 30, "#ff8fb8"); fx(m.x, m.y - 30, "환영!", "#ff8fb8", 13);
@@ -8755,7 +8761,7 @@ const W3_STAGES = {
       desc: "몹 무리가 세 번 몰려와요." },
     { type: "kill", name: "그림자 덤불", need: 22, alive: 6, pool: ["mShade", "mGuard", "mArcher", "mWolf", "mSprite"], pre: 6, par: 75,
       desc: "매복자와 방패병이 섞인 깊은 숲. 22마리를 처치하세요." },
-    { type: "boss", name: "거울 여왕", boss: "mirrorQueen", par: 90,
+    { type: "boss", name: "거울 여왕", boss: "mirrorQueen", par: 110,
       desc: "거울의 숲의 주인. 반사, 거울 정령 소환, 프리즘 광선, 거울 순간이동을 써요." },
   ],
 };
@@ -8767,7 +8773,8 @@ const W3_MOB = {   // hp: 장 상한 검 공격력의 배수, dmg: 기준 체력
   mShade: { name: "그림자 매복자", color: "#3a3550", hp: 7, dmg: 0.16, speed: 100, r: 13 },
   mTreasure: { name: "보물 거울 요정", color: "#ffe9a8", hp: 85, dmg: 0, speed: 158, r: 11, contact: false },
   mirrorKnight: { name: "거울 기사", color: "#c8d6e6", hp: 240, dmg: 0.14, speed: 70, r: 26, boss: true },
-  mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 450, dmg: 0.15, speed: 55, r: 30, boss: true },
+  mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 560, dmg: 0.17, speed: 60, r: 30, boss: true },
+  mqFake: { name: "거울 여왕", color: "#e6f2ff", hp: 1, dmg: 0.17, speed: 0, r: 30, contact: false },
 };
 const W3_HP_REF = 1800;   // 기준 체력 (상한 +130·특성·방어구 일부)
 let w3Sel = 1;
@@ -8948,7 +8955,7 @@ Object.assign(W2AI, {
 // ── 거울 기사·거울 여왕: 월드 2 보스 틀(w2BossAI)을 그대로 씀 ──
 W2_BOSS.add("mirrorKnight"); W2_BOSS.add("mirrorQueen");
 W2_PATTERNS.mirrorKnight = ["kSlash", "kShards", "kReflect", "kDash", "kSlash"];
-W2_PATTERNS.mirrorQueen = ["qReflect", "qSprites", "qShards", "qPrism", "qBlink", "qPrism"];
+W2_PATTERNS.mirrorQueen = ["qCage", "qReflect", "qRicochet", "qFakes", "qSprites", "qShards", "qBlink", "qPrism", "qRicochet", "qCage"];
 Object.assign(W2_START, {
   kSlash(m, p, w, toP, E) {   // 앞으로 세 번 이어지는 거울 베기
     m.mode = "howl"; m.timer = 0.9; const a = toP();
@@ -8960,6 +8967,36 @@ Object.assign(W2_START, {
   },
   kReflect(m, p, w, toP, E) { m.mode = "reflect"; m.timer = E ? 3 : 2.2; fx(m.x, m.y - m.r - 18, "반사! 공격을 멈추세요", "#cfe8ff", 15); sfx("shield"); },
   kDash(m, p, w, toP, E) { m.mode = "kDashAim"; m.timer = 0.6; m.dashA = toP(); },
+  qCage(m, p, w, toP, E) {   // 거울 감옥: 나를 둘러싼 거울 조각이 한쪽 틈만 남기고 터지고, 이어서 가운데가 깨짐
+    m.mode = "howl"; m.timer = 1.2;
+    const gap = Math.random() * Math.PI * 2, n = 10, R = 92;
+    for (let k = 0; k < n; k++) {
+      const a = gap + (k + 1.5) / 12 * Math.PI * 2;   // 12칸 중 2칸이 비어 틈이 됨
+      w2Boom(p.x + Math.cos(a) * R, p.y + Math.sin(a) * R, 36, 1.0, m.dmg, "230,242,255", m);
+    }
+    w2Boom(p.x, p.y, 70, 1.6, m.dmg * 1.4, "255,255,255", m, "slow");
+    if (E) w2Later(1.7, () => !m.dead && W2_START.qCage(m, run.p, w, toP, false));
+    fx(p.x, p.y - 44, "거울 감옥! 틈으로 빠져나가세요", "#e6f2ff", 14);
+  },
+  qRicochet(m, p, w, toP, E) {   // 반사 광선: 벽에 튕기며 꺾이는 광선 (예고선 위를 피하기)
+    m.mode = "howl"; m.timer = 1.3;
+    const a0 = toP(), angs = E ? [a0 - 0.45, a0, a0 + 0.45] : [a0 - 0.3, a0 + 0.3];
+    for (const a of angs) {
+      const pts = bouncePath(m.x, m.y, a, E ? 3 : 2);
+      for (let i = 0; i < pts.length - 1; i++) w2Lane([pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1]], 26, 1.05 + i * 0.12, m.dmg * 0.9, m, "star");
+    }
+    fx(m.x, m.y - m.r - 18, "반사 광선!", "#e6f2ff", 15);
+  },
+  qFakes(m, p, w, toP, E) {   // 거울 속의 여왕: 진짜 하나와 가짜 둘(그림자 없음)이 함께 쏨. 가짜를 때리면 파편이 날아옴
+    m.mode = "howl"; m.timer = 0.6;
+    if (w3Alive(o => o.kind === "mqFake").length) return;
+    const spots = [[90, 130], [W - 90, 130], [W / 2, 200], [90, H - 200], [W - 90, H - 200]].sort(() => Math.random() - 0.5);
+    ring(m.x, m.y, 40, "#ffffff");
+    m.x = spots[0][0]; m.y = spots[0][1];
+    for (let k = 1; k <= (E ? 3 : 2); k++) { const f = w3MakeMob("mqFake", spots[k][0], spots[k][1]); f.life = E ? 7 : 6; f.cd = 0.9; f.dmg = m.dmg; }
+    m.fakeCd = 0.9; m.fakeT = E ? 7 : 6;
+    fx(W / 2, H / 2 - 60, "진짜 여왕을 찾으세요 (그림자가 있어요)", "#e6f2ff", 16); sfx("shield");
+  },
   qReflect(m, p, w, toP, E) { m.mode = "reflect"; m.timer = E ? 3.5 : 2.6; fx(m.x, m.y - m.r - 18, "거울 반사! 공격을 멈추세요", "#cfe8ff", 15); sfx("shield"); },
   qSprites(m, p, w, toP, E) {
     m.mode = "howl"; m.timer = 0.7;
@@ -8986,9 +9023,19 @@ Object.assign(W2_START, {
     for (let k = -2; k <= 2; k++) w2Shot(m, a + k * 0.2, 230, m.dmg * 0.6, "#cfe8ff");
   },
 });
+W2AI.mqFake = (m, ax, ay, d, slow, dt) => {
+  m.face = Math.atan2(ay, ax); m.life -= dt;
+  if (m.life <= 0) { m.dead = true; ring(m.x, m.y, 30, "#e6f2ff"); return; }
+  m.cd -= dt;
+  if (m.cd <= 0) { m.cd = 1.3; const a = Math.atan2(ay, ax); for (let k = -2; k <= 2; k++) w2Shot(m, a + k * 0.22, 200, m.dmg * 0.5, "#cfe8ff"); }
+};
 // 반사·돌진 모드 처리 (w2BossAI의 switch에서 부름)
 function w3BossMode(m, dt, done) {
   const p = run.p;
+  if (m.kind === "mirrorQueen" && m.fakeT > 0) {   // 가짜들과 같은 박자로 부채꼴 사격
+    m.fakeT -= dt; m.fakeCd -= dt;
+    if (m.fakeCd <= 0) { m.fakeCd = 1.3; const a = Math.atan2(p.y - m.y, p.x - m.x); for (let k = -2; k <= 2; k++) w2Shot(m, a + k * 0.22, 200, m.dmg * 0.5, "#cfe8ff"); }
+  }
   if (m.mode === "reflect") { if (m.timer <= 0) done(); return true; }
   if (m.mode === "kDashAim") { m.face = m.dashA; if (m.timer <= 0) { m.mode = "kDash"; m.timer = 0.45; m.dashHit = false; sfx("dash"); } return true; }
   if (m.mode === "kDash") {
@@ -9321,8 +9368,8 @@ function drawMirrorQueen(m, t) {
   ctx.restore();
 }
 Object.assign(DRAW, { mSprite: drawMSprite, mWolf: drawMWolf, mArcher: drawMArcher, mGuard: drawMGuard, mShade: drawMShade, mTreasure: drawMTreasure,
-  mirrorKnight: drawMirrorKnight, mirrorQueen: drawMirrorQueen });
-for (const k of ["mSprite", "mTreasure", "mirrorQueen"]) UPRIGHT.add(k);
+  mirrorKnight: drawMirrorKnight, mirrorQueen: (m, t) => { if (m.fakeT > 0) blob(0, m.r * 1.05, m.r * 0.95, m.r * 0.32, "rgba(0,0,0,.55)"); drawMirrorQueen(m, t); }, mqFake: (m, t) => { ctx.globalAlpha = 0.82 + 0.1 * Math.sin(t * 9 + m.phase); drawMirrorQueen(m, t); ctx.globalAlpha = 1; } });
+for (const k of ["mSprite", "mTreasure", "mirrorQueen", "mqFake"]) UPRIGHT.add(k);
 
 // ── 월드 3 화면 ──
 function w3View() {
@@ -10580,7 +10627,7 @@ function draw() {
   // 몹 (공중에 뜬 보스는 맨 위에 그림)
   for (const m of [...r.mobs].sort((a, b) => (a.lift || 0) - (b.lift || 0))) {
     drawMob(m, t);
-    if (m.boss) {
+    if (m.boss || m.kind === "mqFake") {   // 가짜 여왕도 같은 이름표 (이름으로 구분 못 하게)
       ctx.fillStyle = "#efe6d8";
       ctx.font = "13px 'Gowun Dodum', sans-serif";
       ctx.textAlign = "center";
