@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v131";
+const GAME_VERSION = "v132";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1051,7 +1051,7 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 150,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
+    max: TEST ? 150 : 125,   // 월드 3 완성 전까지 +125가 끝 (데이터는 +150까지 있음)
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
@@ -1941,7 +1941,7 @@ function enhance() {
     text = `${who} +${lv} → +${state[current]} 성공`;
     const up = state[current];
     sfx(up % 5 === 0 ? "fanfare" : "success");
-    say(up === item.max ? `${item.names.at(-1)} 완성!`
+    say(up === item.max ? `${item.names[tierIndex(up, item)]} 완성!`
       : up % 5 === 0 ? `${item.names[tierIndex(up, item)]}(으)로 진화했습니다!` : "강화 성공!", "good");
     animate("flash");
   } else if (roll < s + k) {
@@ -9451,7 +9451,8 @@ Object.assign(W3_MOB, {
 // 일반 스테이지 몹은 더 단단하고 세게 (v116)
 const W3_NORMAL_HP = 1.5, W3_NORMAL_DMG = 1.45;
 let w3Ch = 1, w3MarkOpen = false;
-const w3ChOpen = ch => TEST || ch === 1 || w3Best(ch - 1, 10) > 0;
+const W3_OPEN_CH = 1;   // 월드 3 완성 전: 1장만 공개
+const w3ChOpen = ch => TEST || ch === 1 || (ch <= W3_OPEN_CH && w3Best(ch - 1, 10) > 0);
 
 // ── 차원 각인: 월드 3 별 1개 = 1점. 월드 3 안에서만 적용 ──
 const MARKS = [
@@ -9785,7 +9786,7 @@ w3View = function () {
   if (!w3ChOpen(w3Ch)) w3Ch = 1;
   const ch = W3_CH[w3Ch - 1], st = W3_STAGES[w3Ch], stars = w3ChStars(w3Ch);
   if (w3Sel > st.length) w3Sel = 1;
-  const tabs = `<div class="seg w3-chs">${W3_CH.map(c => `<button data-w3ch="${c.n}" aria-selected="${c.n === w3Ch}" ${w3ChOpen(c.n) ? "" : "disabled"}>${w3ChOpen(c.n) ? `${c.n}장` : `${c.n}장 🔒`}</button>`).join("")}<button data-w3mark aria-selected="${w3MarkOpen}">각인</button></div>`;
+  const tabs = `<div class="seg w3-chs">${W3_CH.map(c => `<button data-w3ch="${c.n}" aria-selected="${c.n === w3Ch}" ${w3ChOpen(c.n) ? "" : "disabled"}>${w3ChOpen(c.n) ? `${c.n}장` : c.n > W3_OPEN_CH ? `${c.n}장 준비 중` : `${c.n}장 🔒`}</button>`).join("")}<button data-w3mark aria-selected="${w3MarkOpen}">각인</button></div>`;
   if (w3MarkOpen) return tabs + markView();
   const nodes = st.map((d, i) => {
     const n = i + 1, best = w3Best(w3Ch, n), open = w3Unlocked(w3Ch, n), [ic] = W3_TYPES[d.type];
@@ -11245,7 +11246,7 @@ const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], i
 function normalize(s) {
   const o = {
     gold: s.gold,
-    sword: s.sword ?? s.level ?? 0,   // 첫 버전은 검 단계를 level에 저장
+    sword: Math.min(ITEMS.sword.max, s.sword ?? s.level ?? 0),   // 첫 버전은 검 단계를 level에 저장. 월드 3 완성 전 최대 +125
     pick: s.pick ?? 0,
     mined: s.mined ?? 0,
     log: Array.isArray(s.log) ? s.log.slice(0, 6) : [],
@@ -11269,7 +11270,7 @@ function normalize(s) {
     quest: s.quest ?? 0,
     bossKills: { ...(s.bossKills || {}) },
     ended: !!s.ended,
-    ended3: !!s.ended3,
+    ended3: TEST && !!s.ended3,   // 월드 3 완성 전에는 세 번째 엔딩 기록 초기화
     char: s.char && CH[s.char] && (s.chars || {})[s.char] ? s.char : "adventurer",
     charLv: { ...(s.charLv || {}) },
     shards: { ...(s.shards || {}) },
@@ -11283,14 +11284,14 @@ function normalize(s) {
     pity: { sword: s.pity?.sword | 0, pick: s.pity?.pick | 0 },
     armorV: ARMOR_V,
     tree: Object.fromEntries(Object.keys(s.tree || {}).filter(id => TREE[id]).map(id => [id, true])),
-    w3: { best: Object.fromEntries(Object.entries(s.w3?.best || {}).filter(([k, v]) => /^\d+-\d+$/.test(k)).map(([k, v]) => [k, clamp(v | 0, 0, 3)])),
+    w3: { best: Object.fromEntries(Object.entries(s.w3?.best || {}).filter(([k, v]) => TEST ? /^\d+-\d+$/.test(k) : +k.split('-')[0] <= W3_OPEN_CH).map(([k, v]) => [k, clamp(v | 0, 0, 3)])),
           chests: Object.fromEntries(Object.entries(s.w3?.chests || {}).map(([k, v]) => [k, Array.isArray(v) ? v.filter(x => Number.isInteger(x)) : []])),
           mark: Object.fromEntries(Object.keys(s.w3?.mark || {}).filter(id => /^[0-4][0-3]$/.test(id)).map(id => [id, true])) },
     equip: [0, 1, 2, 3, 4].map(i => {
       const k = Array.isArray(s.equip) ? s.equip[i] : null;
       return k && SK[k] && (s.skills || {})[k] > 0 ? k : null;
     }),
-    best: Math.max(s.best ?? 0, s.sword ?? s.level ?? 0),
+    best: Math.min(ITEMS.sword.max, Math.max(s.best ?? 0, s.sword ?? s.level ?? 0)),
     nickname: typeof s.nickname === "string" ? s.nickname.slice(0, 12) : "",
     friends: Array.isArray(s.friends) ? s.friends.filter(x => typeof x === "string").slice(0, 100) : [],
     savedAt: s.savedAt ?? 0,
