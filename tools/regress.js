@@ -32,6 +32,13 @@ const path = require('path');
     }, k);
     console.log(k, '진행 단계', r);
   }
+  // 월드 3 스테이지 10개: 잠깐씩 돌려 보기
+  for (let st = 1; st <= 10; st++) {
+    const r = await p.evaluate(async st => { state.dungeon2Clears = 1; enterZone(`w3:1:${st}`); pause();
+      for (let i = 0; i < 60 * 6; i++) { if (run.over) break; update(1 / 60); } draw();
+      const out = run.zone.name + ' ' + stageHud(run); if (!run.over) endRun(false); run = null; return out; }, st);
+    if (st === 1 || st === 10) console.log('월드 3', r);
+  }
   // 캐릭터마다 사냥 + 궁극기
   for (const c of await p.evaluate(() => CHARS.map(c => c.key))) {
     await p.evaluate(async k => { useChar(k); enterZone('desert'); await new Promise(r => setTimeout(r, 900)); castUlt(); if (run.dragon) { dragonSkill(0); dragonSkill(1); }

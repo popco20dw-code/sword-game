@@ -614,6 +614,28 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 .tdetail b { color: var(--bc, var(--fg)); } .tdetail p { margin: 4px 0 8px; font-size: 13px; color: var(--fg); }
 .tdetail button { width: 100%; }
 .tfoot { margin: 12px 0; } .tfoot button { width: 100%; opacity: .85; }
+/* 월드 3 */
+.w3-head { display: flex; justify-content: space-between; align-items: baseline; margin-top: 10px; }
+.w3-head h3 { margin: 0; font-family: var(--display); font-weight: 400; color: var(--c); }
+.w3-head span { font-family: var(--mono); color: #ffd24a; }
+.w3-chests { display: flex; flex-wrap: wrap; gap: 4px 6px; margin: 6px 0 10px; }
+.w3-chests span { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,.05); color: var(--muted); }
+.w3-chests span.on { background: rgba(255,210,74,.18); color: #ffd24a; }
+.w3-map { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; padding: 12px; border-radius: 14px; border: 1px solid var(--line);
+  background: radial-gradient(circle at 50% 30%, rgba(207,232,255,.08), rgba(0,0,0,.2)); }
+.w3n { display: grid; justify-items: center; gap: 2px; padding: 8px 2px; border-radius: 12px; border: 1px solid rgba(207,232,255,.35); background: #142226; color: var(--fg); }
+.w3n .ic { font-size: 18px; } .w3n b { font-family: var(--mono); font-size: 13px; } .w3n small { font-size: 10px; color: #ffd24a; min-height: 12px; }
+.w3n.done { border-color: #ffd24a; } .w3n.sel { outline: 2px solid #fff; outline-offset: 1px; }
+.w3n.boss { border-color: #ff7a7a; background: #2a1a1e; } .w3n.lock { opacity: .4; }
+.w3-card { margin-top: 10px; padding: 12px; border-radius: 14px; border: 1px solid rgba(207,232,255,.4); background: rgba(20,34,38,.9); }
+.w3-card.boss { border-color: #ff7a7a; }
+.w3-t { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.w3-t span { font-size: 12px; color: #9fd0ff; } .w3-t b { font-family: var(--display); font-weight: 400; font-size: 18px; } .w3-t em { font-style: normal; color: #ffd24a; }
+.w3-card p { margin: 6px 0; color: var(--fg); font-size: 13px; }
+.w3-card ul { margin: 6px 0 10px; padding-left: 18px; color: var(--muted); font-size: 12px; }
+.w3-card button { width: 100%; }
+.w3-stars { font-size: 28px; color: #ffd24a; letter-spacing: 4px; }
+
 /* 사냥터 캐릭터 고르기 */
 .char-pick-head { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
 .char-pick-head h3 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 18px; }
@@ -914,11 +936,12 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v114";
+const GAME_VERSION = "v115";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
 const TEST = /[?&]test\b/.test(location.search);
+let syncCap = null;   // 월드 3 상한 동기화 (스테이지 안에서만 { sword, armor, char })
 const dev = { god: false, atkMul: 1 };
 const START_GOLD = 2000;
 const MINE_GOLD = 20;      // 곡괭이 +0일 때 돌 하나당 골드 (v104: 10 → 20)
@@ -928,7 +951,7 @@ const rockGold = () => Math.round(MINE_GOLD * Math.pow(MINE_GROWTH, state.pick) 
 
 const COLORS = ["#a0703f", "#b9c0c8", "#6fb8ff", "#b47cff", "#ffd24a", "#9ff3ff", "#ff8fd8", "#ffffff",
                 "#7dffb2", "#ff5a36", "#fff3a0", "#c0d0ff", "#9fe3ff",
-                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff"];
+                "#7fe3d8", "#e8f06a", "#ff6a3d", "#f7d7ff", "#e8c98a", "#d6a8ff", "#4fd1c5", "#9be05a", "#bfe8ff", "#e0c070", "#8a7ab8", "#ff7a3d", "#fff6ff", "#cfe8ff"];
 // 5단계마다 이름과 색이 바뀜
 const tierIndex = (lv, item) => Math.min(Math.floor(lv / 5), item.names.length - 1);
 
@@ -959,8 +982,9 @@ const BOSS_MATS = [
   { key: "gheart", name: "거신의 심장석", color: "#ff7a3d" },
   { key: "score", name: "별의 핵", color: "#fff6ff" },
   { key: "kingheart", name: "용왕의 심장", color: "#f7d7ff" },
+  { key: "mirror", name: "거울 여왕의 파편", color: "#cfe8ff" },
 ];
-const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0 });
+const emptyMats = () => ({ ruby: 0, diamond: 0, star: 0, crown: 0, heart: 0, scale: 0, crest: 0, frost: 0, soul: 0, horn: 0, ogre: 0, kingheart: 0, tooth: 0, qcore: 0, tentacle: 0, mcap: 0, gfeather: 0, tgear: 0, mask: 0, gheart: 0, score: 0, mirror: 0 });
 // +35를 넘으면 단계마다 보석 확률이 두 배씩 더 붙는다
 const matChance = m => state.pick < m.req ? 0 : m.base + m.per * (state.pick - m.req) + m.per * 2 * Math.max(0, state.pick - 35);
 // 광산에서 남는 보석을 별의 파편으로 합성
@@ -996,12 +1020,14 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: 125,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
+    max: 130,   // 월드 2 사냥터 9곳 × 5단계 = 최종 +125 별을 벤 검
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
             // 월드 2: 사냥터 하나당 5단계
-            "사막왕의 검", "수정 여왕의 검", "해신검", "맹독검", "천풍검", "시간의 검", "그림자검", "거신검", "별을 벤 검"],
+            "사막왕의 검", "수정 여왕의 검", "해신검", "맹독검", "천풍검", "시간의 검", "그림자검", "거신검", "별을 벤 검",
+            // 월드 3
+            "거울의 검"],
     odds(lv) {
       if (lv < 5)  return [95, 5, 0, 0];
       if (lv < 10) return [70, 25, 5, 0];
@@ -1053,7 +1079,9 @@ const ITEMS = {
       if (lv < 110) return [["tgear", 1], ["gfeather", 1]];
       if (lv < 115) return [["mask", 1], ["tgear", 1]];
       if (lv < 120) return [["gheart", 1], ["mask", 1]];
-      return [["score", 1], ["gheart", 1]];
+      if (lv < 125) return [["score", 1], ["gheart", 1]];
+      // 월드 3: 장 보스 재료
+      return [["mirror", 1], ["score", 1]];
     },
     // 판매가 = 그 단계 강화 비용 × (2 + 0.1 × 단계). 높이 키울수록 배율도 커짐
     price: lv => lv === 0 ? 0 : Math.round(swordCost(lv) * (2 + 0.1 * lv) / 10) * 10,
@@ -1157,7 +1185,7 @@ const matLabel = k => k === "runes" ? "룬석" : k === "astone" ? "강화석" : 
 const runePieces = () => armorUnlocked() ? ARMOR_SLOTS.filter(sl => state.armor.equip[sl.key] === armorId(sl.key, "rune")).length : 0;
 const runeSet = () => runePieces() === ARMOR_SLOTS.length;
 const skillCdMul = () => (1 - 0.1 * runePieces()) * (1 - treeStats().cdr / 100) * (isChar("trickster") ? 1 - 0.02 * (cl("trickster") - 1) : 1);
-const armorLv = id => state.armor.owned[id] ?? 0;
+const armorLv = id => { const lv = state.armor.owned[id] ?? 0; return syncCap ? Math.min(lv, syncCap.armor) : lv; };
 const equipped = () => ARMOR_SLOTS.map(sl => state.armor.equip[sl.key]).filter(Boolean);
 const armorHpTotal = () => equipped().reduce((a, id) => a + armorHp(id, armorLv(id)), 0);
 const starSet = () => ARMOR_SLOTS.every(sl => state.armor.equip[sl.key] === armorId(sl.key, "star"));
@@ -1271,7 +1299,7 @@ const perRock = () => Math.round(rockGold() * MINE_HAND) * (state.oil > 0 ? 2 : 
 let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 } };
+              best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {} } };
 
 // 강화에 필요한 재료가 있으면 [재료, 개수, 충분한지]
 // 필요한 재료 목록 [[재료, 개수, 충분한지], ...] 또는 null
@@ -1393,8 +1421,11 @@ const TRAITS = [
 ];
 const traitPts = () => state.mlv - 1 - TRAITS.reduce((a, t) => a + state.traits[t.key], 0);
 const goldMul = () => 1 + 0.05 * state.traits.luck;
-const myAtk = () => Math.round(atkOf(state.sword) * (1 + 0.04 * state.traits.str));
-const myHp = () => Math.round(hpOf(state.sword) * (1 + 0.05 * state.traits.vit));
+// 월드 3 상한 동기화: 검은 상한까지, 넘는 단계는 1단계당 공격력 +1% (최대 +15%)
+const syncSword = () => syncCap ? Math.min(state.sword, syncCap.sword) : state.sword;
+const syncOver = () => syncCap ? clamp(state.sword - syncCap.sword, 0, 15) : 0;
+const myAtk = () => Math.round(atkOf(syncSword()) * (1 + 0.04 * state.traits.str) * (1 + syncOver() / 100));
+const myHp = () => Math.round(hpOf(syncSword()) * (1 + 0.05 * state.traits.vit));
 // ── 월드 2 ── 킹 드래곤을 잡으면 열림. 사냥터마다 지형 특징이 하나씩 있다
 const ZONES2 = [
   { key: "desert", world: 2, name: "잿빛 사막", rec: 80, bg: "#3a2f22", rune: 17, xp: 190, stars: 22,
@@ -3474,6 +3505,19 @@ function getFloor(zone) {
       g.fillStyle = "#3e3460"; g.beginPath(); g.ellipse(x - rx * 0.1, y - rx * 0.08, rx * 0.8, rx * 0.36, 0, 0, Math.PI * 2); g.fill(); }
   }
 
+  if (zone.theme === "mirror") {
+    // 거울의 숲: 어두운 청록 바닥, 은빛 이끼, 깨진 거울 조각, 가장자리의 은빛 나무
+    blobs(30, ["rgba(120,170,180,.10)", "rgba(20,40,48,.35)", "rgba(200,230,240,.06)"], 30, 90);
+    for (let i = 0; i < 26; i++) { const x = rnd(20, W - 20), y = rnd(60, H - 20), s = rnd(5, 13), a = rnd(0, 6);
+      g.fillStyle = `rgba(207,232,255,${rnd(0.18, 0.4)})`; g.beginPath(); g.moveTo(x + Math.cos(a) * s, y + Math.sin(a) * s); g.lineTo(x + Math.cos(a + 2.2) * s * 0.7, y + Math.sin(a + 2.2) * s * 0.7); g.lineTo(x + Math.cos(a + 4) * s * 0.9, y + Math.sin(a + 4) * s * 0.9); g.closePath(); g.fill(); }
+    for (let i = 0; i < 4; i++) { const x = rnd(60, W - 60), y = rnd(120, H - 80);
+      g.fillStyle = "rgba(160,210,230,.12)"; g.beginPath(); g.ellipse(x, y, rnd(40, 70), rnd(18, 28), 0, 0, Math.PI * 2); g.fill();
+      g.strokeStyle = "rgba(207,232,255,.25)"; g.lineWidth = 1.5; g.stroke(); }
+    for (let i = 0; i < 16; i++) { const left = i % 2 === 0, x = left ? rnd(-10, 30) : rnd(W - 30, W + 10), y = rnd(30, H - 10), rr = rnd(18, 34);
+      g.fillStyle = "#0c1a1e"; g.beginPath(); g.arc(x, y, rr + 4, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "#3a5a66"; g.beginPath(); g.arc(x, y, rr, 0, Math.PI * 2); g.fill();
+      g.fillStyle = "rgba(207,232,255,.35)"; g.beginPath(); g.arc(x - rr * 0.3, y - rr * 0.3, rr * 0.45, 0, Math.PI * 2); g.fill(); }
+  }
   // 모든 사냥터: 가장자리를 살짝 어둡게
   const vg = g.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vg.addColorStop(0, "rgba(0,0,0,0)");
@@ -3860,6 +3904,7 @@ function treeStats() {
     if (n.special) t[n.special] = true;
     for (const [k, v] of n.eff || []) t[k] += v;
   }
+  if (syncCap) for (const k in TSTAT) t[k] *= 0.5;   // 월드 3: 스킬 트리 효과 절반
   return t;
 }
 const treeSpent = () => Object.keys(state.tree || {}).reduce((a, id) => a + (TREE[id] ? treeCost(TREE[id]) : 0), 0);
@@ -4018,7 +4063,7 @@ const CHAR_TIER = {
   epic:   { name: "에픽", color: "#b47cff", need: 20, dupSoul: 300,  shardSoul: 25, upBase: 120 },
   legend: { name: "전설", color: "#ffd24a", need: 0,  dupSoul: 1000, shardSoul: 0,  upBase: 300 },
 };
-const cl = key => state.charLv?.[key] || 1;   // 캐릭터 레벨
+const cl = key => { const lv = state.charLv?.[key] || 1; return syncCap ? Math.min(lv, syncCap.char) : lv; };   // 캐릭터 레벨 (월드 3은 상한)
 const CHARS = [
   { key: "adventurer", name: "모험가", tier: "base", color: "#efe6d8",
     desc: lv => `특별한 능력은 없지만 처음부터 함께하는 기본 캐릭터. 레벨마다 공격력 +${lv - 1}%.` },
@@ -4640,8 +4685,8 @@ function renderZones() {
   }
   $("zones").innerHTML = head + (huntView === "zones"
     ? `<div class="hunt-stats">검 <b>+${lv}</b> · 공격력 <b>${myAtk().toLocaleString("ko-KR")}</b> · 체력 <b>${myHp()}</b></div>` + charPicker() +
-      seg("world", huntWorld, [["1", "월드 1"], ["2", world2Open() ? "월드 2" : "월드 2 🔒"]]) +
-      (huntWorld === "2" && !world2Open()
+      seg("world", huntWorld, [["1", "월드 1"], ["2", world2Open() ? "월드 2" : "월드 2 🔒"], ["3", w3Open() ? "월드 3" : "월드 3 🔒"]]) +
+      (huntWorld === "3" ? w3View() : huntWorld === "2" && !world2Open()
         ? `<div class="zone w2lock"><h3>월드 2: 별이 떨어진 대륙</h3><p>용의 둥지에서 <b>킹 드래곤</b>을 처치하면 열려요.</p><p>새 사냥터와 보스, 검 +125까지의 강화가 기다려요.</p></div>`
         : huntWorld === "2" ? zones + `` + dungeon2Card()
         : zones + `<h4 class="extra-h">추가 콘텐츠</h4>` + dungeonCard)
@@ -4690,11 +4735,13 @@ function toggleEquip(key) {
 }
 
 function enterZone(key) {
-  const zone = key === DUNGEON.key ? DUNGEON : key === DUNGEON2.key ? DUNGEON2 : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : zoneByKey(key);
+  const zone = key === DUNGEON.key ? DUNGEON : key === DUNGEON2.key ? DUNGEON2 : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : key.startsWith("w3:") ? stageZone(key) : zoneByKey(key);
+  if (!zone) return;
+  syncCap = zone.world === 3 ? zone.cap : null;
   const arm = armorSnapshot();
   const hp = Math.round((myHp() + (armorUnlocked() ? armorHpTotal() : 0)) * (1 + treeStats().hp / 100));
   run = {
-    zone, atk: myAtk(), swordColor: COLORS[tierIndex(state.sword, ITEMS.sword)], charColor: CH[state.char].color, charKey: state.char, floor: getFloor(zone.practice != null ? DUNGEON : zone),
+    zone, atk: myAtk(), swordColor: COLORS[tierIndex(state.sword, ITEMS.sword)], charColor: CH[state.char].color, charKey: state.char, floor: getFloor(zone.practice != null ? DUNGEON : zone.floorKey ? { key: zone.floorKey, bg: zone.bg, theme: zone.theme } : zone),
     p: { x: W / 2, y: H / 2, hp, max: hp, atkCd: 0, swing: 0, aim: -Math.PI / 2, hurt: 0,
          dir: { x: 0, y: -1 }, invuln: 0, dash: null },
     mobs: [], fx: [], rings: [], bombs: [], kills: 0, spawnCd: 0.6, over: false, time: 0,
@@ -4706,7 +4753,13 @@ function enterZone(key) {
     dungeon: zone.dungeon ? { stage: zone.practice ?? 0, wait: zone.practice != null ? 0.8 : 1.2, cleared: false, clearT: 0,
                               only: zone.practice != null, spawned: false } : null,
     loot: { gold: 0, kills: 0, bosses: 0, runes: 0, mats: {} },
+    stage: zone.w3 ? { def: zone.w3.def, ch: zone.w3.ch, n: zone.w3.n, t: 0, kills: 0, spawned: 0 } : null,
   };
+  if (run.stage) {
+    if (zone.w3.def.type === "escape") { run.p.y = H - 50; }
+    fx(W / 2, H / 2 - 90, `${zone.name}`, "#cfe8ff", 20);
+    fx(W / 2, H / 2 - 60, `동기화: 검 +${syncSword()} · 방어구 최대 +${zone.cap.armor} · 캐릭터 Lv ${zone.cap.char}`, "#9fd0ff", 12);
+  }
   $("zones").hidden = true;
   $("arena").hidden = false;
   $("result").hidden = true;
@@ -5344,6 +5397,14 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
       return;
     }
   }
+  if (m.shield) {   // 수정 방패병: 방패 쪽(정면) 공격은 크게 줄고, 광역(위에서 떨어지는) 공격도 절반
+    if (from) { let df = Math.atan2(from.y - m.y, from.x - m.x) - m.face; df = Math.atan2(Math.sin(df), Math.cos(df)); if (Math.abs(df) < 1.1) { mult *= 0.25; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "막힘", "#8fd8ff", 11); } }
+    else mult *= 0.5;
+  }
+  if (m.mode === "reflect") {   // 거울 반사: 피해가 크게 줄고, 직접 때리면 피해가 돌아옴
+    mult *= 0.25;
+    if (from === run.p && run.time - (m.reflAt ?? -9) > 0.45) { m.reflAt = run.time; hitBy(m, m.dmg * 0.45); fx(run.p.x, run.p.y - 30, "반사!", "#cfe8ff", 13); }
+  }
   if (m.kind === "obsidian" && !(m.open > 0)) { mult *= 0.3; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "단단함", "#8a8a9a", 11); }
   const critLv = passiveLv("crit"), tr = run.tree;
   const crit = Math.random() * 100 < (critLv ? SK.crit.chance(critLv) : 0) + tr.crit;
@@ -5387,6 +5448,7 @@ function kill(m) {
   sfx(m.boss && !(m.kind === "slimeKing" && !m.mini) ? "bossDown" : "kill");
   sparksAt(m.x, m.y, m.color, m.boss ? 34 : 10, m.boss ? 230 : 140);
   if (isChar("hypernova") && !m.boss && run.novas && run.novas.length < 30) run.novas.push({ x: m.x, y: m.y, t: 0.12 });
+  if (run.stage) { stageKill(m); return; }
   // 슬라임 킹은 한 번 분열한다. 보상은 마지막 분열체를 잡았을 때
   if (m.boss && m.kind === "slimeKing" && !m.mini) { splitSlime(m); return; }
   if (m.noLoot) { lootFx(m, "분신 파괴", "#e4ccff"); return; }
@@ -5511,6 +5573,7 @@ function update(dt) {
   // 몹 등장
   const bossAlive = r.mobs.some(m => m.boss);
   if (r.dungeon) dungeonStep(dt, bossAlive);
+  else if (r.stage) { if (!r.stage.done) stageStep(dt); }
   else {
   const cap = bossAlive ? BOSS_MAX_MOBS : MAX_MOBS;
   if (r.mobs.length - bossAlive < cap) {
@@ -7759,6 +7822,7 @@ function w2BossAI(m, dt) {
   }
   const done = () => { m.mode = "chase"; m.cd = E ? 0.6 : 1.1; m.lift = 0; };
   m.timer -= dt;
+  if (w3BossMode(m, dt, done)) return;
   if (m.kind === "timeKnight") { (m.hist ||= []).push([run.time, m.x, m.y]); while (m.hist.length && run.time - m.hist[0][0] > 3) m.hist.shift(); }
   if (m.kind === "kraken") m.repelCd = (m.repelCd ?? 0) - dt;
   switch (m.mode) {
@@ -8494,6 +8558,590 @@ const W2AI = {
   qclone(m, ax, ay, d, slow, dt) { m.life -= dt; if (m.life <= 0) { m.dead = true; ring(m.x, m.y, 30, "#e4ccff"); } },
 };
 
+
+// ══════════ 월드 3: 무너진 차원 (스테이지 형식) ══════════
+// 장마다 10스테이지. 들어가면 '상한 동기화'로 검·방어구·캐릭터 레벨이 장 상한까지로 낮춰지고 스킬 트리는 절반만 적용.
+// 몹은 서로 밀어내며 퍼지고, 역할(정령·늑대·사수·방패병·매복자)마다 다르게 움직인다.
+const W3_CH = [
+  { n: 1, name: "거울의 숲", bg: "#13252a", theme: "mirror", cap: { sword: 130, armor: 8, char: 6 }, mat: "mirror", color: "#cfe8ff", dmgMul: 0.65 },
+];
+const W3_TYPES = {
+  kill: ["⚔️", "섬멸"], survive: ["⏳", "생존"], defend: ["💎", "방어"], escape: ["🏃", "돌파"],
+  elite: ["👑", "정예"], hunt: ["🎯", "사냥"], waves: ["🌊", "연전"], boss: ["💀", "보스"],
+};
+// par: ★★★ 제한 시간(초)
+const W3_STAGES = {
+  1: [
+    { type: "kill", name: "은빛 오솔길", need: 14, alive: 5, pool: ["mSprite", "mSprite", "mWolf"], pre: 4, par: 45,
+      desc: "숲에 들어서자 거울 정령들이 내 움직임을 거꾸로 따라 해요." },
+    { type: "survive", name: "깨진 거울 연못", dur: 45, alive: 7, pool: ["mSprite", "mWolf", "mArcher"], par: 45,
+      desc: "사방에서 몰려와요. 45초 동안 버티세요." },
+    { type: "defend", name: "수정 등불 지키기", dur: 45, alive: 6, pool: ["mSprite", "mWolf", "mSprite"], par: 45,
+      desc: "가운데 수정 등불이 꺼지지 않게 지키세요. 정령은 등불을 노려요." },
+    { type: "escape", name: "거울 미로 탈출", pool: ["mShade", "mSprite", "mArcher"], pre: 5, par: 30,
+      desc: "거울 표식 5개를 차례로 1초씩 밟아 켜면 위쪽 출구가 열려요. 숨은 그림자와 가로지르는 거울빛을 조심하세요." },
+    { type: "boss", name: "거울 기사", boss: "mirrorKnight", par: 60,
+      desc: "숲을 지키는 거울 기사. 반사 상태일 때 때리면 피해가 돌아와요." },
+    { type: "elite", name: "수정 수문장", elites: ["mGuard", "mGuard"], pool: ["mArcher", "mSprite"], alive: 3, par: 60,
+      desc: "정예 방패병 둘. 방패 쪽 공격은 거의 막히니 뒤로 돌아가세요." },
+    { type: "hunt", name: "거울 요정 쫓기", limit: 40, pool: ["mWolf", "mArcher"], alive: 3, par: 25,
+      desc: "보물을 든 거울 요정이 도망쳐요. 40초 안에 잡으세요." },
+    { type: "waves", name: "세 겹의 거울", waves: [["mSprite", "mSprite", "mWolf", "mWolf"], ["mArcher", "mArcher", "mGuard", "mSprite", "mSprite"], ["mShade", "mShade", "mWolf", "mGuard", "mArcher", "mArcher"]], par: 70,
+      desc: "몹 무리가 세 번 몰려와요." },
+    { type: "kill", name: "그림자 덤불", need: 22, alive: 6, pool: ["mShade", "mGuard", "mArcher", "mWolf", "mSprite"], pre: 6, par: 75,
+      desc: "매복자와 방패병이 섞인 깊은 숲. 22마리를 처치하세요." },
+    { type: "boss", name: "거울 여왕", boss: "mirrorQueen", par: 90,
+      desc: "거울의 숲의 주인. 반사, 거울 정령 소환, 프리즘 광선, 거울 순간이동을 써요." },
+  ],
+};
+const W3_MOB = {   // hp: 장 상한 검 공격력의 배수, dmg: 기준 체력의 비율
+  mSprite: { name: "거울 정령", color: "#cfe8ff", hp: 4, dmg: 0.07, speed: 95, r: 12 },
+  mWolf: { name: "거울 늑대", color: "#b8c8d8", hp: 6, dmg: 0.13, speed: 110, r: 13 },
+  mArcher: { name: "은빛 사수", color: "#d8e4ec", hp: 5, dmg: 0.09, speed: 80, r: 12, contact: false },
+  mGuard: { name: "수정 방패병", color: "#8fd8ff", hp: 18, dmg: 0.12, speed: 55, r: 16 },
+  mShade: { name: "그림자 매복자", color: "#3a3550", hp: 7, dmg: 0.16, speed: 100, r: 13 },
+  mTreasure: { name: "보물 거울 요정", color: "#ffe9a8", hp: 45, dmg: 0, speed: 128, r: 11, contact: false },
+  mirrorKnight: { name: "거울 기사", color: "#c8d6e6", hp: 240, dmg: 0.14, speed: 70, r: 26, boss: true },
+  mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 450, dmg: 0.15, speed: 55, r: 30, boss: true },
+};
+const W3_HP_REF = 1800;   // 기준 체력 (상한 +130·특성·방어구 일부)
+let w3Sel = 1;
+const w3Open = () => (state.dungeon2Clears | 0) > 0 || TEST;
+const w3Id = (ch, n) => `${ch}-${n}`;
+const w3Best = (ch, n) => state.w3.best[w3Id(ch, n)] || 0;
+const w3Unlocked = (ch, n) => n === 1 || w3Best(ch, n - 1) > 0;
+const w3ChStars = ch => W3_STAGES[ch].reduce((a, _, i) => a + w3Best(ch, i + 1), 0);
+const W3_CHESTS = [
+  { need: 10, text: "캐릭터 뽑기권 3장", give: () => { state.ctickets += 3; } },
+  { need: 20, text: "소울 500 · 강화석 50", give: () => { state.souls += 500; state.astones += 50; } },
+  { need: 30, text: "캐릭터 뽑기권 10장 · 별의 파편 300", give: () => { state.ctickets += 10; state.mats.star += 300; } },
+];
+function stageZone(key) {
+  const [, c, s] = key.split(":"), ch = W3_CH[+c - 1], def = W3_STAGES[+c]?.[+s - 1];
+  if (!ch || !def) return null;
+  return { key, world: 3, w3: { ch: +c, n: +s, def }, name: `${c}-${s} ${def.name}`, rec: ch.cap.sword, bg: ch.bg, theme: ch.theme,
+           cap: ch.cap, drops: {}, rune: 0, mob: { kind: "mSprite", name: "거울 정령", dmg: 0 }, boss: { name: def.boss ? W3_MOB[def.boss].name : "" }, floorKey: "w3c" + c };
+}
+function w3MakeMob(kind, x, y, opts = {}) {
+  const b = W3_MOB[kind], cap = run.zone.cap, A = atkOf(cap.sword);
+  const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1));
+  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(W3_HP_REF * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1)),
+              speed: b.speed, baseSpeed: b.speed, r: b.r * (opts.elite ? 1.35 : 1), gold: 0, face: Math.atan2(run.p.y - y, run.p.x - x), hitCd: 0, flash: 0,
+              phase: Math.random() * 6, contact: b.contact, w3: true, state: opts.idle ? "idle" : "fight", elite: !!opts.elite, cd: 1 + Math.random() };
+  if (b.boss) Object.assign(m, { boss: true, mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, combo: 1 });
+  if (kind === "mGuard") m.shield = true;
+  if (kind === "mShade") { m.hide = true; m.ghost = 99; }
+  if (opts.toCrystal) m.toCrystal = true;
+  run.mobs.push(m);
+  return m;
+}
+// 가장자리 아무 곳(플레이어와 먼 쪽)에서 등장
+function w3Edge() {
+  const p = run.p;
+  for (let i = 0; i < 12; i++) {
+    const side = Math.floor(Math.random() * 4), t = Math.random();
+    const x = side === 0 ? 20 : side === 1 ? W - 20 : 30 + t * (W - 60), y = side === 2 ? 60 : side === 3 ? H - 20 : 70 + t * (H - 100);
+    if (Math.hypot(x - p.x, y - p.y) > 180) return [x, y];
+  }
+  return [W / 2, 70];
+}
+const w3Pick = pool => pool[Math.floor(Math.random() * pool.length)];
+function w3Spawn(kind, opts) { const [x, y] = w3Edge(); return w3MakeMob(kind, x, y, opts); }
+function w3Alive(f = () => true) { return run.mobs.filter(m => !m.dead && f(m)); }
+
+// 몹이 노리는 지점 (방어 스테이지에서는 일부가 수정을 노림)
+function w3Tgt(m) {
+  const c = run.stage?.crystal;
+  return m.toCrystal && c && c.hp > 0 ? c : run.p;
+}
+// 경계 → 발견: 가까이 오거나 맞으면 깨어나고 주변 몹을 부름
+function w3Awake(m, d) {
+  if (m.state !== "idle") return true;
+  m.wander = (m.wander ?? Math.random() * 6) + (Math.random() - 0.5) * 0.08;
+  m.x = clamp(m.x + Math.cos(m.wander) * 22 * (1 / 60), 20, W - 20); m.y = clamp(m.y + Math.sin(m.wander) * 22 * (1 / 60), 60, H - 20);
+  if (d < 210 || m.hp < m.max) {
+    m.state = "fight";
+    fx(m.x, m.y - m.r - 10, "!", "#ffe066", 16);
+    for (const o of run.mobs) if (o !== m && o.state === "idle" && Math.hypot(o.x - m.x, o.y - m.y) < 170) { o.state = "fight"; fx(o.x, o.y - o.r - 10, "!", "#ffe066", 14); }
+    return true;
+  }
+  return false;
+}
+const w3Move = (m, vx, vy, sp, dt) => { const l = Math.hypot(vx, vy) || 1; m.x = clamp(m.x + vx / l * sp * dt, 14, W - 14); m.y = clamp(m.y + vy / l * sp * dt, 40, H - 14); };
+
+Object.assign(W2AI, {
+  // 거울 정령: 내 움직임을 좌우로 뒤집어 따라 하면서 천천히 다가옴
+  mSprite(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const T = w3Tgt(m), tx = T.x - m.x, ty = T.y - m.y, S = run.stage;
+    const mvx = -(S?.pvx || 0) * 0.9, mvy = (S?.pvy || 0) * 0.9;
+    m.x = clamp(m.x + (mvx + tx / (Math.hypot(tx, ty) || 1) * m.speed * 0.55) * slow * dt, 14, W - 14);
+    m.y = clamp(m.y + (mvy + ty / (Math.hypot(tx, ty) || 1) * m.speed * 0.55) * slow * dt, 40, H - 14);
+    m.face = Math.atan2(ty, tx);
+  },
+  // 거울 늑대: 둘레를 돌다가 예고 뒤 관통 돌진
+  mWolf(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const T = w3Tgt(m), tx = T.x - m.x, ty = T.y - m.y, td = Math.hypot(tx, ty) || 1;
+    if (m.lunge) {
+      m.lunge.t -= dt;
+      if (m.lunge.t > 0.35) { m.face = m.lunge.a; return; }   // 예고 (멈춤)
+      m.x = clamp(m.x + Math.cos(m.lunge.a) * 470 * dt, 14, W - 14); m.y = clamp(m.y + Math.sin(m.lunge.a) * 470 * dt, 40, H - 14);
+      if (!m.lunge.hit && T === run.p && Math.hypot(run.p.x - m.x, run.p.y - m.y) < m.r + P_R + 4) { m.lunge.hit = true; hitBy(m, m.dmg * 1.3); }
+      if (m.lunge.t <= 0) { m.lunge = null; m.cd = 2.2 + Math.random() * 1.5; m.orbit = (m.orbit || 1) * (Math.random() < 0.5 ? -1 : 1); }
+      return;
+    }
+    m.cd -= dt;
+    // 반지름 120 정도에서 원을 그리며 돈다
+    const a = Math.atan2(m.y - T.y, m.x - T.x) + (m.orbit || 1) * 1.4 * dt, R = 120;
+    const gx = T.x + Math.cos(a) * R, gy = T.y + Math.sin(a) * R;
+    w3Move(m, gx - m.x, gy - m.y, m.speed * slow, dt);
+    m.face = Math.atan2(ty, tx);
+    if (m.cd <= 0 && td < 220) m.lunge = { t: 0.85, a: Math.atan2(ty, tx), hit: false };
+  },
+  // 은빛 사수: 거리를 유지하며 옆으로 움직이다가 예측 사격
+  mArcher(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const T = w3Tgt(m), tx = T.x - m.x, ty = T.y - m.y, td = Math.hypot(tx, ty) || 1, S = run.stage;
+    m.face = Math.atan2(ty, tx);
+    let vx = 0, vy = 0;
+    if (td < 160) { vx = -tx; vy = -ty; } else if (td > 250) { vx = tx; vy = ty; }
+    else { m.side = m.side || (Math.random() < 0.5 ? -1 : 1); vx = -ty * m.side; vy = tx * m.side; if (Math.random() < 0.005) m.side *= -1; }
+    w3Move(m, vx, vy, m.speed * slow * (m.aim > 0 ? 0.2 : 1), dt);
+    m.cd -= dt;
+    if (m.aim > 0) {
+      m.aim -= dt;
+      if (m.aim <= 0) {
+        const lead = T === run.p ? 0.35 : 0, px = T.x + (S?.pvx || 0) * lead, py = T.y + (S?.pvy || 0) * lead;
+        w2Shot(m, Math.atan2(py - m.y, px - m.x), 250, m.dmg, "#e6f2ff");
+        m.cd = 1.7 + Math.random() * 0.6;
+      }
+    } else if (m.cd <= 0) m.aim = 0.45;
+  },
+  // 수정 방패병: 동료 앞을 막아서고 천천히 돌아봄. 방패 쪽 피해는 크게 줄어듦
+  mGuard(m, ax, ay, d, slow, dt) {
+    if (!w3Awake(m, d)) return;
+    const p = run.p, T = w3Tgt(m);
+    const want = Math.atan2(T.y - m.y, T.x - m.x);
+    let diff = want - m.face; diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+    m.face += clamp(diff, -1.3 * dt, 1.3 * dt);
+    if (m.bash > 0) {
+      m.bash -= dt;
+      if (m.bash <= 0) { m.cd = 1.6; if (Math.hypot(p.x - m.x, p.y - m.y) < m.r + P_R + 30) hitBy(m, m.dmg * 1.2); ring(m.x + Math.cos(m.face) * 22, m.y + Math.sin(m.face) * 22, 30, "#8fd8ff"); }
+      return;
+    }
+    const ally = run.mobs.filter(o => !o.dead && o !== m && !o.shield && !o.boss).sort((a, b) => Math.hypot(a.x - m.x, a.y - m.y) - Math.hypot(b.x - m.x, b.y - m.y))[0];
+    let gx = T.x, gy = T.y;
+    if (ally && T === p) { const aa = Math.atan2(p.y - ally.y, p.x - ally.x); gx = ally.x + Math.cos(aa) * 45; gy = ally.y + Math.sin(aa) * 45; }
+    if (Math.hypot(gx - m.x, gy - m.y) > 6) w3Move(m, gx - m.x, gy - m.y, m.speed * slow, dt);
+    m.cd -= dt;
+    if (m.cd <= 0 && Math.hypot(p.x - m.x, p.y - m.y) < m.r + P_R + 26) m.bash = 0.5;
+  },
+  // 그림자 매복자: 숨어 있다가 가까이 오면 튀어나와 찌르고, 다시 내가 갈 길목에 숨음
+  mShade(m, ax, ay, d, slow, dt) {
+    const p = run.p, S = run.stage;
+    if (m.rise > 0) {
+      m.rise -= dt;
+      if (m.rise <= 0) { m.ghost = 0; m.hide = false; m.out = 3.2; if (Math.hypot(p.x - m.x, p.y - m.y) < 62) hitBy(m, m.dmg); ring(m.x, m.y, 62, "#7a6aa8"); }
+      return;
+    }
+    if (m.hide) {
+      if (m.state === "fight") {   // 내가 가는 방향 앞쪽으로 스르륵
+        const gx = p.x + (S?.pvx || 0) * 1.2, gy = p.y + (S?.pvy || 0) * 1.2;
+        w3Move(m, gx - m.x, gy - m.y, 70 * slow, dt);
+      } else w3Awake(m, d) || 0;
+      if (d < 85) { m.rise = 0.45; m.state = "fight"; sfx("click"); }
+      return;
+    }
+    m.out -= dt;
+    if (d > 4) w3Move(m, ax, ay, m.speed * slow, dt);
+    m.face = Math.atan2(ay, ax);
+    if (m.out <= 0) { m.hide = true; m.ghost = 99; ring(m.x, m.y, 26, "#3a3550"); }
+  },
+  // 보물 거울 요정: 나에게서 도망치고, 몰리면 순간이동
+  mTreasure(m, ax, ay, d, slow, dt) {
+    m.state = "fight";
+    let vx = -ax, vy = -ay;
+    if (m.x < 50) vx += 120; if (m.x > W - 50) vx -= 120; if (m.y < 90) vy += 120; if (m.y > H - 50) vy -= 120;
+    w3Move(m, vx, vy, m.speed * slow, dt);
+    m.cd -= dt;
+    if (m.cd <= 0 && d < 90) {
+      m.cd = 4.5;
+      ring(m.x, m.y, 26, "#ffe9a8");
+      const [x, y] = w3Edge(); m.x = clamp(x, 40, W - 40); m.y = clamp(y, 90, H - 40);
+      fx(m.x, m.y - 20, "휙!", "#ffe9a8", 13);
+    }
+  },
+});
+
+// ── 거울 기사·거울 여왕: 월드 2 보스 틀(w2BossAI)을 그대로 씀 ──
+W2_BOSS.add("mirrorKnight"); W2_BOSS.add("mirrorQueen");
+W2_PATTERNS.mirrorKnight = ["kSlash", "kShards", "kReflect", "kDash", "kSlash"];
+W2_PATTERNS.mirrorQueen = ["qReflect", "qSprites", "qShards", "qPrism", "qBlink", "qPrism"];
+Object.assign(W2_START, {
+  kSlash(m, p, w, toP, E) {   // 앞으로 세 번 이어지는 거울 베기
+    m.mode = "howl"; m.timer = 0.9; const a = toP();
+    for (let k = 1; k <= (E ? 4 : 3); k++) w2Boom(m.x + Math.cos(a) * 46 * k, m.y + Math.sin(a) * 46 * k, 40, 0.55 + k * 0.12, m.dmg, "207,232,255", m);
+  },
+  kShards(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.6; const n = E ? 14 : 10, off = Math.random();
+    for (let k = 0; k < n; k++) w2Shot(m, off + k / n * Math.PI * 2, 200, m.dmg * 0.6, "#cfe8ff");
+  },
+  kReflect(m, p, w, toP, E) { m.mode = "reflect"; m.timer = E ? 3 : 2.2; fx(m.x, m.y - m.r - 18, "반사! 공격을 멈추세요", "#cfe8ff", 15); sfx("shield"); },
+  kDash(m, p, w, toP, E) { m.mode = "kDashAim"; m.timer = 0.6; m.dashA = toP(); },
+  qReflect(m, p, w, toP, E) { m.mode = "reflect"; m.timer = E ? 3.5 : 2.6; fx(m.x, m.y - m.r - 18, "거울 반사! 공격을 멈추세요", "#cfe8ff", 15); sfx("shield"); },
+  qSprites(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.7;
+    if (w3Alive(o => o.kind === "mSprite").length < 6) for (let k = 0; k < (E ? 4 : 3); k++) w3Spawn("mSprite");
+    fx(m.x, m.y - m.r - 18, "거울 정령!", "#cfe8ff", 15);
+  },
+  qShards(m, p, w, toP, E) {
+    m.mode = "howl"; m.timer = 0.9; const n = 14;
+    const ringOf = off => { for (let k = 0; k < n; k++) w2Shot(m, off + k / n * Math.PI * 2, 185, m.dmg * 0.55, "#e6f2ff"); };
+    ringOf(Math.random()); w2Later(0.4, () => !m.dead && ringOf(Math.random()));
+    if (E) w2Later(0.8, () => !m.dead && ringOf(Math.random()));
+  },
+  qPrism(m, p, w, toP, E) {   // 나를 지나는 세 갈래 프리즘 광선
+    m.mode = "howl"; m.timer = 1.0; const a0 = Math.random() * Math.PI;
+    for (let k = 0; k < (E ? 4 : 3); k++) { const a = a0 + k * Math.PI / (E ? 4 : 3); w2Lane([p.x - Math.cos(a) * 700, p.y - Math.sin(a) * 700, p.x + Math.cos(a) * 700, p.y + Math.sin(a) * 700], 30, 0.9 + k * 0.15, m.dmg, m, "star"); }
+    fx(p.x, p.y - 40, "프리즘!", "#e6f2ff", 14);
+  },
+  qBlink(m, p, w, toP, E) {   // 나와 거울처럼 마주 보는 자리로 순간이동하며 부채꼴 사격
+    m.mode = "howl"; m.timer = 0.8;
+    ring(m.x, m.y, 40, "#cfe8ff");
+    m.x = clamp(W - p.x, 50, W - 50); m.y = clamp(H - p.y, 80, H - 60);
+    ring(m.x, m.y, 40, "#ffffff");
+    const a = Math.atan2(p.y - m.y, p.x - m.x);
+    for (let k = -2; k <= 2; k++) w2Shot(m, a + k * 0.2, 230, m.dmg * 0.6, "#cfe8ff");
+  },
+});
+// 반사·돌진 모드 처리 (w2BossAI의 switch에서 부름)
+function w3BossMode(m, dt, done) {
+  const p = run.p;
+  if (m.mode === "reflect") { if (m.timer <= 0) done(); return true; }
+  if (m.mode === "kDashAim") { m.face = m.dashA; if (m.timer <= 0) { m.mode = "kDash"; m.timer = 0.45; m.dashHit = false; sfx("dash"); } return true; }
+  if (m.mode === "kDash") {
+    m.x = clamp(m.x + Math.cos(m.dashA) * 520 * dt, 30, W - 30); m.y = clamp(m.y + Math.sin(m.dashA) * 520 * dt, 60, H - 30);
+    if (!m.dashHit && Math.hypot(p.x - m.x, p.y - m.y) < m.r + P_R) { m.dashHit = true; hitBy(m, m.dmg * 1.3); }
+    if (m.timer <= 0) done();
+    return true;
+  }
+  return false;
+}
+
+// ── 스테이지 진행 ──
+function stageStep(dt) {
+  const r = run, S = r.stage, d = S.def, p = r.p;
+  S.t += dt;
+  S.pvx = (p.x - (S.px ?? p.x)) / Math.max(dt, 1e-3); S.pvy = (p.y - (S.py ?? p.y)) / Math.max(dt, 1e-3); S.px = p.x; S.py = p.y;
+  // 서로 밀어내기 (보스 제외): 뭉치지 않고 퍼짐
+  const ms = r.mobs.filter(m => !m.dead && !m.boss && !m.hide);
+  for (let i = 0; i < ms.length; i++) for (let j = i + 1; j < ms.length; j++) {
+    const a = ms[i], b = ms[j], dx = b.x - a.x, dy = b.y - a.y, dd = Math.hypot(dx, dy) || 1, want = a.r + b.r + 14;
+    if (dd < want) { const push = (want - dd) / 2; a.x -= dx / dd * push; a.y -= dy / dd * push; b.x += dx / dd * push; b.y += dy / dd * push; }
+  }
+  const alive = w3Alive(m => !m.boss && m.kind !== "mTreasure").length;
+  if (!S.started) {
+    S.started = true;
+    if (d.pre) for (let k = 0; k < d.pre; k++) w3MakeMob(w3Pick(d.pool), 40 + Math.random() * (W - 80), 80 + Math.random() * (d.type === "escape" ? H - 220 : H / 2 - 60), { idle: true });
+    if (d.type === "defend") S.crystal = { x: W / 2, y: H / 2, r: 22, hp: 1, max: 1 };
+    if (d.type === "escape") { S.exit = { x: W / 2, y: 52, r: 34, open: false }; S.gates = [{ x: 70, y: H - 150 }, { x: W - 70, y: H - 260 }, { x: 90, y: H / 2 - 20 }, { x: W - 80, y: 230 }, { x: W / 2, y: 150 }]; S.gate = 0; S.hold = 0; }
+    if (d.type === "elite") S.elites = d.elites.map(k => w3Spawn(k, { elite: true }));
+    if (d.type === "hunt") S.treasure = w3MakeMob("mTreasure", W / 2, 140);
+    if (d.type === "waves") S.wave = 0, S.waveT = 0.8;
+    if (d.type === "boss") S.bossT = 1.2;
+  }
+  const spawnTick = (cap, every) => {
+    S.spawnT = (S.spawnT ?? 0.5) - dt;
+    if (S.spawnT <= 0 && alive < cap) { S.spawnT = every; return true; }
+    return false;
+  };
+  switch (d.type) {
+    case "kill":
+      if (S.spawned + (d.pre || 0) < d.need && spawnTick(d.alive, 1.0)) { w3Spawn(w3Pick(d.pool)); S.spawned++; }
+      if (S.kills >= d.need) return stageClear();
+      break;
+    case "survive":
+      if (spawnTick(d.alive, Math.max(0.7, 1.6 - S.t / 40))) w3Spawn(w3Pick(d.pool));
+      if (S.t >= d.dur) return stageClear();
+      break;
+    case "defend": {
+      if (spawnTick(d.alive, 1.4)) w3Spawn(w3Pick(d.pool), { toCrystal: Math.random() < 0.6 });
+      const c = S.crystal;
+      for (const m of r.mobs) if (!m.dead && m.toCrystal && Math.hypot(m.x - c.x, m.y - c.y) < m.r + c.r + 8) c.hp -= dt * 0.035 * (m.elite ? 2 : 1);
+      if (c.hp <= 0) return stageFail("수정 등불이 꺼졌어요");
+      if (S.t >= d.dur) return stageClear();
+      break;
+    }
+    case "escape": {
+      // 거울 표식 3개를 차례로 밟아야 출구가 열림. 그동안 거울빛이 가로지르고 매복자가 숨어 있음
+      S.laneT = (S.laneT ?? 1.2) - dt;
+      if (S.laneT <= 0) { S.laneT = 1.25; const y = 110 + Math.random() * (H - 220), vert = Math.random() < 0.35, x = 40 + Math.random() * (W - 80);
+        w2Lane(vert ? [x, 0, x, H] : [0, y, W, y], 36, 1.0, W3_HP_REF * 0.1, null, "star"); }
+      if (spawnTick(4, 2.6)) w3Spawn(w3Pick(d.pool));
+      const g = S.gates[S.gate];
+      if (g && Math.hypot(p.x - g.x, p.y - g.y) < 30) S.hold += dt; else S.hold = Math.max(0, S.hold - dt * 2);
+      if (g && S.hold >= 1) {   // 표식 위에서 1초 버텨야 켜짐
+        S.gate++; S.hold = 0; ring(g.x, g.y, 40, "#cfe8ff"); sfx("gem");
+        if (S.gate >= S.gates.length) { S.exit.open = true; fx(W / 2, H / 2 - 60, "출구가 열렸어요!", "#cfe8ff", 18); }
+        else fx(g.x, g.y - 30, `표식 ${S.gate}/${S.gates.length}`, "#cfe8ff", 14);
+      }
+      if (S.exit.open && Math.hypot(p.x - S.exit.x, p.y - S.exit.y) < S.exit.r) return stageClear();
+      break;
+    }
+    case "elite":
+      if (spawnTick(d.alive, 3)) w3Spawn(w3Pick(d.pool));
+      if (S.elites.every(m => m.dead)) return stageClear();
+      break;
+    case "hunt":
+      if (spawnTick(d.alive, 2.5)) w3Spawn(w3Pick(d.pool));
+      if (S.treasure.dead) return stageClear();
+      if (S.t >= d.limit) return stageFail("거울 요정이 도망쳤어요");
+      break;
+    case "waves":
+      if (!w3Alive().length) {
+        if (S.wave >= d.waves.length) return stageClear();
+        S.waveT -= dt;
+        if (S.waveT <= 0) { for (const k of d.waves[S.wave]) w3Spawn(k); S.wave++; S.waveT = 1.2; fx(W / 2, H / 2 - 60, `웨이브 ${S.wave}/${d.waves.length}`, "#cfe8ff", 20); }
+      }
+      break;
+    case "boss":
+      if (S.bossT > 0) { S.bossT -= dt; if (S.bossT <= 0) { S.bossM = w3MakeMob(d.boss, W / 2, 110); fx(W / 2, H / 2 - 60, `${W3_MOB[d.boss].name} 등장!`, "#ff5f56", 22); sfx("bossIn"); } }
+      else if (S.bossM?.dead) return stageClear();
+      break;
+  }
+}
+// 몹 처치 (스테이지에서는 보상을 클리어 때 한꺼번에)
+function stageKill(m) {
+  const S = run.stage;
+  S.kills++;
+  run.loot.kills++;
+  if (m.boss) run.loot.bosses++;
+  lootFx(m, m.kind === "mTreasure" ? "잡았다!" : "처치", m.kind === "mTreasure" ? "#ffe9a8" : "#cfe8ff");
+}
+function stageClear() {
+  const r = run, S = r.stage, d = S.def, p = r.p, ch = S.ch, id = w3Id(ch, S.n);
+  if (S.done) return;
+  S.done = true;
+  for (const m of r.mobs) if (!m.dead) { m.dead = true; sparksAt(m.x, m.y, m.color, 6, 120); }
+  const stars = 1 + (p.hp >= p.max * 0.5 ? 1 : 0) + (S.t <= d.par ? 1 : 0);
+  const before = state.w3.best[id] || 0, first = !before, chBefore = w3ChStars(ch);
+  state.w3.best[id] = Math.max(before, stars);
+  const got = [];
+  if (first) {
+    const fs = 15 + 5 * S.n, fr = 10 + 2 * S.n;
+    state.mats.star += fs; state.runes += fr; state.astones += 8; state.souls += 40;
+    got.push(`별의 파편 ${fs}`, `룬석 ${fr}`, "강화석 8", "소울 40");
+    if (d.type === "boss") { state.ctickets += 1; got.push("캐릭터 뽑기권 1"); }
+  } else { state.runes += 3; state.souls += 5; got.push("룬석 3", "소울 5"); }
+  if (d.type === "boss") {   // 보스 스테이지는 반복해서 검 재료를 모을 수 있음
+    const n = 1 + Math.floor(Math.random() * 5) + (S.n === 10 ? 2 : 0);
+    gainMat(W3_CH[ch - 1].mat, n); got.push(`${matName(W3_CH[ch - 1].mat)} ${n}`);
+    const t0 = state.ctickets; ticketDrop(S.bossM || { x: W / 2, y: H / 2, r: 20 }, 25); if (state.ctickets > t0) got.push("뽑기권 +1");
+  }
+  // 장 별 상자
+  const chNow = w3ChStars(ch);
+  state.w3.chests[ch] ||= [];
+  W3_CHESTS.forEach((c, i) => {
+    if (chNow >= c.need && !state.w3.chests[ch].includes(i)) { state.w3.chests[ch].push(i); c.give(); got.push(`★${c.need} 상자: ${c.text}`); }
+  });
+  state.log.unshift({ text: `월드 3 ${id} 클리어`, delta: "★".repeat(stars) + "☆".repeat(3 - stars) });
+  S.result = { stars, got, first, chBefore, chNow };
+  sfx(stars === 3 ? "fanfare" : "success");
+  commit();
+  endRun("stage");
+}
+function stageFail(why) {
+  if (run.stage.done) return;
+  run.stage.done = true;
+  run.stage.fail = why;
+  endRun(true);
+}
+// 스테이지 HUD 문구
+function stageHud(r) {
+  const S = r.stage, d = S.def;
+  switch (d.type) {
+    case "kill": return `처치 ${Math.min(S.kills, d.need)}/${d.need}`;
+    case "survive": return `버티기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
+    case "defend": return `등불 지키기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
+    case "escape": return S.exit?.open ? "위쪽 출구로!" : `거울 표식 ${S.gate || 0}/${S.gates?.length || 5}`;
+    case "elite": return `정예 ${S.elites ? S.elites.filter(m => m.dead).length : 0}/${d.elites.length}`;
+    case "hunt": return `요정 잡기 ${Math.max(0, Math.ceil(d.limit - S.t))}초`;
+    case "waves": return `웨이브 ${S.wave || 0}/${d.waves.length}`;
+    case "boss": return S.bossM ? W3_MOB[d.boss].name : "보스 등장…";
+  }
+  return "";
+}
+// 바닥 위: 수정 등불, 출구, 늑대·기사 돌진 예고, 매복 예고, 반사막, 정예 표시
+function drawW3(r, t) {
+  const S = r.stage;
+  if (!S) return;
+  if (S.crystal) {
+    const c = S.crystal, k = clamp(c.hp / c.max, 0, 1);
+    ctx.save(); ctx.shadowColor = "#8fd8ff"; ctx.shadowBlur = 20 * k + 4;
+    poly([[c.x, c.y - 28], [c.x + 16, c.y], [c.x, c.y + 24], [c.x - 16, c.y]], `rgba(160,225,255,${0.4 + 0.6 * k})`);
+    ctx.restore();
+    ctx.fillStyle = "rgba(0,0,0,.5)"; ctx.fillRect(c.x - 30, c.y + 32, 60, 6);
+    ctx.fillStyle = k > 0.3 ? "#8fd8ff" : "#ff5f56"; ctx.fillRect(c.x - 30, c.y + 32, 60 * k, 6);
+  }
+  if (S.gates) S.gates.forEach((g, i) => {
+    const on = i < S.gate, next = i === S.gate;
+    ctx.save(); ctx.translate(g.x, g.y);
+    ctx.strokeStyle = on ? "rgba(255,210,74,.9)" : next ? `rgba(207,232,255,${0.6 + 0.4 * Math.sin(t * 5)})` : "rgba(207,232,255,.3)"; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(0, 0, 26, 0, Math.PI * 2); ctx.stroke();
+    if (next && S.hold > 0) { ctx.strokeStyle = "#ffd24a"; ctx.lineWidth = 5; ctx.beginPath(); ctx.arc(0, 0, 26, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * Math.min(1, S.hold)); ctx.stroke(); }
+    poly([[0, -14], [10, 0], [0, 14], [-10, 0]], on ? "#ffd24a" : next ? "#e6f2ff" : "rgba(207,232,255,.35)");
+    ctx.restore();
+    ctx.fillStyle = "#e6f2ff"; ctx.font = "11px 'Nanum Gothic Coding', monospace"; ctx.textAlign = "center"; ctx.fillText(String(i + 1), g.x, g.y + 40);
+  });
+  if (S.exit && S.exit.open) {
+    const e = S.exit; ctx.save(); ctx.translate(e.x, e.y);
+    for (let k = 0; k < 3; k++) { ctx.strokeStyle = `rgba(207,232,255,${0.8 - k * 0.2})`; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, e.r - k * 9, t * (2 + k) + k, t * (2 + k) + k + 4.4); ctx.stroke(); }
+    ctx.fillStyle = "rgba(207,232,255,.2)"; ctx.beginPath(); ctx.arc(0, 0, e.r, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = "#e6f2ff"; ctx.font = "12px 'Nanum Gothic Coding', monospace"; ctx.textAlign = "center"; ctx.fillText("출구", e.x, e.y + e.r + 14);
+  }
+  for (const m of r.mobs) {
+    if (m.dead) continue;
+    if (m.lunge && m.lunge.t > 0.35) {
+      ctx.strokeStyle = "rgba(255,95,86,.7)"; ctx.lineWidth = 2; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x + Math.cos(m.lunge.a) * 200, m.y + Math.sin(m.lunge.a) * 200); ctx.stroke(); ctx.setLineDash([]);
+    }
+    if (m.mode === "kDashAim") {
+      ctx.fillStyle = "rgba(255,95,86,.18)"; ctx.save(); ctx.translate(m.x, m.y); ctx.rotate(m.dashA); ctx.fillRect(0, -m.r, 240, m.r * 2); ctx.restore();
+    }
+    if (m.rise > 0) {
+      const k = 1 - m.rise / 0.45;
+      ctx.fillStyle = `rgba(122,106,168,${0.15 + 0.3 * k})`; ctx.beginPath(); ctx.arc(m.x, m.y, 62, 0, Math.PI * 2); ctx.fill();
+    } else if (m.hide) {
+      ctx.fillStyle = "rgba(40,30,60,.35)"; ctx.beginPath(); ctx.ellipse(m.x, m.y + 4, 14 + Math.sin(t * 4 + m.phase) * 2, 6, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    if (m.aim > 0) { ctx.fillStyle = "rgba(230,242,255,.7)"; ctx.beginPath(); ctx.arc(m.x + Math.cos(m.face) * 14, m.y + Math.sin(m.face) * 14, 4 + (0.45 - m.aim) * 8, 0, Math.PI * 2); ctx.fill(); }
+    if (m.mode === "reflect") {
+      ctx.save(); ctx.strokeStyle = "rgba(230,242,255,.9)"; ctx.shadowColor = "#cfe8ff"; ctx.shadowBlur = 14; ctx.lineWidth = 3;
+      for (let k = 0; k < 6; k++) { const a = k / 6 * Math.PI * 2 + t; ctx.beginPath(); ctx.arc(m.x, m.y, m.r + 12, a, a + 0.6); ctx.stroke(); }
+      ctx.restore();
+    }
+    if (m.elite) { ctx.strokeStyle = "rgba(255,210,74,.85)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(m.x, m.y, m.r + 5, 0, Math.PI * 2); ctx.stroke(); }
+  }
+}
+
+// ── 몹 그림 ──
+function drawMSprite(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, b = Math.sin(t * 5 + m.phase) * 2;
+  ctx.save(); ctx.shadowColor = "#cfe8ff"; ctx.shadowBlur = 12; ctx.globalAlpha = 0.85;
+  poly([[0, -r * 1.2 + b], [r * 0.85, b], [0, r * 1.1 + b], [-r * 0.85, b]], c);
+  ctx.restore();
+  poly([[0, -r * 0.6 + b], [r * 0.35, b], [0, r * 0.5 + b], [-r * 0.35, b]], "rgba(255,255,255,.75)");
+  blob(-r * 0.25, -r * 0.1 + b, 2, 2, "#2a3a48"); blob(r * 0.25, -r * 0.1 + b, 2, 2, "#2a3a48");
+}
+function drawMWolf(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, run_ = Math.sin(t * 14 + m.phase) * 2;
+  blob(-r * 0.3, 0, r * 1.15, r * 0.62, shade(c, -0.15));
+  for (const s of [-1, 1]) { blob(r * 0.4, s * r * 0.55 + run_ * s, r * 0.22, r * 0.16, shade(c, -0.3)); blob(-r * 0.9, s * r * 0.5 - run_ * s, r * 0.22, r * 0.16, shade(c, -0.3)); }
+  blob(r * 0.85, 0, r * 0.55, r * 0.48, c);
+  for (const s of [-1, 1]) poly([[r * 0.7, s * r * 0.25], [r * 0.55, s * r * 0.75], [r * 0.95, s * r * 0.35]], shade(c, 0.2));
+  blob(r * 1.05, -r * 0.15, 2, 2, "#5ad8ff"); blob(r * 1.05, r * 0.15, 2, 2, "#5ad8ff");
+  poly([[-r * 1.3, 0], [-r * 1.9, -r * 0.25 + run_], [-r * 1.75, r * 0.15]], shade(c, 0.1));
+}
+function drawMArcher(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  blob(-r * 0.2, 0, r * 0.75, r * 0.95, "#5a6a7a");
+  blob(0, 0, r * 0.62, r * 0.62, c);
+  poly([[-r * 0.6, -r * 0.55], [r * 0.2, -r * 0.7], [-r * 0.1, r * 0.1]], "#5a6a7a");
+  ctx.strokeStyle = "#e6f2ff"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(r * 0.6, 0, r * 0.9, -1.1, 1.1); ctx.stroke();
+  ctx.strokeStyle = "rgba(230,242,255,.6)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(r * 0.6 + Math.cos(-1.1) * r * 0.9, Math.sin(-1.1) * r * 0.9); ctx.lineTo(r * 0.6 + Math.cos(1.1) * r * 0.9, Math.sin(1.1) * r * 0.9); ctx.stroke();
+}
+function drawMGuard(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  blob(-r * 0.15, 0, r * 0.85, r * 0.9, "#4a6a80");
+  blob(0, 0, r * 0.62, r * 0.62, shade(c, -0.2));
+  ctx.save(); ctx.shadowColor = "#8fd8ff"; ctx.shadowBlur = 10;
+  ctx.strokeStyle = c; ctx.lineWidth = r * 0.38; ctx.lineCap = "round"; ctx.beginPath(); ctx.arc(0, 0, r * 0.98, -1.05, 1.05); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = "rgba(255,255,255,.7)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, r * 1.05, -0.6, 0.2); ctx.stroke();
+}
+function drawMShade(m, t) {
+  if (m.hide && !(m.rise > 0)) return;   // 숨어 있을 때는 바닥의 그림자만 보임 (drawW3)
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, k = m.rise > 0 ? 1 - m.rise / 0.45 : 1;
+  ctx.globalAlpha = 0.4 + 0.6 * k;
+  blob(0, 0, r, r * 1.1, c);
+  for (let i = 0; i < 5; i++) { const a = Math.PI * 0.6 + i * 0.25 + Math.sin(t * 6 + i) * 0.1; poly([[Math.cos(a) * r * 0.8, Math.sin(a) * r * 0.8], [Math.cos(a) * r * 1.7, Math.sin(a) * r * 1.7], [Math.cos(a + 0.15) * r * 0.8, Math.sin(a + 0.15) * r * 0.8]], c); }
+  blob(r * 0.4, -r * 0.25, 2.5, 2, "#c8a8ff"); blob(r * 0.4, r * 0.25, 2.5, 2, "#c8a8ff");
+  poly([[r * 0.7, -r * 0.1], [r * 1.6, 0], [r * 0.7, r * 0.1]], "#a8a0c8");
+  ctx.globalAlpha = 1;
+}
+function drawMTreasure(m, t) {
+  const r = m.r, b = Math.sin(t * 8) * 2;
+  ctx.save(); ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 14;
+  for (const s of [-1, 1]) blob(s * r * 0.9, -r * 0.2 + b, r * 0.7, r * 0.35, "rgba(255,246,200,.7)");
+  blob(0, b, r * 0.7, r * 0.8, m.flash > 0 ? "#ffffff" : "#ffe9a8");
+  ctx.restore();
+  ctx.fillStyle = "#cfe8ff"; ctx.strokeStyle = "#a8781a"; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(r * 0.9, r * 0.5 + b, r * 0.35, r * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  blob(-r * 0.2, -r * 0.1 + b, 1.6, 1.6, "#3a2a10"); blob(r * 0.2, -r * 0.1 + b, 1.6, 1.6, "#3a2a10");
+}
+function drawMirrorKnight(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color;
+  blob(-r * 0.2, 0, r * 0.95, r * 1.05, "#4a5a70");
+  blob(0, 0, r * 0.7, r * 0.7, c);
+  poly([[r * 0.2, -r * 0.7], [r * 0.6, -r * 1.25], [r * 0.45, -r * 0.6]], "#e6f2ff");
+  ctx.save(); ctx.shadowColor = "#cfe8ff"; ctx.shadowBlur = 14;
+  ctx.fillStyle = "#dfeefc"; ctx.strokeStyle = "#8aa0b8"; ctx.lineWidth = 3;
+  ctx.beginPath(); ctx.ellipse(r * 0.55, r * 0.55, r * 0.45, r * 0.6, 0.3, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  ctx.strokeStyle = "#f0f6ff"; ctx.lineWidth = 4; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(r * 0.3, -r * 0.5); ctx.lineTo(r * 1.6, -r * 0.8); ctx.stroke();
+  blob(r * 0.35, -r * 0.12, 2.5, 2.5, "#5ad8ff"); blob(r * 0.35, r * 0.12, 2.5, 2.5, "#5ad8ff");
+}
+function drawMirrorQueen(m, t) {
+  const r = m.r, c = m.flash > 0 ? "#ffffff" : m.color, E = !!m.enraged;
+  // 거울 조각 치마
+  for (let k = 0; k < 9; k++) { const a = Math.PI * 0.15 + k * 0.09 * Math.PI, L = r * (1.35 + 0.1 * Math.sin(t * 3 + k));
+    poly([[Math.cos(a) * r * 0.5, Math.sin(a) * r * 0.5], [Math.cos(a - 0.12) * L, Math.sin(a - 0.12) * L], [Math.cos(a + 0.12) * L, Math.sin(a + 0.12) * L]], k % 2 ? "#cfe8ff" : "#a8c0d8"); }
+  ctx.save(); ctx.shadowColor = E ? "#ff9fe0" : "#cfe8ff"; ctx.shadowBlur = 22;
+  blob(0, 0, r * 0.85, r * 0.85, c);
+  ctx.restore();
+  blob(0, -r * 0.1, r * 0.55, r * 0.5, "#f6fbff");
+  blob(-r * 0.2, -r * 0.15, 2.6, 3, E ? "#ff5f8a" : "#3a6a9a"); blob(r * 0.2, -r * 0.15, 2.6, 3, E ? "#ff5f8a" : "#3a6a9a");
+  // 왕관
+  poly([[-r * 0.55, -r * 0.6], [-r * 0.45, -r * 1.15], [-r * 0.2, -r * 0.8], [0, -r * 1.3], [r * 0.2, -r * 0.8], [r * 0.45, -r * 1.15], [r * 0.55, -r * 0.6]], "#e6f2ff");
+  blob(0, -r * 1.05, 3, 3, E ? "#ff9fe0" : "#5ad8ff");
+  // 손거울
+  ctx.save(); ctx.translate(r * 0.95, r * 0.1); ctx.rotate(Math.sin(t * 2) * 0.3);
+  ctx.strokeStyle = "#c9a040"; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(0, r * 0.2); ctx.lineTo(0, r * 0.7); ctx.stroke();
+  ctx.fillStyle = "#dff2ff"; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.25, r * 0.32, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+}
+Object.assign(DRAW, { mSprite: drawMSprite, mWolf: drawMWolf, mArcher: drawMArcher, mGuard: drawMGuard, mShade: drawMShade, mTreasure: drawMTreasure,
+  mirrorKnight: drawMirrorKnight, mirrorQueen: drawMirrorQueen });
+for (const k of ["mSprite", "mTreasure", "mirrorQueen"]) UPRIGHT.add(k);
+
+// ── 월드 3 화면 ──
+function w3View() {
+  if (!w3Open()) return `<div class="zone w2lock"><h3>월드 3: 무너진 차원</h3><p><b>별의 던전</b>을 클리어하면 열려요.</p><p>스테이지 50개, 상한 동기화, 새 보스와 검 +150까지의 강화가 기다려요. (이번에는 1장 거울의 숲까지)</p></div>`;
+  const ch = W3_CH[0], st = W3_STAGES[1], stars = w3ChStars(1);
+  const nodes = st.map((d, i) => {
+    const n = i + 1, best = w3Best(1, n), open = w3Unlocked(1, n), [ic] = W3_TYPES[d.type];
+    return `<button class="w3n ${open ? "" : "lock"} ${best ? "done" : ""} ${w3Sel === n ? "sel" : ""} ${d.type === "boss" ? "boss" : ""}" data-w3sel="${n}" ${open ? "" : "disabled"}>
+      <span class="ic">${open ? ic : "🔒"}</span><b>1-${n}</b><small>${best ? "★".repeat(best) + "☆".repeat(3 - best) : open ? "도전!" : ""}</small></button>`;
+  }).join("");
+  const sel = st[w3Sel - 1], open = w3Unlocked(1, w3Sel), best = w3Best(1, w3Sel), [ic, tn] = W3_TYPES[sel.type];
+  const chests = W3_CHESTS.map((c, i) => `<span class="${(state.w3.chests[1] || []).includes(i) ? "on" : ""}">★${c.need} ${c.text}</span>`).join("");
+  const goal = { kill: `몹 ${sel.need}마리 처치`, survive: `${sel.dur}초 버티기`, defend: `${sel.dur}초 동안 수정 등불 지키기`, escape: "거울 표식 5개를 켜고 출구까지 가기",
+    elite: `정예 ${sel.elites?.length}마리 처치`, hunt: `${sel.limit}초 안에 보물 요정 잡기`, waves: `웨이브 ${sel.waves?.length}번 막기`, boss: `${W3_MOB[sel.boss]?.name} 처치` }[sel.type];
+  return `<div class="w3-head" style="--c:${ch.color}"><h3>1장 · ${ch.name}</h3><span>★ ${stars}/30</span></div>
+    <p class="hint">들어가면 <b>상한 동기화</b>: 검 최대 +${ch.cap.sword} (넘는 단계는 1단계당 공격력 +1%, 최대 +15%) · 방어구 강화 최대 +${ch.cap.armor} · 캐릭터 최대 Lv ${ch.cap.char} · 스킬 트리 효과 절반</p>
+    <div class="w3-chests">${chests}</div>
+    <div class="w3-map">${nodes}</div>
+    <div class="w3-card ${sel.type === "boss" ? "boss" : ""}">
+      <div class="w3-t"><span>${ic} ${tn}</span><b>1-${w3Sel} ${sel.name}</b>${best ? `<em>${"★".repeat(best)}${"☆".repeat(3 - best)}</em>` : ""}</div>
+      <p>${sel.desc}</p>
+      <ul><li>목표: ${goal}</li><li>★ 클리어 · ★ 체력 50% 이상 남기기 · ★ ${sel.par}초 안에</li>
+        <li>${best ? "다시 깨기: 룬석 3 · 소울 5" : `첫 클리어: 별의 파편 ${15 + 5 * w3Sel} · 룬석 ${10 + 2 * w3Sel} · 강화석 8 · 소울 40${sel.type === "boss" ? " · 뽑기권 1" : ""}`}${sel.type === "boss" ? ` · 매번 ${matName(ch.mat)} 1~5개${w3Sel === 10 ? "(+2)" : ""} · 뽑기권 25%` : ""}</li></ul>
+      <button class="go" data-zone="w3:1:${w3Sel}" ${open ? "" : "disabled"}>${open ? "도전" : "앞 스테이지를 먼저 깨야 해요"}</button>
+    </div>`;
+}
+
 // 지형 특징과 보스 소품 (회오리, 먹물, 모래 폭풍, 예고 원, 띠 공격, 해일, 유사, 해파리 연결)
 function w2Update(dt) {
   const r = run, w = r.w2, p = r.p;
@@ -9081,6 +9729,7 @@ function draw() {
   }
 
   drawW2Under(r, t);
+  drawW3(r, t);
   // 몹 (공중에 뜬 보스는 맨 위에 그림)
   for (const m of [...r.mobs].sort((a, b) => (a.lift || 0) - (b.lift || 0))) {
     drawMob(m, t);
@@ -9463,7 +10112,7 @@ function draw() {
   ctx.fillText(`${Math.ceil(Math.max(0, p.hp)).toLocaleString("ko-KR")}/${p.max.toLocaleString("ko-KR")}`, 167, 19);
   ctx.textAlign = "right";
   const boss = r.mobs.find(m => m.boss);
-  const hudRight = r.dungeon
+  const hudRight = r.stage ? stageHud(r) : r.dungeon
     ? r.dungeon.only ? "보스 연습"
       : boss ? `던전 ${r.dungeon.stage}/${r.zone.bosses.length}` : r.dungeon.cleared ? "클리어!" : "다음 보스 준비…"
     : boss ? "보스 등장!" : `보스까지 ${bossEvery() - r.kills}마리`;
@@ -9514,6 +10163,7 @@ function frame(t) {
 function endRun(dead) {
   if (!run || run.over) return;
   run.over = true;
+  syncCap = null;
   if (dead === true) sfx("lose");
   updateMusic();
   pause();
@@ -9530,6 +10180,13 @@ function endRun(dead) {
       `<br>골드 +${won(l.gold)}` +
       (mats.length ? `<br>${mats.join(" · ")}` : "") +
       `<br><small>얻은 보상은 이미 저장됐어요.</small>`);
+  if (run.stage) {
+    const S = run.stage, R = S.result;
+    $("result-title").textContent = R ? "스테이지 클리어!" : dead === true ? "스테이지 실패" : "스테이지를 나왔어요";
+    $("result-loot").innerHTML = R
+      ? `<span class="w3-stars">${"★".repeat(R.stars)}${"☆".repeat(3 - R.stars)}</span><br>${run.zone.name} · ${Math.round(S.t)}초<br>${R.got.join(" · ")}<br><small>1장 별 ${R.chNow}/30</small>`
+      : `${run.zone.name}${S.fail ? `<br>${S.fail}` : ""}<br><small>다시 도전하거나 다른 스테이지를 골라 보세요.</small>`;
+  }
   $("result").hidden = false;
 }
 
@@ -9604,6 +10261,8 @@ window.addEventListener("blur", () => { keys.clear(); circleKeys.clear(); joy = 
 document.addEventListener("visibilitychange", () => { if (document.hidden) pause(); else resume(); });
 
 $("zones").addEventListener("click", e => {
+  const w3s = e.target.closest("[data-w3sel]");
+  if (w3s) { w3Sel = +w3s.dataset.w3sel; renderZones(); return; }
   const tz = e.target.closest("[data-tz]"), tbuy = e.target.closest("[data-tbuy]"), trs = e.target.closest("[data-treset]");
   if (tz) {
     const rc = $("tree-svg").getBoundingClientRect(), d = +tz.dataset.tz;
@@ -9647,7 +10306,7 @@ let dirty = false;
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
-                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 } });
+                       best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {} } });
 
 function normalize(s) {
   const o = {
@@ -9689,6 +10348,8 @@ function normalize(s) {
     pity: { sword: s.pity?.sword | 0, pick: s.pity?.pick | 0 },
     armorV: ARMOR_V,
     tree: Object.fromEntries(Object.keys(s.tree || {}).filter(id => TREE[id]).map(id => [id, true])),
+    w3: { best: Object.fromEntries(Object.entries(s.w3?.best || {}).filter(([k, v]) => /^\d+-\d+$/.test(k)).map(([k, v]) => [k, clamp(v | 0, 0, 3)])),
+          chests: Object.fromEntries(Object.entries(s.w3?.chests || {}).map(([k, v]) => [k, Array.isArray(v) ? v.filter(x => Number.isInteger(x)) : []])) },
     equip: [0, 1, 2, 3, 4].map(i => {
       const k = Array.isArray(s.equip) ? s.equip[i] : null;
       return k && SK[k] && (s.skills || {})[k] > 0 ? k : null;
