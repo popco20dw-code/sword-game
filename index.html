@@ -1043,7 +1043,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v144";
+const GAME_VERSION = "v145";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -4871,7 +4871,8 @@ function playCutscene(res, done) {
 // ── 떠돌이 상인 ── 매일(한국 시간 자정) 바뀌는 6칸. 칸마다 골드·루비·다이아몬드 중 하나로 값을 받는다
 const kstDay = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const MERCH_SLOTS = 6, MERCH_REFRESH = 2, HALF_CHANCE = 0.2;
-const GEM_VALUE = { ruby: 3, diamond: 8 };   // 보석 1개 = 기준 골드(내가 간 가장 먼 사냥터의 몹 골드) × 이 값
+const GEM_VALUE = { ruby: 1.1, diamond: 3 };   // 보석 1개 = 기준 골드(내가 간 가장 먼 사냥터의 몹 골드) × 이 값 (v145: 보석 값 약 10배)
+const MERCH_GOLD_MUL = 3;   // v145: 골드 가격 3배
 function zoneOfMat(key) { return [...ZONES, ...ZONES2].find(z => z.boss?.mat === key); }
 function matMobGold(key) {   // 그 재료가 나오는 사냥터의 일반 몹 골드 (월드 3 재료는 별의 균열 × 2)
   const z = zoneOfMat(key);
@@ -4902,12 +4903,13 @@ function merchSlot(kind) {
     slot = { kind: "mat", key: kind, qty, gold: matMobGold(kind) * 100 * qty };
   }
   slot.cur = pickCur();
-  slot.price = slot.cur === "gold" ? Math.round(slot.gold) : Math.max(1, Math.ceil(slot.gold / (R * GEM_VALUE[slot.cur]) * 0.8));
+  slot.gold *= MERCH_GOLD_MUL;
+  slot.price = slot.cur === "gold" ? Math.round(slot.gold) : Math.max(1, Math.ceil(slot.gold / (R * GEM_VALUE[slot.cur])));
   return slot;
 }
 function merchRoll() {
   const need = neededMatKeys().sort(() => Math.random() - 0.5);
-  const killed = [...ZONES, ...ZONES2].filter(z => (state.bossKills[z.key] || 0) > 0 && z.boss?.mat).map(z => z.boss.mat);
+  const killed = [...ZONES, ...ZONES2].filter(z => (state.bossKills[z.key] || 0) > 0 && z.boss?.mat).map(z => z.boss.mat).slice(-4);   // 빈칸은 최근 잡은 보스 4곳의 재료로
   const kinds = need.slice(0, 3);
   for (let k = 0; k < 2; k++) kinds.push("shard");
   while (kinds.length < MERCH_SLOTS) kinds.push(killed.length ? killed[Math.floor(Math.random() * killed.length)] : (need[0] || "crown"));
@@ -4916,7 +4918,7 @@ function merchRoll() {
 }
 function merchant() {
   const day = kstDay();
-  if (!state.merchant || state.merchant.day !== day) state.merchant = { day, refresh: 0, slots: merchRoll() };
+  if (!state.merchant || state.merchant.day !== day || (state.merchant.v | 0) < 2) state.merchant = { day, v: 2, refresh: state.merchant?.day === day ? state.merchant.refresh : 0, slots: merchRoll() };
   return state.merchant;
 }
 const refreshCost = () => refGold() * 30 * ((state.merchant?.refresh || 0) + 1);
@@ -4945,7 +4947,7 @@ function merchBuy(i) {
 function merchRefresh() {
   const M = merchant();
   if (M.refresh >= MERCH_REFRESH || state.gold < refreshCost()) return;
-  state.gold -= refreshCost(); M.refresh++; M.slots = merchRoll();
+  state.gold -= refreshCost(); M.refresh++; M.slots = merchRoll(); M.v = 2;
   sfx("gFlip"); commit(); renderShop();
 }
 function merchView() {
