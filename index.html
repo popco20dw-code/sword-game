@@ -1036,7 +1036,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v142";
+const GAME_VERSION = "v143";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -11736,6 +11736,7 @@ function persist() {
   state.savedAt = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {}
   schedulePush();
+  scheduleCloudSave(saveSig() !== lastSig);
   if (!cloud) return;
   // 돌을 연달아 캐도 계정 저장은 1.5초에 한 번만 (예약을 미루지 않아서 계속 플레이해도 저장됨)
   dirty = true;
@@ -11823,7 +11824,6 @@ function schedulePush(now = false) {
     // 실패하면 이유를 친구 탭에 보여 주고, 성공하면 지움
     pushProfile().then(() => { if (pushErr) { pushErr = null; renderFriends(); } })
       .catch(e => { pushErr = e?.code || "unknown"; lastProfile = ""; renderFriends(); });
-    pushSave().catch(() => {});
   }, wait);
 }
 
@@ -11831,6 +11831,27 @@ function schedulePush(now = false) {
 const fbLinked = () => !!fb?.auth.currentUser && !fb.auth.currentUser.isAnonymous;
 
 // 구글에 연결된 경우에만 전체 진행 상황을 saves/{아이디}에 보관
+// 구글 계정 저장: 골드처럼 계속 바뀌는 건 8초에 한 번, 강화·뽑기·클리어처럼 중요한 변화는 바로
+const FB_SAVE_GAP = 8000;
+let cloudSaveTimer = null, lastCloudSave = 0, lastSig = "";
+const saveSig = () => [state.sword, state.best, state.pick, state.mlv, state.quest, state.ctickets, state.souls, state.char, state.runes,
+  Object.keys(state.w3?.best || {}).length, state.dungeonClears, state.dungeon2Clears, JSON.stringify(state.armor?.equip), (state.coupons || []).length,
+  Object.values(state.charLv || {}).join(), state.inv?.stone, state.inv?.noBreak, state.inv?.noDrop].join("|");
+let cloudSaveAt = 0;
+function scheduleCloudSave(now = false, leaving = false) {
+  if (!fbLinked()) return;
+  // 중요한 변화: 2초 안에 저장 (강화를 연타해도 2초에 한 번), 앱을 떠날 때: 지금 바로
+  const wait = leaving ? 0 : now ? Math.max(0, lastCloudSave + 2000 - Date.now()) : Math.max(1500, lastCloudSave + FB_SAVE_GAP - Date.now());
+  const go = () => {
+    clearTimeout(cloudSaveTimer); cloudSaveTimer = null; lastCloudSave = Date.now();
+    lastSig = saveSig();
+    pushSave().then(() => setStatus("계정에 저장됨 · 방금")).catch(() => setStatus("계정 저장 실패 · 이 기기에는 저장됨"));
+  };
+  if (leaving) return go();   // 앱이 닫히는 중엔 타이머를 기다리지 않고 바로 보냄
+  if (cloudSaveTimer) { if (cloudSaveAt <= Date.now() + wait) return; clearTimeout(cloudSaveTimer); }
+  cloudSaveAt = Date.now() + wait;
+  cloudSaveTimer = setTimeout(go, wait);
+}
 async function pushSave() {
   if (!fbLinked() || state.savedAt === lastSaveKey) return;
   const key = state.savedAt;
@@ -12004,8 +12025,9 @@ async function connectCloud() {
 }
 
 document.addEventListener("visibilitychange", () => {
-  if (document.visibilityState === "hidden") { flush(); if (lastProfile !== JSON.stringify(profileData())) schedulePush(true); }
+  if (document.visibilityState === "hidden") { flush(); scheduleCloudSave(true, true); if (lastProfile !== JSON.stringify(profileData())) schedulePush(true); }
 });
+window.addEventListener("pagehide", () => { flush(); scheduleCloudSave(true, true); });
 
 // 새로 시작: 실수로 누르지 않게 3초 안에 한 번 더 눌러야 초기화
 let resetArmed = null;
