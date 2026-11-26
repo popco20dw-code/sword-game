@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v135";
+const GAME_VERSION = "v136";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -9088,7 +9088,10 @@ function stageStep(dt) {
     }
     else if (d.type === "escape") { S.exit = { x: W / 2, y: 52, r: 34, open: false }; S.gates = [{ x: 70, y: H - 150 }, { x: W - 70, y: H - 260 }, { x: 90, y: H / 2 - 20 }, { x: W - 80, y: 230 }, { x: W / 2, y: 150 }]; S.gate = 0; S.hold = 0; }
     if (d.type === "elite") S.elites = d.elites.map(k => w3Spawn(k, { elite: true }));
-    if (d.type === "hunt") S.treasure = w3MakeMob("mTreasure", W / 2, 140);
+    if (d.type === "hunt") {
+      S.treasure = w3MakeMob("mTreasure", W / 2, 140);
+      const th = W3_FAIRY[S.ch]; if (th) [S.treasure.name, S.treasure.color] = th;
+    }
     if (d.type === "waves") S.wave = 0, S.waveT = 0.8;
     if (d.type === "boss") S.bossT = 1.2;
   }
@@ -9139,7 +9142,7 @@ function stageStep(dt) {
     case "hunt":
       if (spawnTick(d.alive, 2.5)) w3Spawn(w3Pick(d.pool));
       if (S.treasure.dead) return stageClear();
-      if (S.t >= d.limit) return stageFail("거울 요정이 도망쳤어요");
+      if (S.t >= d.limit) return stageFail(`${S.treasure.name}이 도망쳤어요`);
       break;
     case "waves":
       if (!w3Alive().length) {
@@ -9345,9 +9348,9 @@ function drawMShade(m, t) {
 }
 function drawMTreasure(m, t) {
   const r = m.r, b = Math.sin(t * 8) * 2;
-  ctx.save(); ctx.shadowColor = "#ffe9a8"; ctx.shadowBlur = 14;
+  ctx.save(); ctx.shadowColor = m.color; ctx.shadowBlur = 14;
   for (const s of [-1, 1]) blob(s * r * 0.9, -r * 0.2 + b, r * 0.7, r * 0.35, "rgba(255,246,200,.7)");
-  blob(0, b, r * 0.7, r * 0.8, m.flash > 0 ? "#ffffff" : "#ffe9a8");
+  blob(0, b, r * 0.7, r * 0.8, m.flash > 0 ? "#ffffff" : m.color);
   ctx.restore();
   ctx.fillStyle = "#cfe8ff"; ctx.strokeStyle = "#a8781a"; ctx.lineWidth = 1.5;
   ctx.beginPath(); ctx.ellipse(r * 0.9, r * 0.5 + b, r * 0.35, r * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
@@ -9833,15 +9836,15 @@ W3_CH.push(
   { n: 5, name: "끝의 왕좌", bg: "#e8e0cc", theme: "void", cap: { sword: 150, armor: 20, char: 10 }, mat: "ink", color: "#f0d890", dmgMul: 1.05 },
 );
 W3_STAGES[4] = [
-  { type: "kill", name: "졸린 회랑", need: 18, alive: 5, pool: ["dSheep", "dFairy", "mSprite"], pre: 4, par: 55, desc: "맞으면 졸음이 쌓이고, 가득 차면 잠들어요. 계속 움직이면 졸음이 빨리 깨요." },
+  { type: "kill", name: "졸린 회랑", need: 18, alive: 5, pool: ["dSheep", "dFairy", "dSheep"], pre: 4, par: 55, desc: "맞으면 졸음이 쌓이고, 가득 차면 잠들어요. 계속 움직이면 졸음이 빨리 깨요." },
   { type: "survive", name: "양 떼의 밤", dur: 50, alive: 8, pool: ["dSheep", "dSheep", "dFairy"], par: 50, desc: "꿈 양 떼가 몰려와요. 50초 버티기." },
   { type: "hunt", name: "꿈꾸는 요정", limit: 40, pool: ["dSheep", "dNightmare"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 잠든 사이엔 악몽이 노려요." },
   { type: "defend", name: "꿈의 등불", dur: 50, alive: 6, pool: ["dSheep", "dNightmare", "dFairy"], par: 50, desc: "꿈의 등불(수정)을 지키세요." },
   { type: "boss", name: "꿈 수호 양", boss: "dreamRam", par: 75, desc: "거대한 꿈 양. 돌진과 자장가로 잠재우려 해요." },
   { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 7, par: 41, limit: 45, maze: true, desc: "거꾸로 뒤집힌 꿈의 미로, 거울문이 두 쌍. 45초 안에 표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
   { type: "elite", name: "악몽 사냥꾼", elites: ["dNightmare", "dNightmare"], pool: ["dFairy", "dSheep"], alive: 3, par: 65, desc: "정예 악몽 둘. 잠든 상대에게 피해 2배." },
-  { type: "waves", name: "세 번의 꿈", waves: [["dSheep", "dSheep", "dFairy", "mSprite"], ["dNightmare", "dFairy", "dFairy", "dSheep", "sMage"], ["dNightmare", "dNightmare", "dSheep", "dSheep", "dFairy", "rButterfly"]], par: 75, desc: "꿈이 세 번 이어져요." },
-  { type: "kill", name: "깊은 잠의 홀", need: 26, alive: 7, pool: ["dSheep", "dFairy", "dNightmare", "sPriest", "rVine"], pre: 6, par: 85, desc: "잠의 신전 가장 깊은 곳. 26마리 처치." },
+  { type: "waves", name: "세 번의 꿈", waves: [["dSheep", "dSheep", "dFairy", "dFairy"], ["dNightmare", "dFairy", "dFairy", "dSheep", "dSheep"], ["dNightmare", "dNightmare", "dSheep", "dSheep", "dFairy", "dFairy"]], par: 75, desc: "꿈이 세 번 이어져요." },
+  { type: "kill", name: "깊은 잠의 홀", need: 26, alive: 7, pool: ["dSheep", "dFairy", "dNightmare", "dNightmare"], pre: 6, par: 85, desc: "잠의 신전 가장 깊은 곳. 26마리 처치." },
   { type: "boss", name: "꿈의 여신 니르바", boss: "nirvana", par: 110, desc: "자장가 음파(틈으로 피하기), 꿈의 양 떼, 악몽 소환, 꿈 뒤집기. 분노하면 깊은 잠 — 등불 3개를 시간 안에 모두 끄세요." },
 ];
 W3_STAGES[5] = [
@@ -11252,6 +11255,118 @@ let saveTimer = null;
 let saving = false;
 let dirty = false;
 
+
+// ══════════ 월드 3 · 보스 고유 패턴 (v136): 중간 보스 셋은 자기 기술로, 최종 보스는 기술 추가 ══════════
+const W3_FAIRY = { 2: ["보물 구름 요정", "#e8f4ff"], 3: ["장미 도둑 요정", "#ff9fc0"], 4: ["꿈꾸는 요정", "#c8b8ff"], 5: ["붓을 든 요정", "#f0d890"] };
+W2_PATTERNS.skyGolem = ["gSlam", "collapse", "gRockfall", "gale", "gStomp", "gSlam"];
+W2_PATTERNS.roseKnight = ["kDash", "roses", "rThorn", "kiss", "rPetal", "rParry"];
+W2_PATTERNS.dreamRam = ["ramTriple", "sheepRun", "ramWool", "lullaby", "ramQuake", "ramTriple"];
+W2_PATTERNS.skyCaptain.push("capSpears");
+W2_PATTERNS.lilith.push("lHeartRing", "lBloodRain");
+W2_PATTERNS.nirvana.push("nStarfall");
+Object.assign(W2_START, {
+  // ── 천공 수호병 ──
+  gSlam(m, p, w, toP, E) {   // 팔 내려치기: 나를 향한 굵은 일직선, 맞은 자리 발판이 갈라짐
+    m.mode = "howl"; m.timer = 1.1; const a = toP(), L = 560;
+    w2Lane([m.x, m.y, m.x + Math.cos(a) * L, m.y + Math.sin(a) * L], 58, E ? 0.75 : 0.9, m.dmg * 1.3, m, "star");
+    w2Later(E ? 0.8 : 0.95, () => { if (m.dead) return; for (let k = 1; k <= 5; k++) crackAt(m.x + Math.cos(a) * 80 * k, m.y + Math.sin(a) * 80 * k); });
+    fx(m.x, m.y - m.r - 18, "내려치기!", "#d8e4f8", 15);
+  },
+  gRockfall(m, p, w, toP, E) {   // 낙석: 내 주변에 차례로 떨어지고 떨어진 자리가 갈라짐
+    m.mode = "howl"; m.timer = 0.8; const n = E ? 8 : 6;
+    for (let k = 0; k < n; k++) {
+      const x = clamp(p.x + (k ? (Math.random() - 0.5) * 220 : 0), 30, W - 30), y = clamp(p.y + (k ? (Math.random() - 0.5) * 220 : 0), 80, H - 30), t = 0.8 + k * 0.18;
+      w2Boom(x, y, 40, t, m.dmg * 0.9, "160,170,190", m);
+      if (k % 2 === 0) w2Later(t, () => !m.dead && crackAt(x, y));
+    }
+    fx(p.x, p.y - 44, "낙석!", "#d8e4f8", 15);
+  },
+  gStomp(m, p, w, toP, E) {   // 땅 구르기: 주변을 밀어내고 돌 파편이 사방으로
+    m.mode = "howl"; m.timer = 1.3;
+    w2Boom(m.x, m.y, E ? 140 : 120, 1.0, m.dmg * 1.1, "200,210,230", m, "knock");
+    w2Later(1.0, () => { if (m.dead) return; const n = E ? 16 : 12, off = Math.random(); for (let k = 0; k < n; k++) w2Shot(m, off + k / n * Math.PI * 2, 190, m.dmg * 0.5, "#c8d0dc"); run.quake = 0.3; });
+    fx(m.x, m.y - m.r - 18, "땅 구르기! 멀어지세요", "#d8e4f8", 15);
+  },
+  // ── 장미 기사 ──
+  rThorn(m, p, w, toP, E) {   // 가시 덩굴: 기사에게서 뻗어 나가는 가시 줄기, 분노하면 엇갈려 한 번 더
+    m.mode = "howl"; m.timer = 1.2; const n = E ? 7 : 6, a0 = toP() + Math.PI / n;
+    const spokes = off => { for (let k = 0; k < n; k++) { const a = off + k / n * Math.PI * 2; w2Lane([m.x, m.y, m.x + Math.cos(a) * 600, m.y + Math.sin(a) * 600], 30, 0.9, m.dmg, m, "tentacle"); } };
+    spokes(a0); if (E) w2Later(0.7, () => !m.dead && spokes(a0 + Math.PI / n));
+    fx(m.x, m.y - m.r - 18, "가시 덩굴!", "#ff8fb8", 15);
+  },
+  rPetal(m, p, w, toP, E) { m.mode = "rPetal"; m.timer = E ? 2.6 : 2.0; m.spinCd = 0; m.spinA = Math.random() * 6; fx(m.x, m.y - m.r - 18, "꽃잎 소용돌이", "#ff8fb8", 15); },
+  rParry(m, p, w, toP, E) {   // 반격 자세: 반사 상태로 버티다 끝나면 바로 돌진
+    m.mode = "reflect"; m.timer = E ? 1.8 : 2.2; m.afterReflect = "kDash";
+    fx(m.x, m.y - m.r - 18, "반격 자세! 공격을 멈추고 피할 준비", "#ff8fb8", 15); sfx("shield");
+  },
+  // ── 꿈 수호 양 ──
+  ramTriple(m, p, w, toP, E) { m.dashN = E ? 3 : 2; W2_START.kDash(m, p, w, toP, E); fx(m.x, m.y - m.r - 18, "연속 돌진!", "#c8b8ff", 15); },
+  ramWool(m, p, w, toP, E) {   // 양털 구름: 터질 때 안에 있으면 졸음이 크게 쌓임
+    m.mode = "howl"; m.timer = 0.8; const n = E ? 6 : 5;
+    for (let k = 0; k < n; k++) {
+      const x = clamp(p.x + (k ? (Math.random() - 0.5) * 230 : 0), 30, W - 30), y = clamp(p.y + (k ? (Math.random() - 0.5) * 230 : 0), 80, H - 30), t = 1.0 + k * 0.12;
+      w2Boom(x, y, 50, t, m.dmg * 0.5, "240,236,255", m);
+      w2Later(t, () => { if (!m.dead && Math.hypot(run.p.x - x, run.p.y - y) < 50 + P_R && !(run.p.invuln > 0)) addDrowsy(35); });
+    }
+    fx(p.x, p.y - 44, "양털 구름! 졸음 주의", "#c8b8ff", 15);
+  },
+  ramQuake(m, p, w, toP, E) {   // 박치기 진동: 밀어내고 졸음 탄을 사방으로
+    m.mode = "howl"; m.timer = 1.2;
+    w2Boom(m.x, m.y, 130, 0.9, m.dmg * 1.1, "200,184,255", m, "knock");
+    w2Later(0.9, () => { if (m.dead) return; const n = E ? 14 : 10; for (let k = 0; k < n; k++) w2Shot(m, k / n * Math.PI * 2, 170, m.dmg * 0.45, "#d8ccff", { sleep: 15 }); run.quake = 0.3; });
+    fx(m.x, m.y - m.r - 18, "박치기!", "#c8b8ff", 15);
+  },
+  // ── 천공의 기사단장 ──
+  capSpears(m, p, w, toP, E) {   // 창의 비: 세로 줄 여섯 중 하나만 안전
+    m.mode = "howl"; m.timer = 1.4; const safe = Math.floor(Math.random() * 6);
+    for (let k = 0; k < 6; k++) if (k !== safe) { const x = 38 + k * 77; w2Lane([x, 40, x, H], 64, 1.1 + (E ? 0 : 0.15), m.dmg * 1.1, m, "star"); }
+    fx(W / 2, 140, "창의 비! 빈 줄로", "#bfe0ff", 16);
+  },
+  // ── 서큐버스 릴리스 ──
+  lHeartRing(m, p, w, toP, E) {   // 하트 고리: 나를 둘러싼 하트가 한가운데로 모여듦 (매혹)
+    m.mode = "howl"; m.timer = 1.0; const n = E ? 18 : 14, R = 240, gap = Math.random() * Math.PI * 2;
+    for (let k = 0; k < n; k++) {
+      const a = k / n * Math.PI * 2; let df = Math.atan2(Math.sin(a - gap), Math.cos(a - gap)); if (Math.abs(df) < 0.35) continue;
+      const x = p.x + Math.cos(a) * R, y = p.y + Math.sin(a) * R;
+      run.shots.push({ x, y, vx: -Math.cos(a) * 120, vy: -Math.sin(a) * 120, dmg: Math.round(m.dmg * 0.5), t: 3.2, ball: "#ff6fa8", owner: m, charm: 1.0 });
+    }
+    fx(p.x, p.y - 44, "하트 고리! 틈으로 빠져나가요", "#ff8fb8", 14);
+  },
+  lBloodRain(m, p, w, toP, E) {   // 핏빛 비: 경기장 곳곳에 차례로
+    m.mode = "howl"; m.timer = 0.8; const n = E ? 14 : 10;
+    for (let k = 0; k < n; k++) w2Boom(40 + Math.random() * (W - 80), 90 + Math.random() * (H - 140), 44, 0.8 + k * 0.14, m.dmg * 0.9, "255,80,120", m);
+    w2Boom(p.x, p.y, 44, 0.9, m.dmg * 0.9, "255,80,120", m);
+    fx(W / 2, 140, "핏빛 비!", "#ff5f8a", 16);
+  },
+  // ── 꿈의 여신 니르바 ──
+  nStarfall(m, p, w, toP, E) {   // 꿈별: 떨어진 자리에 맞으면 졸음
+    m.mode = "howl"; m.timer = 0.8; const n = E ? 9 : 7;
+    for (let k = 0; k < n; k++) {
+      const x = clamp(p.x + (k ? (Math.random() - 0.5) * 260 : 0), 30, W - 30), y = clamp(p.y + (k ? (Math.random() - 0.5) * 260 : 0), 80, H - 30), t = 0.8 + k * 0.16;
+      w2Boom(x, y, 36, t, m.dmg * 0.7, "184,168,255", m);
+      w2Later(t, () => { if (!m.dead && Math.hypot(run.p.x - x, run.p.y - y) < 36 + P_R && !(run.p.invuln > 0)) addDrowsy(25); });
+    }
+    fx(p.x, p.y - 44, "꿈별!", "#b8a8ff", 15);
+  },
+});
+const _w3BossMode4 = w3BossMode;
+w3BossMode = function (m, dt, done) {
+  const p = run.p;
+  if (m.mode === "rPetal") {   // 꽃잎 소용돌이: 두세 갈래로 돌며 쏘고, 가끔 매혹 꽃잎
+    m.spinCd -= dt;
+    if (m.spinCd <= 0) { m.spinCd = 0.12; m.spinA += 0.38; const n = m.enraged ? 3 : 2; for (let k = 0; k < n; k++) w2Shot(m, m.spinA + k / n * Math.PI * 2, 175, m.dmg * 0.4, "#ff9fc0", Math.random() < 0.15 ? { charm: 0.8 } : {}); }
+    if (m.timer <= 0) done();
+    return true;
+  }
+  if (m.mode === "reflect" && m.timer <= 0 && m.afterReflect) {   // 반격 자세가 끝나면 바로 돌진
+    m.afterReflect = null; m.mode = "kDashAim"; m.timer = 0.4; m.dashA = Math.atan2(p.y - m.y, p.x - m.x);
+    fx(m.x, m.y - m.r - 18, "반격!", "#ff8fb8", 15); return true;
+  }
+  if (m.mode === "kDash" && m.timer <= 0 && m.dashN > 0) {   // 연속 돌진
+    m.dashN--; m.mode = "kDashAim"; m.timer = 0.45; m.dashA = Math.atan2(p.y - m.y, p.x - m.x); return true;
+  }
+  return _w3BossMode4(m, dt, done);
+};
 const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useStone: false,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
