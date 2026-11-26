@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v126";
+const GAME_VERSION = "v127";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -4922,7 +4922,7 @@ function setupUlt() {
   if (!run) return;
   run.ult ??= 0; run.ultMax ??= 1;
   run.novas ??= []; run.dfx ??= []; run.dcds ??= [0, 0];
-  b.hidden = !k;
+  b.hidden = !k || ultBanned();
   if (!k) return;
   const c = CH[k];
   b.style.setProperty("--c", c.color);
@@ -4942,9 +4942,11 @@ function updateUltBtn() {
   kn.style.transform = ultJoy ? `translate(${ultJoy.dx * 20}px, ${ultJoy.dy * 20}px)` : "";
 }
 
+const ultBanned = () => ["escape", "hunt"].includes(run?.zone?.w3?.def.type);   // 미로(돌파)·도망 잡기에서는 전설 스킬 금지
 function castUlt() {
   const k = legendKey();
   if (!run || run.over || !k || run.ult > 0) return false;
+  if (ultBanned()) { fx(run.p.x, run.p.y - 36, "이 스테이지는 전설 스킬 금지", "#efe6d8", 12); return false; }
   if (run.p.frozen > 0 || run.p.stun > 0) { fx(run.p.x, run.p.y - 36, "사용 불가", "#efe6d8", 12); return false; }
   const c = CH[k], lv = cl(k), p = run.p;
   run.ult = run.ultMax = c.ultCd(lv);
