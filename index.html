@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v130";
+const GAME_VERSION = "v131";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -6169,7 +6169,7 @@ const FROST_LEN = 280, FROST_ARC = 0.62, FROST_FREEZE_AFTER = 0.6, FROST_FREEZE 
 const TAIL_R = 95, TAIL_WIND = 0.55, GOLEM_SNOW_R = 70, ICE_BOMB_R = 60;   // TAIL_WIND: 꼬리 치기 예고 시간
 // 가까이 붙으면 꼬리 치기: 얼음 드래곤은 날려 보내고, 번개·킹 드래곤은 기절시킨다
 const TAIL_EFFECT = { iceDragon: "knock", thunderDragon: "stun", kingDragon: "stun" };
-const NO_CONTACT = new Set(["leap", "ascend", "blinkOut", "edgeFly", "hop", "dive", "echoDash", "under", "chargeWait", "charge"]);
+const NO_CONTACT = new Set(["leap", "capLeap", "ascend", "blinkOut", "edgeFly", "hop", "dive", "echoDash", "under", "chargeWait", "charge"]);
 const BOSS_TOUCH_DMG = 0.5, BOSS_TOUCH_R = 0.75;   // 보스 몸에 부딪혔을 때: 피해 배율, 부딪히는 범위 배율
 
 // 던전 보스
@@ -9416,7 +9416,7 @@ W3_STAGES[2] = [
   { type: "elite", name: "근위대", elites: ["sLancer", "sLancer"], pool: ["sPriest", "sArcher"], alive: 3, par: 60, desc: "정예 창기병 둘과 그들을 치유하는 사제." },
   { type: "survive", name: "폭풍의 옥상", dur: 55, alive: 8, pool: ["sHawk", "sMage", "sArcher", "sLancer"], par: 55, desc: "폭풍 속에서 55초 버티세요." },
   { type: "kill", name: "하늘 사제단", need: 24, alive: 6, pool: ["sPriest", "sLancer", "sMage", "sArcher", "sHawk"], pre: 6, par: 80, desc: "치유하는 사제단과 호위대. 24마리 처치." },
-  { type: "boss", name: "천공의 기사단장", boss: "skyCaptain", par: 95, desc: "떨어지면 즉사! 창 돌격으로 멀리 날려 버리고, 폭풍과 발판 붕괴로 몰아붙여요. 가장자리로 날아가면 추락해요." },
+  { type: "boss", name: "천공의 기사단장", boss: "skyCaptain", par: 95, desc: "떨어지면 즉사! 창 돌격으로 멀리 날려 버리고, 도약 내려찍기(1초 뒤 착지 자리 붕괴), 폭풍과 발판 붕괴로 몰아붙여요. 가장자리로 날아가면 추락해요." },
 ];
 W3_STAGES[3] = [
   { type: "kill", name: "장미 울타리", need: 18, alive: 5, pool: ["rButterfly", "rMaid", "rVine"], pre: 4, par: 55, desc: "매혹 나비에 닿으면 잠깐 끌려가요. 덩굴은 잡으면 둘로 갈라져요." },
@@ -9579,7 +9579,7 @@ Object.assign(W2AI, {
     if (m.cd <= 0) {
       m.cd = 2.2;
       const tg = allies.filter(o => o.hp < o.max).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
-      if (tg) { tg.hp = Math.min(tg.max, tg.hp + tg.max * 0.12); run.chains.push({ pts: [[m.x, m.y], [tg.x, tg.y]], t: 0.3, col: "255,240,170" }); fx(tg.x, tg.y - tg.r - 6, "+회복", "#fff6a8", 12); }
+      if (tg) { tg.hp = Math.min(tg.max, tg.hp + tg.max * (tg.boss ? 0.03 : 0.12)); run.chains.push({ pts: [[m.x, m.y], [tg.x, tg.y]], t: 0.3, col: "255,240,170" }); fx(tg.x, tg.y - tg.r - 6, "+회복", "#fff6a8", 12); }
     }
   },
   // 매혹 나비: 하늘하늘 다가오고, 닿으면 짧은 매혹
@@ -9612,11 +9612,19 @@ for (const [k, b] of Object.entries(W3_MOB)) if (b.ai && !W2AI[k]) W2AI[k] = (..
 // ── 보스 ──
 for (const k of ["skyGolem", "skyCaptain", "roseKnight", "lilith"]) W2_BOSS.add(k);
 W2_PATTERNS.skyGolem = ["kSlash", "collapse", "kShards", "gale", "collapse"];
-W2_PATTERNS.skyCaptain = ["lance", "gale", "shock", "lance", "collapse", "squad"];
+W2_PATTERNS.skyCaptain = ["lance", "gale", "shock", "lance", "collapse", "squad", "capLeap", "capLeap"];
 W2_PATTERNS.roseKnight = ["kSlash", "roses", "kiss", "kDash", "roses"];
 W2_PATTERNS.lilith = ["kiss", "roses", "illusion", "bats", "kiss", "redmoon"];
 Object.assign(W2_START, {
-  collapse(m, p, w, toP, E) { m.mode = "howl"; m.timer = 0.6; for (let k = 0; k < (E ? 9 : 6); k++) crackAt(p.x + (Math.random() - 0.5) * 220, p.y + (Math.random() - 0.5) * 220); crackAt(p.x, p.y); fx(p.x, p.y - 40, "발판이 무너져요!", "#bfe0ff", 14); },
+  capLeap(m, p, w, toP, E) {   // 뛰어올랐다가 내 자리에 내려찍기. 착지 1초 뒤 그 자리 발판이 무너짐
+    m.mode = "capLeap"; m.timer = m.leapMax = E ? 0.85 : 1.0; m.ghost = 99;
+    m.capL = { fx: m.x, fy: m.y, tx: clamp(p.x, 40, W - 40), ty: clamp(p.y, 90, H - 40) };
+    w2Boom(m.capL.tx, m.capL.ty, 80, m.leapMax, m.dmg * 1.3, "191,224,255", m, "knock");
+    fx(m.x, m.y - m.r - 18, "도약!", "#bfe0ff", 15); sfx("dash");
+  },
+  collapse(m, p, w, toP, E) {
+    if (E && m.kind === "skyCaptain" && !m.collapse2) { m.collapse2 = true; w2Later(1.1, () => { if (!m.dead) W2_START.collapse(m, run.p, w, toP, E); m.collapse2 = false; }); }   // 분노: 두 번 연속
+    m.mode = "howl"; m.timer = 0.6; for (let k = 0; k < (E ? 9 : 6); k++) crackAt(p.x + (Math.random() - 0.5) * 220, p.y + (Math.random() - 0.5) * 220); crackAt(p.x, p.y); fx(p.x, p.y - 40, "발판이 무너져요!", "#bfe0ff", 14); },
   gale(m, p, w, toP, E) { m.mode = "gale"; m.timer = E ? 3 : 2.4; m.galeA = Math.random() < 0.5 ? 0 : Math.PI; fx(W / 2, 140, m.galeA ? "← 돌풍" : "돌풍 →", "#bfe0ff", 18); sfx("whirl");
     for (let k = 0; k < 6; k++) w2Later(0.3 + k * 0.35, () => !m.dead && w2Shot(m, toP() + (Math.random() - 0.5) * 0.6, 220, m.dmg * 0.5, "#e8f0ff")); },
   lance(m, p, w, toP, E) { m.mode = "kDashAim"; m.timer = E ? 0.5 : 0.65; m.dashA = toP(); m.lanceKnock = true; },
@@ -9639,6 +9647,17 @@ Object.assign(W2_START, {
 const _w3BossMode = w3BossMode;
 w3BossMode = function (m, dt, done) {
   const p = run.p;
+  if (m.mode === "capLeap") {
+    const L = m.capL, k = clamp(1 - m.timer / m.leapMax, 0, 1);
+    m.x = L.fx + (L.tx - L.fx) * k; m.y = L.fy + (L.ty - L.fy) * k; m.lift = Math.sin(k * Math.PI) * 110;
+    if (m.timer > 0) return true;
+    m.lift = 0; m.ghost = 0; run.quake = 0.35; ring(L.tx, L.ty, 80, "#bfe0ff"); sfx("boom");
+    const n0 = (run.stage.holes || []).length;
+    for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) crackAt(L.tx + dx * HOLE, L.ty + dy * HOLE);
+    for (const h of run.stage.holes.slice(n0)) h.crack = 1.0;   // 착지 1초 뒤 무너짐
+    fx(L.tx, L.ty - 50, "발판이 갈라져요!", "#bfe0ff", 14);
+    done(); return true;
+  }
   if (m.mode === "gale") { if (!p.dash) p.x = clamp(p.x + Math.cos(m.galeA) * 120 * dt, P_R, W - P_R); if (m.timer <= 0) done(); return true; }
   if (m.mode === "redmoon") {
     if (m.timer > 0) return true;
