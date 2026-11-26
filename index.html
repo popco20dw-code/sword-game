@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v133";
+const GAME_VERSION = "v134";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -8750,8 +8750,8 @@ const W3_STAGES = {
       desc: "사방에서 몰려와요. 45초 동안 버티세요." },
     { type: "defend", name: "수정 등불 지키기", dur: 45, alive: 6, pool: ["mSprite", "mWolf", "mSprite"], par: 45,
       desc: "가운데 수정 등불이 꺼지지 않게 지키세요. 정령은 등불을 노려요." },
-    { type: "escape", name: "거울 미로 탈출", pool: ["mShade", "mSprite", "mArcher"], pre: 6, par: 45, limit: 50, maze: true,
-      desc: "거울벽으로 막힌 진짜 미로. 50초 안에 표식 5개를 차례로 5초씩 밟아 켜면 위쪽 출구가 열려요. 가운데 통로의 거울문은 2.5초마다 번갈아 닫혀요." },
+    { type: "escape", name: "거울 미로 탈출", pool: ["mShade", "mSprite", "mArcher"], pre: 7, par: 41, limit: 45, maze: true,
+      desc: "거울벽으로 막힌 진짜 미로. 45초 안에 표식 5개를 차례로 5초씩 밟아 켜면 위쪽 출구가 열려요. 가운데 통로의 거울문은 2.5초마다 번갈아 닫혀요." },
     { type: "boss", name: "거울 기사", boss: "mirrorKnight", par: 60,
       desc: "숲을 지키는 거울 기사. 반사 상태일 때 때리면 피해가 돌아와요." },
     { type: "elite", name: "수정 수문장", elites: ["mGuard", "mGuard"], pool: ["mArcher", "mSprite"], alive: 3, par: 60,
@@ -8799,7 +8799,7 @@ function w3MakeMob(kind, x, y, opts = {}) {
   const b = W3_MOB[kind], cap = run.zone.cap, A = atkOf(cap.sword);
   const normal = run.stage.def.type !== "boss" && !b.boss, ref = W3_HP_REF * hpOf(cap.sword) / hpOf(130);
   const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1) * (normal ? W3_NORMAL_HP : 1));
-  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(ref * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1) * (normal ? W3_NORMAL_DMG : 1)),
+  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(ref * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1) * (normal ? W3_NORMAL_DMG : 1) * (run.stage.def.maze ? 1.5 : 1)),
               speed: b.speed, baseSpeed: b.speed, r: b.r * (opts.elite ? 1.35 : 1), gold: 0, face: Math.atan2(run.p.y - y, run.p.x - x), hitCd: 0, flash: 0,
               phase: Math.random() * 6, contact: b.contact, w3: true, state: opts.idle ? "idle" : "fight", elite: !!opts.elite, cd: 1 + Math.random() };
   if (b.boss) Object.assign(m, { boss: true, mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, combo: 1 });
@@ -9065,7 +9065,7 @@ function stageStep(dt) {
   }
   if (S.walls) {
     S.flipT += dt;
-    const on = Math.floor(S.flipT / 2.5) % 2, rects = S.walls.concat([S.flips[on]]);
+    const on = Math.floor(S.flipT / 2.5) % 2, rects = S.walls.concat(S.flips.map(pr => pr[on]));
     const push = (o, rad) => { for (const [x, y, w, h] of rects) {
       const cx = clamp(o.x, x, x + w), cy = clamp(o.y, y, y + h), dx = o.x - cx, dy = o.y - cy, dd = Math.hypot(dx, dy);
       if (dd < rad) { if (dd > 0.01) { o.x = cx + dx / dd * rad; o.y = cy + dy / dd * rad; } else { const opts = [[o.x - x, x - rad, 0], [x + w - o.x, x + w + rad, 0], [o.y - y, y - rad, 1], [y + h - o.y, y + h + rad, 1]].sort((u, v) => u[0] - v[0])[0]; if (opts[2]) o.y = opts[1]; else o.x = opts[1]; } }
@@ -9078,14 +9078,13 @@ function stageStep(dt) {
     S.started = true;
     if (d.pre) for (let k = 0; k < d.pre; k++) w3MakeMob(w3Pick(d.pool), 40 + Math.random() * (W - 80), 80 + Math.random() * (d.type === "escape" ? H - 220 : H / 2 - 60), { idle: true });
     if (d.type === "defend") S.crystal = { x: W / 2, y: H / 2, r: 22, hp: 1, max: 1 };
-    if (d.type === "escape" && d.maze) {
-      p.x = W / 2; p.y = H - 40;
-      S.walls = [[0, 470, 320, 14], [140, 360, 320, 14], [0, 250, 320, 14], [140, 140, 320, 14],
-                 [150, 484, 14, 76], [230, 374, 14, 66], [230, 190, 14, 60]];
-      S.flips = [[160, 264, 14, 96], [300, 264, 14, 96]]; S.flipT = 0;
+    if (d.type === "escape" && d.maze) {   // 장마다 다른 미로 (W3_MAZES)
+      const mz = W3_MAZES[S.ch];
+      [p.x, p.y] = mz.start;
+      S.walls = mz.walls; S.flips = mz.flips; S.flipT = 0;
       for (const m of r.mobs) if (!m.boss) { m.x = 40 + Math.random() * (W - 80); m.y = 90 + Math.random() * (H - 200); }
+      S.exit = { x: mz.exit[0], y: mz.exit[1], r: 30, open: false }; S.gates = mz.gates.map(([x, y]) => ({ x, y })); S.gate = 0; S.hold = 0;
     }
-    if (d.type === "escape" && d.maze) { S.exit = { x: W / 2, y: 70, r: 30, open: false }; S.gates = [{ x: 50, y: 525 }, { x: 290, y: 405 }, { x: 230, y: 312 }, { x: 180, y: 222 }, { x: 420, y: 100 }]; S.gate = 0; S.hold = 0; }
     else if (d.type === "escape") { S.exit = { x: W / 2, y: 52, r: 34, open: false }; S.gates = [{ x: 70, y: H - 150 }, { x: W - 70, y: H - 260 }, { x: 90, y: H / 2 - 20 }, { x: W - 80, y: 230 }, { x: W / 2, y: 150 }]; S.gate = 0; S.hold = 0; }
     if (d.type === "elite") S.elites = d.elites.map(k => w3Spawn(k, { elite: true }));
     if (d.type === "hunt") S.treasure = w3MakeMob("mTreasure", W / 2, 140);
@@ -9117,9 +9116,9 @@ function stageStep(dt) {
     case "escape": {
       // 거울 표식 3개를 차례로 밟아야 출구가 열림. 그동안 거울빛이 가로지르고 매복자가 숨어 있음
       S.laneT = (S.laneT ?? 1.2) - dt;
-      if (S.laneT <= 0) { S.laneT = d.maze ? 1.5 : 1.25; const y = 110 + Math.random() * (H - 220), vert = Math.random() < 0.35, x = 40 + Math.random() * (W - 80);
-        w2Lane(vert && !d.maze ? [x, 0, x, H] : [0, y, W, y], 36, 1.0, W3_HP_REF * 0.14, null, "star"); }
-      if (spawnTick(d.maze ? 6 : 4, d.maze ? 2 : 2.6)) w3Spawn(w3Pick(d.pool));
+      if (S.laneT <= 0) { S.laneT = d.maze ? 1.3 : 1.25; const y = 110 + Math.random() * (H - 220), vert = Math.random() < 0.35, x = 40 + Math.random() * (W - 80);
+        w2Lane(vert && !d.maze ? [x, 0, x, H] : [0, y, W, y], 36, 1.0, W3_HP_REF * (d.maze ? 0.2 : 0.14), null, "star"); }
+      if (spawnTick(d.maze ? 7 : 4, d.maze ? 1.6 : 2.6)) w3Spawn(w3Pick(d.pool));
       const g = S.gates[S.gate];
       const holdNeed = d.maze ? 5 : 1;
       if (g && Math.hypot(p.x - g.x, p.y - g.y) < 30) S.hold += dt; else S.hold = Math.max(0, S.hold - dt * (d.maze ? 1 : 2));
@@ -9154,6 +9153,19 @@ function stageStep(dt) {
       break;
   }
 }
+// 미로: 시작·출구·벽·번갈아 닫히는 거울문(쌍마다 2.5초 교대)·표식 (경로 탐색으로 풀리는지 확인함)
+const W3_MAZES = {
+ 1: { start:[230,560], exit:[230,70], walls:[[0,470,320,14],[140,360,320,14],[0,250,320,14],[140,140,320,14],[150,484,14,76],[230,374,14,66],[230,190,14,60]],
+      flips:[[[160,264,14,96],[300,264,14,96]]], gates:[[50,525],[290,405],[230,312],[180,222],[420,100]] },
+ 2: { start:[45,560], exit:[414,80], walls:[[92,140,14,460],[184,40,14,480],[276,140,14,460],[368,40,14,480]],
+      flips:[[[198,250,78,14],[198,390,78,14]]], gates:[[45,300],[145,470],[237,320],[330,200],[420,460]] },
+ 3: { start:[230,565], exit:[230,280], walls:[[60,100,340,14],[386,100,14,420],[130,506,270,14],[60,100,14,350],[140,180,110,14],[306,180,14,260],[140,426,180,14],[140,180,14,260]],
+      flips:[[[200,114,14,66],[74,250,66,14]]], gates:[[420,565],[100,330],[350,470],[300,140],[270,390]] },
+ 4: { start:[230,560], exit:[230,70], walls:[[140,470,320,14],[0,360,320,14],[140,250,320,14],[0,140,320,14],[296,484,14,76],[216,374,14,66],[216,190,14,60]],
+      flips:[[[286,264,14,96],[146,264,14,96]],[[60,374,14,86],[400,154,14,96]]], gates:[[410,525],[160,405],[230,312],[280,222],[40,100]] },
+ 5: { start:[415,560], exit:[46,80], walls:[[354,140,14,460],[262,40,14,480],[170,140,14,460],[78,40,14,480]],
+      flips:[[[184,250,78,14],[184,390,78,14]],[[276,300,78,14],[92,290,78,14]]], gates:[[415,300],[315,470],[223,320],[130,200],[40,460]] },
+};
 // 몹 처치 (스테이지에서는 보상을 클리어 때 한꺼번에)
 function stageKill(m) {
   const S = run.stage;
@@ -9209,7 +9221,7 @@ function stageHud(r) {
     case "kill": return `처치 ${Math.min(S.kills, d.need)}/${d.need}`;
     case "survive": return `버티기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
     case "defend": return `등불 지키기 ${Math.max(0, Math.ceil(d.dur - S.t))}초`;
-    case "escape": return (S.exit?.open ? "위쪽 출구로!" : `거울 표식 ${S.gate || 0}/${S.gates?.length || 5}`) + (d.limit ? ` · 남은 시간 ${Math.max(0, Math.ceil(d.limit - S.t))}초` : "");
+    case "escape": return (S.exit?.open ? "출구로!" : `거울 표식 ${S.gate || 0}/${S.gates?.length || 5}`) + (d.limit ? ` · 남은 시간 ${Math.max(0, Math.ceil(d.limit - S.t))}초` : "");
     case "elite": return `정예 ${S.elites ? S.elites.filter(m => m.dead).length : 0}/${d.elites.length}`;
     case "hunt": return `요정 잡기 ${Math.max(0, Math.ceil(d.limit - S.t))}초`;
     case "waves": return `웨이브 ${S.wave || 0}/${d.waves.length}`;
@@ -9247,7 +9259,7 @@ function drawW3(r, t) {
     const on = Math.floor(S.flipT / 2.5) % 2, left = 2.5 - S.flipT % 2.5;
     ctx.save(); ctx.shadowColor = "#cfe8ff"; ctx.shadowBlur = 10;
     for (const [x, y, w, h] of S.walls) { ctx.fillStyle = "rgba(200,228,250,.85)"; ctx.fillRect(x, y, w, h); ctx.fillStyle = "rgba(255,255,255,.6)"; ctx.fillRect(x, y, w, 3); }
-    S.flips.forEach(([x, y, w, h], i) => {
+    for (const pr of S.flips) pr.forEach(([x, y, w, h], i) => {
       if (i === on) { ctx.fillStyle = left < 0.5 && Math.floor(t * 12) % 2 ? "rgba(255,210,74,.9)" : "rgba(170,215,255,.9)"; ctx.fillRect(x, y, w, h); }
       else { ctx.strokeStyle = "rgba(207,232,255,.35)"; ctx.setLineDash([6, 6]); ctx.strokeRect(x, y, w, h); ctx.setLineDash([]); }
     });
@@ -9409,7 +9421,7 @@ W3_CH.push(
 );
 W3_STAGES[2] = [
   { type: "kill", name: "구름 다리", need: 16, alive: 5, pool: ["sHawk", "sArcher", "sLancer"], pre: 4, par: 50, desc: "구름 위 다리. 발판이 금 가면 곧 무너져요. 창기병은 내가 갈 길을 막아서요." },
-  { type: "escape", name: "무너지는 회랑", pool: ["sHawk", "sMage"], pre: 4, par: 40, desc: "표식 5개를 켜고 출구로. 무너지는 발판에 빠지면 추락해요." },
+  { type: "escape", name: "무너지는 회랑", pool: ["sHawk", "sMage", "sLancer"], pre: 7, par: 41, limit: 45, maze: true, desc: "세로로 꺾이는 구름벽 미로. 45초 안에 표식 5개(각 5초)를 켜고 오른쪽 위 출구로. 무너지는 발판에 빠지면 추락해요." },
   { type: "waves", name: "바람의 탑", waves: [["sHawk", "sHawk", "sArcher", "sLancer"], ["sMage", "sMage", "sLancer", "sArcher", "sHawk"], ["sPriest", "sLancer", "sLancer", "sMage", "sArcher", "sHawk"]], par: 70, desc: "세 번 몰려와요. 사제가 있으면 먼저 잡으세요." },
   { type: "defend", name: "깃발 지키기", dur: 50, alive: 6, pool: ["sHawk", "sLancer", "sMage"], par: 50, desc: "천공성의 깃발(수정)을 50초 동안 지키세요." },
   { type: "boss", name: "천공 수호병", boss: "skyGolem", par: 70, desc: "떨어지면 즉사! 돌로 된 거대한 수호병. 발판을 무너뜨리고 바람을 일으켜요." },
@@ -9426,7 +9438,7 @@ W3_STAGES[3] = [
   { type: "hunt", name: "장미 도둑", limit: 40, pool: ["rMaid", "rImp"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 도깨비불은 도망치며 회복해요." },
   { type: "boss", name: "장미 기사", boss: "roseKnight", par: 75, desc: "가시 장미를 깔고 하트 탄으로 매혹해요." },
   { type: "waves", name: "가시 미로", waves: [["rVine", "rVine", "rMaid", "rButterfly"], ["rGolem", "rImp", "rImp", "rButterfly", "rButterfly"], ["rGolem", "rVine", "rVine", "rMaid", "rMaid", "rImp"]], par: 75, desc: "세 번 몰려와요." },
-  { type: "escape", name: "붉은 정원 탈출", pool: ["rVine", "rButterfly", "rImp"], pre: 6, par: 45, limit: 50, maze: true, desc: "표식 5개를 켜고 출구로." },
+  { type: "escape", name: "붉은 정원 탈출", pool: ["rVine", "rButterfly", "rImp"], pre: 7, par: 38, limit: 42, maze: true, desc: "가운데로 감겨 들어가는 장미 덩굴 미로. 42초 안에 표식 5개를 켜고 한가운데 출구로." },
   { type: "elite", name: "정원지기", elites: ["rGolem", "rGolem"], pool: ["rImp", "rButterfly"], alive: 3, par: 65, desc: "정예 장미 골렘 둘. 방패 뒤로 돌아가세요." },
   { type: "kill", name: "달의 연회", need: 26, alive: 7, pool: ["rButterfly", "rMaid", "rVine", "rGolem", "rImp"], pre: 6, par: 85, desc: "정원의 모든 것이 모인 연회. 26마리 처치." },
   { type: "boss", name: "서큐버스 릴리스", boss: "lilith", par: 110, desc: "붉은 달의 정원의 주인. 매혹 입맞춤, 가시 장미, 환영 분신, 박쥐 떼. 분노하면 붉은 달 — 기둥 뒤에 숨어야 해요." },
@@ -9825,7 +9837,7 @@ W3_STAGES[4] = [
   { type: "hunt", name: "꿈꾸는 요정", limit: 40, pool: ["dSheep", "dNightmare"], alive: 3, par: 25, desc: "보물을 든 요정을 잡으세요. 잠든 사이엔 악몽이 노려요." },
   { type: "defend", name: "꿈의 등불", dur: 50, alive: 6, pool: ["dSheep", "dNightmare", "dFairy"], par: 50, desc: "꿈의 등불(수정)을 지키세요." },
   { type: "boss", name: "꿈 수호 양", boss: "dreamRam", par: 75, desc: "거대한 꿈 양. 돌진과 자장가로 잠재우려 해요." },
-  { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 6, par: 45, limit: 50, maze: true, desc: "표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
+  { type: "escape", name: "꿈속 미로", pool: ["dNightmare", "dFairy"], pre: 7, par: 41, limit: 45, maze: true, desc: "거꾸로 뒤집힌 꿈의 미로, 거울문이 두 쌍. 45초 안에 표식 5개를 켜고 출구로. 잠들면 악몽이 다가와요." },
   { type: "elite", name: "악몽 사냥꾼", elites: ["dNightmare", "dNightmare"], pool: ["dFairy", "dSheep"], alive: 3, par: 65, desc: "정예 악몽 둘. 잠든 상대에게 피해 2배." },
   { type: "waves", name: "세 번의 꿈", waves: [["dSheep", "dSheep", "dFairy", "mSprite"], ["dNightmare", "dFairy", "dFairy", "dSheep", "sMage"], ["dNightmare", "dNightmare", "dSheep", "dSheep", "dFairy", "rButterfly"]], par: 75, desc: "꿈이 세 번 이어져요." },
   { type: "kill", name: "깊은 잠의 홀", need: 26, alive: 7, pool: ["dSheep", "dFairy", "dNightmare", "sPriest", "rVine"], pre: 6, par: 85, desc: "잠의 신전 가장 깊은 곳. 26마리 처치." },
@@ -9835,7 +9847,7 @@ W3_STAGES[5] = [
   { type: "kill", name: "지워진 길", need: 22, alive: 6, pool: ["mWolf", "sLancer", "rButterfly", "dSheep"], pre: 5, par: 70, desc: "지나온 장의 몹들이 스케치처럼 다시 그려져요." },
   { type: "survive", name: "스케치의 폭풍", dur: 55, alive: 8, pool: ["mArcher", "sMage", "rImp", "dFairy"], par: 55, desc: "원거리 몹들의 폭풍. 55초 버티기." },
   { type: "defend", name: "마지막 등불", dur: 55, alive: 7, pool: ["mShade", "rVine", "dNightmare", "sHawk"], par: 55, desc: "왕좌로 가는 등불을 지키세요." },
-  { type: "escape", name: "무너지는 원고", pool: ["sMage", "mShade", "dNightmare"], pre: 5, holes: true, par: 45, desc: "원고가 찢어지며 바닥이 무너져요. 표식 5개를 켜고 출구로." },
+  { type: "escape", name: "무너지는 원고", pool: ["sMage", "mShade", "dNightmare"], pre: 7, holes: true, par: 41, limit: 45, maze: true, desc: "원고 줄 사이를 오르내리는 미로. 바닥이 무너지고 거울문이 두 쌍. 45초 안에 표식 5개를 켜고 왼쪽 위 출구로." },
   { type: "waves", name: "기억의 연전", waves: [["mirrorKnight"], ["skyGolem"], ["roseKnight"], ["dreamRam"]], par: 150, desc: "지나온 중간 보스 넷과 연달아 싸워요." },
   { type: "elite", name: "그려진 근위대", elites: ["mGuard", "rGolem", "sLancer"], pool: ["sPriest", "dFairy"], alive: 3, par: 75, desc: "정예 셋과 치유하는 사제." },
   { type: "hunt", name: "도망치는 붓", limit: 40, pool: ["mWolf", "dSheep", "rMaid"], alive: 4, par: 25, desc: "아르케의 붓을 든 요정을 잡으세요." },
