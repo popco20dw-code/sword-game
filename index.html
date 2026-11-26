@@ -204,6 +204,60 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 @keyframes shake { 20%,60% { transform: translateX(-6px) rotate(-3deg); } 40%,80% { transform: translateX(6px) rotate(3deg); } }
 @keyframes flash { 0% { filter: brightness(2.2) drop-shadow(0 0 24px var(--ember)); } }
 @media (prefers-reduced-motion: reduce) { .art.shake, .art.flash { animation: none; } }
+/* 대장간: 검이 둥실 떠 있고, 칼날 위로 빛이 지나가고, 높은 단계는 뒤에서 빛줄기가 돎 */
+.art { animation: bob 3.2s ease-in-out infinite; }
+@keyframes bob { 50% { translate: 0 -5px; } }
+.shine { animation: shine 3.6s ease-in-out infinite; }
+@keyframes shine { 0%, 55% { transform: translate(-90px, 60px); } 85%, 100% { transform: translate(90px, -60px); } }
+.artbox::after {
+  content: ""; position: absolute; left: 50%; top: 44%; width: 300px; height: 300px; margin: -150px 0 0 -150px; border-radius: 50%; pointer-events: none;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 22%, transparent) 0 8deg, transparent 8deg 30deg);
+  -webkit-mask: radial-gradient(circle, #000 20%, transparent 68%); mask: radial-gradient(circle, #000 20%, transparent 68%);
+  opacity: var(--rays, 0); animation: spin 18s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .art, .shine, .artbox::after { animation: none; } }
+/* 진화 연출 */
+.evo { position: fixed; inset: 0; z-index: 9999; display: grid; place-items: center; cursor: pointer; overflow: hidden;
+  background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--c) 30%, #05040a) 0%, #05040a 70%); animation: evoIn .35s ease-out both; }
+@keyframes evoIn { from { opacity: 0; } }
+.evo.out { animation: evoOut .4s ease-in forwards; }
+@keyframes evoOut { to { opacity: 0; } }
+.evo .stage { position: relative; width: 320px; height: 420px; display: grid; place-items: center; animation: evoQuake .5s 1s; }
+@keyframes evoQuake { 10%, 50%, 90% { transform: translate(-7px, 3px); } 30%, 70% { transform: translate(7px, -3px); } }
+.evo .rays { position: absolute; left: 50%; top: 42%; width: 900px; height: 900px; margin: -450px 0 0 -450px; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--c) 55%, transparent) 0 6deg, transparent 6deg 22deg);
+  -webkit-mask: radial-gradient(circle, #000 8%, transparent 62%); mask: radial-gradient(circle, #000 8%, transparent 62%);
+  opacity: 0; animation: raysIn .6s 1s forwards, spin 9s 1s linear infinite; }
+@keyframes raysIn { to { opacity: 1; } }
+.evo .old, .evo .new { position: absolute; top: 42%; left: 50%; width: 132px; height: 210px; margin: -105px 0 0 -66px; }
+.evo .old svg, .evo .new svg { width: 100%; height: 100%; overflow: visible; }
+.evo .old { animation: charge 1s ease-in forwards; }
+@keyframes charge { 0% { filter: brightness(1); } 30% { transform: translateX(-2px); } 40% { transform: translateX(2px); } 50% { transform: translateX(-3px); } 60% { transform: translateX(3px); }
+  70% { transform: translateX(-4px); } 80% { transform: translateX(4px); } 99% { filter: brightness(6) drop-shadow(0 0 30px #fff); opacity: 1; } 100% { opacity: 0; transform: scale(1.3); } }
+.evo .new { opacity: 0; filter: drop-shadow(0 0 26px var(--c)) drop-shadow(0 0 8px #fff); animation: reveal .8s 1s cubic-bezier(.2, 1.6, .4, 1) forwards, evoBob 3s 1.8s ease-in-out infinite; }
+@keyframes reveal { 0% { opacity: 0; transform: scale(.3); filter: brightness(8); } 60% { opacity: 1; } 100% { opacity: 1; transform: scale(1); } }
+@keyframes evoBob { 50% { translate: 0 -8px; } }
+.evo .flashb { position: absolute; top: 42%; left: 50%; width: 80px; height: 80px; margin: -40px; border-radius: 50%; background: #fff; opacity: 0;
+  animation: boomFlash .7s 1s ease-out; box-shadow: 0 0 80px 40px #fff; }
+@keyframes boomFlash { 0% { opacity: 1; transform: scale(.2); } 100% { opacity: 0; transform: scale(9); } }
+.evo .ring { position: absolute; top: 42%; left: 50%; width: 60px; height: 60px; margin: -30px; border-radius: 50%; border: 4px solid var(--c); opacity: 0; animation: ringOut .9s 1s ease-out; }
+.evo .ring.r2 { border-color: #fff; animation-delay: 1.12s; }
+@keyframes ringOut { 0% { opacity: 1; transform: scale(.3); } 100% { opacity: 0; transform: scale(8); } }
+.evo .p { position: absolute; top: 42%; left: 50%; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #fff; box-shadow: 0 0 8px var(--c), 0 0 3px #fff; opacity: 0; }
+.evo .p.in { animation: pin 1s var(--d) ease-in forwards; }
+@keyframes pin { 0% { opacity: 0; transform: translate(var(--x), var(--y)); } 20% { opacity: 1; } 100% { opacity: 1; transform: translate(0, 0) scale(.4); } }
+.evo .p.out { background: var(--c); animation: pout 1.2s 1s cubic-bezier(.1, .8, .3, 1) forwards; }
+@keyframes pout { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.2); } }
+.evo .txt { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; }
+.evo .t1 { font-family: var(--display); font-size: 22px; letter-spacing: .3em; color: #fff; opacity: 0; animation: up .5s 1.35s forwards; text-shadow: 0 0 12px var(--c); }
+.evo .t2 { font-family: var(--display); font-size: 34px; margin-top: 4px; opacity: 0; animation: up .6s 1.55s forwards;
+  background: linear-gradient(100deg, var(--c) 30%, #fff 50%, var(--c) 70%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; }
+.evo .t2.go { animation: up .6s 1.55s forwards, textShine 2.4s 2.2s linear infinite; }
+@keyframes textShine { to { background-position: -250% 0; } }
+.evo .t3 { color: rgba(255,255,255,.55); font-size: 13px; margin-top: 10px; opacity: 0; animation: up .5s 2.3s forwards; }
+@keyframes up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .evo *, .evo { animation-duration: .01s !important; animation-delay: 0s !important; } .evo .p, .evo .old { display: none; } }
 
 .level { font-family: var(--display); font-size: 44px; line-height: 1; }
 .name { color: var(--muted); font-size: 15px; }
@@ -963,7 +1017,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v137";
+const GAME_VERSION = "v138";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1373,7 +1427,9 @@ const twinkles = (n, sx = 1) => TWINKLES.slice(0, Math.max(0, Math.min(n, 6))).m
 const fitting = t => t === 0 ? "#8a6a3c" : t < 5 ? "#aab3c2" : "#e0b84e";   // 가드·자루 장식: 나무 → 강철 → 금
 
 // 단계가 오를수록 칼날이 넓어지고, 가드가 날개 모양이 되고, 보석과 문양과 반짝임이 붙는다
+let svgUid = 0;
 function swordSvg(t) {
+  const uid = "bc" + (++svgUid);
   const w = 12 + Math.min(t, 9) * 0.7, g = 26 + Math.min(t, 9) * 2, m = fitting(t), top = t >= 6 ? 143 : 150;
   const guard = t < 2
     ? `<rect x="${60 - g}" y="150" width="${g * 2}" height="10" rx="4" fill="${m}"/>`
@@ -1388,6 +1444,8 @@ function swordSvg(t) {
       : `<path d="M60 40V140" stroke="rgba(0,0,0,.22)" stroke-width="3" stroke-linecap="round"/>
          <path d="M${60 - w * 0.6} 40V136" stroke="rgba(255,255,255,.5)" stroke-width="1.5" stroke-linecap="round"/>`}
     ${runes}
+    <clipPath id="${uid}"><path d="M60 8L${60 - w} 34L${60 - w * 0.82} 150H${60 + w * 0.82}L${60 + w} 34Z"/></clipPath>
+    <g clip-path="url(#${uid})"><rect class="shine" x="30" y="40" width="22" height="160" fill="rgba(255,255,255,.55)" transform="rotate(30)"/></g>
     <rect x="54.5" y="158" width="11" height="38" rx="3" fill="#4a2f1a"/>
     ${[166, 174, 182].map(y => `<path d="M54.5 ${y}l11 4" stroke="#7a5230" stroke-width="2"/>`).join("")}
     ${guard}
@@ -1718,6 +1776,7 @@ function render() {
   const art = $("art");
   paint(art, current, t);
   $("artbox").style.setProperty("--c", color);
+  $("artbox").style.setProperty("--rays", Math.min(1, Math.max(0, (t - 3) / 6)).toFixed(2));
   for (const k of Object.keys(ITEMS)) paint($("side-art-" + k), k, tierIndex(state[k], ITEMS[k]));
   const rockKey = String(MATS.filter(mt => state.pick >= mt.req).length + (state.pick >= RUNE_REQ));
   if ($("rock-art").dataset.key !== rockKey) { $("rock-art").dataset.key = rockKey; $("rock-art").innerHTML = rockSvg(); }
@@ -1908,6 +1967,28 @@ function renderFriends() {
 
 function say(text, kind) { msgs[current] = [text, kind]; }
 
+// 외형이 바뀌는 강화(5단계마다)에서 보여 주는 진화 연출. 눌러서 닫기
+function evolveShow(kind, oldTier, newTier, lv, name, final) {
+  document.querySelector(".evo")?.remove();
+  const svg = t => kind === "sword" ? swordSvg(t) : pickSvg(t), col = COLORS[newTier];
+  const el = document.createElement("div");
+  el.className = "evo"; el.style.setProperty("--c", col);
+  let ps = "";
+  for (let i = 0; i < 26; i++) { const a = Math.random() * 6.28, R = 160 + Math.random() * 120; ps += `<i class="p in" style="--x:${Math.cos(a) * R}px;--y:${Math.sin(a) * R}px;--d:${(Math.random() * 0.5).toFixed(2)}s"></i>`; }
+  for (let i = 0; i < (final ? 70 : 46); i++) { const a = Math.random() * 6.28, R = 120 + Math.random() * 260; ps += `<i class="p out" style="--x:${Math.cos(a) * R}px;--y:${Math.sin(a) * R}px"></i>`; }
+  el.innerHTML = `<div class="rays"></div><div class="stage">
+      <div class="old" style="--c:${COLORS[oldTier]}">${svg(oldTier)}</div>
+      <div class="flashb"></div><div class="ring"></div><div class="ring r2"></div>${ps}
+      <div class="new" style="--c:${col}">${svg(newTier)}</div>
+      <div class="txt"><div class="t1">${final ? "완 성" : "진 화"}</div><div class="t2 go">${name}</div><div class="t3">+${lv} · 눌러서 계속</div></div>
+    </div>`;
+  const close = () => { if (el.classList.contains("out")) return; el.classList.add("out"); setTimeout(() => el.remove(), 400); };
+  el.addEventListener("click", close);
+  setTimeout(close, final ? 6000 : 4500);
+  document.body.appendChild(el);
+  sfx("evolve");
+}
+
 function animate(cls, kind = cls === "flash" ? "good" : "bad") {
   const art = $("art");
   art.classList.remove("shake", "flash");
@@ -1940,7 +2021,9 @@ function enhance() {
     state.best = Math.max(state.best, state.sword);
     text = `${who} +${lv} → +${state[current]} 성공`;
     const up = state[current];
-    sfx(up % 5 === 0 ? "fanfare" : "success");
+    const tOld = tierIndex(up - 1, item), tNew = tierIndex(up, item);
+    if (tNew !== tOld) evolveShow(current, tOld, tNew, up, item.names[tNew], up === item.max);
+    else sfx("success");
     say(up === item.max ? `${item.names[tierIndex(up, item)]} 완성!`
       : up % 5 === 0 ? `${item.names[tierIndex(up, item)]}(으)로 진화했습니다!` : "강화 성공!", "good");
     animate("flash");
@@ -2404,6 +2487,18 @@ const SFX = {
   gBurst:  [0,    () => { noise(0.5, { vol: 0.3, freq: 4000, to: 300 }); tone(90, 0.4, { type: "sine", vol: 0.3, to: 40 }); }],
   gFlip:   [0.04, () => tone(1200, 0.06, { type: "triangle", vol: 0.08, to: 1800 })],
   gRare:   [0,    () => notes([1319, 1760, 2093], 0.05, { type: "sine", vol: 0.15, dur: 0.25 })],
+  evolve:  [0,    () => {   // 진화: 모이는 소리 → 쾅 → 화음과 반짝임
+    noise(1.0, { vol: 0.16, filter: "bandpass", freq: 300, to: 7000, q: 1.6 });
+    tone(110, 1.0, { type: "sawtooth", vol: 0.06, to: 880, attack: 0.6 });
+    tone(55, 1.0, { type: "sine", vol: 0.2, to: 110, attack: 0.8 });
+    tone(95, 0.7, { type: "sine", vol: 0.42, to: 32, at: 1.0 });
+    noise(0.25, { vol: 0.4, freq: 2500, to: 200, at: 1.0 });
+    noise(1.8, { vol: 0.2, filter: "highpass", freq: 4500, at: 1.0 });
+    for (const f of [523, 659, 784, 1047]) for (const d of [0.996, 1.004]) tone(f * d, 1.9, { type: "sawtooth", vol: 0.035, at: 1.02, attack: 0.02 });
+    tone(262, 1.9, { type: "triangle", vol: 0.2, at: 1.02, attack: 0.02 });
+    [1568, 2093, 2637, 3136, 4186].forEach((f, i) => tone(f, 0.35, { type: "square", vol: 0.05, at: 1.2 + i * 0.07 }));
+    tone(2093, 1.6, { type: "sine", vol: 0.08, at: 1.6 });
+  }],
   gLegend: [0,    () => { notes([784, 988, 1175, 1568, 1976, 2349], 0.07, { type: "square", vol: 0.1, dur: 0.3 }); tone(2637, 0.9, { type: "sine", vol: 0.1, at: 0.4 }); }],
 };
 const lastSfx = {};
@@ -10627,6 +10722,32 @@ function drawMob(m, t) {
   }
 }
 
+// 사냥터 분위기 층 (draw 맨 끝에 그림)
+let vignetteCv = null;
+const ATMO = { fire: "255,170,80", lava: "255,140,60", ice: "200,235,255", snow: "235,245,255", crystal: "214,168,255", mirror: "207,232,255", sky: "235,245,255",
+               rose: "255,140,180", dream: "200,184,255", void: "240,216,144", swamp: "160,230,120", abyss: "150,120,255", rift: "255,160,240", shadow: "170,150,220", desert: "255,225,160" };
+function atmoColor(z) { return ATMO[z.theme] || ATMO[z.key] || "255,240,210"; }
+function drawAtmosphere(r) {
+  const t = r.time, p = r.p, col = atmoColor(r.zone);
+  if (!r.motes) r.motes = Array.from({ length: 34 }, () => ({ x: Math.random() * W, y: Math.random() * H, s: 0.6 + Math.random() * 1.8, v: 6 + Math.random() * 16, ph: Math.random() * 6 }));
+  ctx.save(); ctx.globalCompositeOperation = "lighter";
+  for (const m of r.motes) {
+    m.y -= m.v / 60; m.x += Math.sin(t * 0.8 + m.ph) * 0.25;
+    if (m.y < -6) { m.y = H + 6; m.x = Math.random() * W; }
+    const a = 0.25 + 0.25 * Math.sin(t * 2 + m.ph);
+    ctx.fillStyle = `rgba(${col},${a.toFixed(3)})`; ctx.beginPath(); ctx.arc(m.x, m.y, m.s, 0, Math.PI * 2); ctx.fill();
+  }
+  const g = ctx.createRadialGradient(p.x, p.y, 6, p.x, p.y, 120);   // 내 주변이 조금 밝게
+  g.addColorStop(0, "rgba(255,240,210,.10)"); g.addColorStop(1, "rgba(255,240,210,0)");
+  ctx.fillStyle = g; ctx.fillRect(p.x - 120, p.y - 120, 240, 240);
+  ctx.restore();
+  if (!vignetteCv) {
+    vignetteCv = document.createElement("canvas"); vignetteCv.width = W; vignetteCv.height = H;
+    const c2 = vignetteCv.getContext("2d"), v = c2.createRadialGradient(W / 2, H / 2, H * 0.32, W / 2, H / 2, H * 0.78);
+    v.addColorStop(0, "rgba(0,0,0,0)"); v.addColorStop(1, "rgba(0,0,0,.55)"); c2.fillStyle = v; c2.fillRect(0, 0, W, H);
+  }
+  ctx.drawImage(vignetteCv, 0, 0);
+}
 function draw() {
   const r = run, p = r.p, z = r.zone, t = r.time;
   // 골렘 착지 때 화면이 흔들림
@@ -11115,6 +11236,7 @@ function draw() {
   ctx.globalAlpha = 1;
 
   ctx.restore();
+  drawAtmosphere(r);
 
   // 상단 정보: 체력, 보스까지 남은 처치 수, 보스 체력
   // 맞았을 때와 체력이 30% 아래일 때 화면 가장자리가 붉어진다
