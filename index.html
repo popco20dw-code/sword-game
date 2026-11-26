@@ -1017,7 +1017,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v138";
+const GAME_VERSION = "v139";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1356,7 +1356,7 @@ function boost([s, k, d, b], bonus = STONE_BONUS) {
   let left = bonus;
   const take = v => { const t = Math.min(v, left); left -= t; return v - t; };
   k = take(k); d = take(d); b = take(b);
-  return [s + bonus - left, k, d, b];
+  return [s + bonus - left, k, d, b].map(v => v === undefined ? v : +v.toFixed(2));   // 소수 오차(0.30000000004 등) 정리
 }
 // 실제 강화 확률: 기본 확률 + 손재주 특성 + (켜 두었다면) 숫돌
 // 실패할 때마다 다음 성공 확률 +2%p (성공하거나 파괴되면 0으로)
@@ -1368,7 +1368,7 @@ function finalOdds(item, lv, stone = stoneOn()) {
   const pt = state.pity?.[itemKey(item)] || 0;
   if (pt) o = boost(o, pt);
   o = o.map(v => +v.toFixed(2));
-  return stone ? boost(o) : o;
+  return (stone ? boost(o) : o).map(v => v === undefined ? v : +v.toFixed(2));
 }
 const stoneOn = () => state.useStone && state.inv.stone > 0;
 // 곡괭이 +20부터 광산에서 룬석도 나온다
@@ -1811,7 +1811,7 @@ function render() {
   $("stone").checked = stoneOn();
   $("stone-wrap").lastChild.textContent = ` 행운의 숫돌 사용 (성공 +${STONE_BONUS}%p · ${state.inv.stone}개)`;
   $("odds").innerHTML = maxed ? "" :
-    cells.map(([l, v]) => `<div class="${v ? { 성공: "good", 하락: "warn", 파괴: "bad" }[l] || "" : "none"}"><dt>${l}</dt><dd>${v}%</dd></div>`).join("");
+    cells.map(([l, v]) => `<div class="${v ? { 성공: "good", 하락: "warn", 파괴: "bad" }[l] || "" : "none"}"><dt>${l}</dt><dd>${+(+v).toFixed(2)}%</dd></div>`).join("");
 
   const lack = state.gold < item.cost(lv) ? "골드 부족" : !matsOk(need) ? "재료 부족" : "";
   $("cost").textContent = maxed ? "최고 단계" : won(item.cost(lv)) + (lack ? " · " + lack : "");
@@ -4513,8 +4513,8 @@ function renderArmor() {
         <div class="a-eff">체력 <b>+${armorHp(id, lv)}</b>${eff ? `<br>${eff}` : ""}${type.key === "star" ? "<br>별 세트 3부위를 모두 끼면 사냥에서 1회 부활" : ""}</div>
         <div class="a-msg ${armorMsg?.[1] ?? ""}" role="status">${armorMsg?.[0] ?? ""}</div>
         ${max ? "" : `<dl class="odds" style="grid-template-columns:repeat(3,1fr)">
-          <div class="good"><dt>성공</dt><dd>${sc}%</dd></div><div class="${kc ? "" : "none"}"><dt>유지</dt><dd>${kc}%</dd></div>
-          <div class="warn ${dc ? "" : "none"}"><dt>하락</dt><dd>${dc}%</dd></div></dl>`}
+          <div class="good"><dt>성공</dt><dd>${+(+sc).toFixed(2)}%</dd></div><div class="${kc ? "" : "none"}"><dt>유지</dt><dd>${+(+kc).toFixed(2)}%</dd></div>
+          <div class="warn ${dc ? "" : "none"}"><dt>하락</dt><dd>${+(+dc).toFixed(2)}%</dd></div></dl>`}
         <div class="a-cost">${costTxt}${dc && !max ? ` · 하락방지권 ${state.inv.noDrop}장` : ""}<br><small>강화석은 방어구 뽑기에서 얻어요 (한 번에 ${PULL_STONES}개 + 중복은 강화석으로)</small></div>
         <div class="a-acts"><button class="primary" data-aup ${ok ? "" : "disabled"}>${max ? "최대 단계" : "강화"}</button>
           <button data-aoff>해제</button></div>
