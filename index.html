@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v136";
+const GAME_VERSION = "v137";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -2415,42 +2415,142 @@ function sfx(name) {
   play();
 }
 
-// ── 배경음악 ── 8분음표 단위 반복 악보. 0은 쉼표, 드럼은 k(킥)·s(스네어)·h(하이햇)
+// ── 배경음악 ── EDM 엔진: 16분음표 단위로 미리 예약. 곡은 구간(인트로·빌드업·드롭·브레이크)으로 이루어지고,
+// 킥이 칠 때마다 다른 악기 볼륨이 눌렸다 올라오는 사이드체인, 빌드업에서 열리는 필터, 라이저·스네어 롤이 들어간다.
+// 리드 악보: [마디 안 16분음표 위치, MIDI 음, 길이(16분음표 수)]
 const SONGS = {
-  forge: { bpm: 84, wave: "triangle", bassWave: "sine", lead:
-    [69, 0, 72, 0, 76, 0, 74, 72, 69, 0, 67, 0, 69, 0, 0, 0, 64, 0, 67, 0, 69, 0, 72, 74, 72, 0, 69, 0, 67, 0, 0, 0],
-    bass: [45, 0, 0, 0, 52, 0, 0, 0, 41, 0, 0, 0, 48, 0, 0, 0, 40, 0, 0, 0, 47, 0, 0, 0, 43, 0, 0, 0, 45, 0, 0, 0],
-    drums: "" },
-  hunt: { bpm: 120, wave: "square", bassWave: "triangle", lead:
-    [64, 0, 67, 64, 71, 0, 69, 67, 66, 0, 62, 0, 64, 0, 0, 0, 64, 0, 67, 64, 71, 0, 74, 72, 71, 0, 69, 0, 71, 0, 0, 0],
-    bass: [40, 40, 52, 40, 40, 40, 52, 40, 38, 38, 50, 38, 38, 38, 50, 38, 36, 36, 48, 36, 36, 36, 48, 36, 35, 35, 47, 35, 38, 38, 50, 38],
-    drums: "k.h.s.h.k.h.s.h.k.h.s.h.k.hks.hh" },
-  boss: { bpm: 150, wave: "sawtooth", bassWave: "square", lead:
-    [62, 0, 65, 0, 69, 0, 68, 0, 69, 0, 72, 0, 70, 69, 67, 65, 62, 0, 65, 0, 69, 0, 74, 0, 73, 0, 70, 0, 69, 0, 0, 0],
-    bass: [38, 38, 50, 38, 38, 38, 50, 38, 34, 34, 46, 34, 34, 34, 46, 34, 36, 36, 48, 36, 36, 36, 48, 36, 37, 37, 49, 37, 37, 37, 49, 37],
-    drums: "khskkhskkhskkhskkhskkhskkhsks.ss" },
+  forge: { bpm: 122, swing: 0, root: 41, chords: [[60, 65, 69], [60, 64, 69], [62, 65, 69], [62, 65, 70]], bass: [41, 45, 38, 46],
+    lead: [[[0, 72, 4], [4, 69, 2], [6, 72, 2], [8, 74, 4], [12, 72, 4]], [[0, 76, 4], [4, 74, 2], [6, 72, 2], [8, 69, 8]],
+           [[0, 74, 4], [4, 72, 2], [6, 74, 2], [8, 77, 4], [12, 76, 4]], [[0, 74, 6], [6, 72, 2], [8, 70, 4], [12, 69, 4]]],
+    end: [[0, 72, 2], [2, 74, 2], [4, 72, 4], [8, 65, 8]], leadWave: "triangle", arpOct: 12,
+    form: [["intro", 4], ["groove", 8], ["drop", 8], ["break", 4], ["groove", 4], ["drop", 8]] },
+  hunt: { bpm: 138, root: 45, chords: [[57, 60, 64], [57, 60, 65], [55, 60, 64], [55, 59, 62]], bass: [45, 41, 48, 43],
+    lead: [[[0, 72, 3], [3, 74, 3], [6, 76, 2], [8, 79, 4], [12, 76, 2], [14, 74, 2]], [[0, 72, 3], [3, 74, 3], [6, 76, 2], [8, 77, 4], [12, 76, 4]],
+           [[0, 72, 3], [3, 74, 3], [6, 76, 2], [8, 79, 3], [11, 81, 3], [14, 79, 2]], [[0, 76, 4], [4, 74, 4], [8, 71, 6], [14, 74, 2]]],
+    end: [[0, 76, 2], [2, 74, 2], [4, 72, 4], [8, 69, 8]], leadWave: "sawtooth", arpOct: 12,
+    form: [["intro", 8], ["build", 8], ["drop", 16], ["break", 8], ["build", 8], ["drop", 16]] },
+  boss: { bpm: 156, root: 38, chords: [[62, 65, 69], [62, 65, 70], [62, 67, 70], [61, 64, 69]], bass: [38, 46, 43, 45],
+    lead: [[[0, 74, 2], [2, 74, 1], [3, 77, 2], [5, 74, 1], [6, 81, 2], [8, 79, 2], [10, 77, 2], [12, 76, 2], [14, 77, 2]],
+           [[0, 74, 2], [2, 74, 1], [3, 77, 2], [5, 74, 1], [6, 82, 2], [8, 81, 4], [12, 77, 4]],
+           [[0, 79, 2], [2, 79, 1], [3, 82, 2], [5, 79, 1], [6, 86, 2], [8, 84, 2], [10, 82, 2], [12, 81, 4]],
+           [[0, 81, 3], [3, 79, 3], [6, 77, 2], [8, 76, 4], [12, 73, 4]]],
+    end: [[0, 81, 2], [2, 82, 2], [4, 81, 2], [6, 79, 2], [8, 74, 8]], leadWave: "sawtooth", arpOct: 12, hard: true,
+    form: [["intro", 4], ["build", 4], ["drop", 16], ["break", 4], ["build", 4], ["drop", 16]] },
 };
 const midi = n => 440 * Math.pow(2, (n - 69) / 12);
-let song = null, songName = null, step = 0, nextT = 0;
+let song = null, songName = null, step = 0, nextT = 0, mg = null;
 
-function playStep(sg, i, t) {
-  const at = t - actx.currentTime, beat = 60 / sg.bpm / 2;
-  if (sg.lead[i]) tone(midi(sg.lead[i]), beat * 1.6, { type: sg.wave, vol: sg.wave === "triangle" ? 0.16 : 0.05, at, bus: musicBus, attack: 0.01 });
-  if (sg.bass[i]) tone(midi(sg.bass[i]), beat * 0.9, { type: sg.bassWave, vol: sg.bassWave === "square" ? 0.05 : 0.14, at, bus: musicBus, attack: 0.01 });
-  const d = sg.drums[i];
-  if (d === "k") tone(120, 0.12, { type: "sine", vol: 0.35, to: 45, at, bus: musicBus });
-  if (d === "s") noise(0.12, { vol: 0.12, filter: "bandpass", freq: 1800, at, bus: musicBus });
-  if (d === "h" || d === "s") noise(0.03, { vol: 0.05, filter: "highpass", freq: 7000, at, bus: musicBus });
+// 음악 전용 회로: 악기 → 사이드체인(duck) → 필터 → 압축기 → musicBus. 킥은 필터·덕을 거치지 않음
+function musicGraph() {
+  if (mg) return mg;
+  const comp = actx.createDynamicsCompressor();
+  comp.threshold.value = -14; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+  const filt = actx.createBiquadFilter(); filt.type = "lowpass"; filt.frequency.value = 18000; filt.Q.value = 0.9;
+  const duck = actx.createGain(), out = actx.createGain(); out.gain.value = 0.8;
+  duck.connect(filt).connect(comp).connect(out).connect(musicBus);
+  const dry = actx.createGain(); dry.connect(comp);
+  mg = { comp, filt, duck, dry };
+  return mg;
+}
+function mOsc(type, f, t, dur, vol, dest, { detune = 0, attack = 0.005, release = null, cutoff = 0, cutTo = 0 } = {}) {
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t); o.detune.value = detune;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + attack);
+  g.gain.setValueAtTime(vol, t + Math.max(attack, dur - (release ?? dur * 0.3)));
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  if (cutoff) {
+    const f2 = actx.createBiquadFilter(); f2.type = "lowpass"; f2.frequency.setValueAtTime(cutoff, t);
+    if (cutTo) f2.frequency.exponentialRampToValueAtTime(cutTo, t + dur);
+    o.connect(f2).connect(g);
+  } else o.connect(g);
+  g.connect(dest); o.start(t); o.stop(t + dur + 0.03);
+}
+function mNoise(t, dur, vol, dest, { type = "highpass", f = 8000, to = 0, q = 0.7 } = {}) {
+  const src = actx.createBufferSource(), fl = actx.createBiquadFilter(), g = actx.createGain();
+  src.buffer = noiseBuf; fl.type = type; fl.frequency.setValueAtTime(f, t); if (to) fl.frequency.exponentialRampToValueAtTime(to, t + dur); fl.Q.value = q;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  src.connect(fl).connect(g).connect(dest); src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.03);
+}
+const INST = {
+  kick(t, G, hard) {
+    const o = actx.createOscillator(), g = actx.createGain();
+    o.type = "sine"; o.frequency.setValueAtTime(hard ? 170 : 150, t); o.frequency.exponentialRampToValueAtTime(42, t + 0.11);
+    g.gain.setValueAtTime(1.0, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
+    o.connect(g).connect(G.dry); o.start(t); o.stop(t + 0.35);
+    mNoise(t, 0.012, 0.25, G.dry, { f: 3000 });   // 딸깍(어택)
+    G.duck.gain.setValueAtTime(0.25, t); G.duck.gain.linearRampToValueAtTime(1, t + 0.2);   // 사이드체인 펌핑
+  },
+  clap(t, G) { for (let k = 0; k < 3; k++) mNoise(t + k * 0.011, 0.03, 0.35, G.duck, { type: "bandpass", f: 1400, q: 1.2 }); mNoise(t + 0.03, 0.18, 0.28, G.duck, { type: "bandpass", f: 1200, q: 0.9 }); },
+  hat(t, G, open) { mNoise(t, open ? 0.14 : 0.035, open ? 0.12 : 0.08, G.duck, { f: open ? 7000 : 9000 }); },
+  bass(t, n, dur, G, hard) {
+    mOsc("sawtooth", midi(n), t, dur, hard ? 0.22 : 0.18, G.duck, { cutoff: hard ? 900 : 600, cutTo: 200, attack: 0.004 });
+    mOsc("sine", midi(n - 12), t, dur, 0.32, G.duck, { attack: 0.004 });
+  },
+  pad(t, notes, dur, G, vol) { for (const n of notes) for (const d of [-14, 0, 14]) mOsc("sawtooth", midi(n), t, dur, vol, G.duck, { detune: d, attack: 0.04, release: 0.25, cutoff: 3200 }); },
+  stab(t, notes, G) { for (const n of notes) for (const d of [-12, 12]) mOsc("sawtooth", midi(n + 12), t, 0.16, 0.045, G.duck, { detune: d, cutoff: 5000, cutTo: 900 }); },
+  pluck(t, n, G, vol = 0.07) { mOsc("square", midi(n), t, 0.16, vol, G.duck, { cutoff: 4200, cutTo: 500, attack: 0.002 }); },
+  lead(t, n, dur, G, wave, vol) { mOsc(wave, midi(n), t, dur, vol, G.duck, { detune: -9, cutoff: 6000, attack: 0.008, release: 0.08 }); mOsc(wave, midi(n), t, dur, vol, G.duck, { detune: 9, cutoff: 6000, attack: 0.008, release: 0.08 }); mOsc("square", midi(n + 12), t, dur, vol * 0.25, G.duck, { cutoff: 4000, attack: 0.008, release: 0.08 }); },
+  riser(t, dur, G) { mNoise(t, dur, 0.09, G.duck, { type: "bandpass", f: 400, to: 9000, q: 1.4 }); mOsc("sawtooth", 110, t, dur, 0.03, G.duck, { attack: dur * 0.9, release: 0.05 }); },
+  crash(t, G) { mNoise(t, 1.4, 0.16, G.duck, { f: 5000 }); },
+  snare(t, G, vol) { mNoise(t, 0.08, vol, G.duck, { type: "bandpass", f: 2000, q: 0.8 }); },
+};
+function songPos(sg, s) {   // 전체 16분음표 위치 → 구간·마디
+  const total = sg.form.reduce((a, [, b]) => a + b, 0) * 16, p = s % total;
+  let acc = 0;
+  for (const [kind, bars] of sg.form) { if (p < acc + bars * 16) { const ins = p - acc; return { kind, bars, bar: Math.floor(ins / 16), st: ins % 16, first: ins === 0 }; } acc += bars * 16; }
+}
+function playStep(sg, s, t) {
+  const G = musicGraph(), sp = 60 / sg.bpm / 4, P = songPos(sg, s), { kind, bar, st } = P;
+  const ci = bar % 4, chord = sg.chords[ci], root = sg.bass[ci], hard = sg.hard;
+  // 구간이 시작될 때 필터 움직임 예약
+  if (P.first) {
+    const f = G.filt.frequency, dur = P.bars * 16 * sp;
+    f.cancelScheduledValues(t); f.setValueAtTime(f.value || 18000, t);
+    if (kind === "intro") { f.setValueAtTime(700, t); f.exponentialRampToValueAtTime(2600, t + dur); }
+    else if (kind === "build") { f.setValueAtTime(900, t); f.exponentialRampToValueAtTime(16000, t + dur); INST.riser(t, dur, G); }
+    else if (kind === "break") { f.setValueAtTime(1800, t); f.exponentialRampToValueAtTime(3500, t + dur); }
+    else { f.setValueAtTime(18000, t); INST.crash(t, G); }
+  }
+  const drop = kind === "drop", groove = kind === "groove";
+  // 드럼
+  if ((drop || groove) && st % 4 === 0) INST.kick(t, G, hard);
+  if (kind === "build") {
+    const left = P.bars - bar;   // 끝으로 갈수록 킥·스네어가 촘촘해짐
+    if (st % (left > 2 ? 4 : 2) === 0) INST.kick(t, G, hard);
+    const every = left > 4 ? 4 : left > 2 ? 2 : 1;
+    if (st % every === 0) INST.snare(t, G, 0.06 + 0.1 * (1 - left / P.bars));
+  }
+  if ((drop || groove) && (st === 4 || st === 12)) INST.clap(t, G);
+  if (drop && hard && st === 14 && bar % 2 === 1) INST.clap(t, G);
+  if (drop || groove) { if (st % 4 === 2) INST.hat(t, G, true); else if (st % 2 === 1 || hard) INST.hat(t, G, false); }
+  if (kind === "intro" && st % 2 === 0) INST.hat(t, G, false);
+  // 베이스: 드롭은 오프비트로 꿀렁이게
+  if (drop && st % 4 !== 0) INST.bass(t, root, sp * (st % 4 === 2 ? 1.6 : 0.9), G, hard);
+  if (groove && (st % 4 === 2 || st === 15)) INST.bass(t, root, sp * 1.8, G, false);
+  // 화음: 인트로·브레이크·빌드는 길게 깔고, 드롭은 짧은 스탭
+  if ((kind === "intro" || kind === "break" || kind === "build") && st === 0) INST.pad(t, chord, sp * 16, G, kind === "break" ? 0.03 : 0.022);
+  if (drop && (st === 0 || st === 3 || st === 6 || st === 10 || st === 13)) INST.stab(t, chord, G);
+  if (groove && st === 0) INST.pad(t, chord, sp * 16, G, 0.018);
+  // 아르페지오 (16분음표로 화음을 오르내림)
+  if (kind !== "build" || bar < P.bars - 2) {
+    const arp = [0, 1, 2, 1, 2, 0, 1, 2][st % 8], n = chord[arp] + sg.arpOct;
+    if (kind !== "drop" || st % 2 === 0) INST.pluck(t, n, G, drop ? 0.04 : 0.06);
+  }
+  // 리드 멜로디: 드롭과 브레이크 (8마디마다 마지막 마디는 맺음꼴)
+  if (drop || kind === "break" || (groove && bar >= 4)) {
+    const phrase = (bar % 8 === 7) ? sg.end : sg.lead[ci];
+    for (const [at, n, len] of phrase) if (at === st) INST.lead(t, kind === "break" ? n - 12 : n, len * sp * 0.95, G, sg.leadWave, drop ? 0.06 : 0.045);
+  }
 }
 
 setInterval(() => {
   if (!actx || !song || actx.state !== "running") return;
-  while (nextT < actx.currentTime + 0.15) {
+  while (nextT < actx.currentTime + 0.2) {
     playStep(song, step, nextT);
-    nextT += 60 / song.bpm / 2;
-    step = (step + 1) % song.lead.length;
+    nextT += 60 / song.bpm / 4;
+    step++;
   }
-}, 30);
+}, 25);
 
 // 지금 장면에 맞는 곡: 대장간·광산·상점은 잔잔하게, 사냥은 경쾌하게, 보스전·던전은 빠르게
 function musicFor() {
