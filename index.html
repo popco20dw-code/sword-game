@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v134";
+const GAME_VERSION = "v135";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5232,6 +5232,7 @@ function useSkill(slot) {
   if (run?.stage?.rule?.key === "seal") { if (run.p) fx(run.p.x, run.p.y - 30, "봉인됨", "#f0d890", 12); return; }
   const key = state.equip[slot], s = SK[key];
   if (!run || run.over || slot >= slotCount() || !s || !s.active || run.cds[slot] > 0) return;
+  if (key === "dash" && run.stage?.def.maze) { fx(run.p.x, run.p.y - 30, "미로에서는 돌진 금지", "#efe6d8", 12); return; }
   const lv = state.skills[key], p = run.p;
   run.cds[slot] = run.cdMax[slot] = s.cd(lv) * skillCdMul();
   sfx({ dash: "dash", guard: "shield", bomb: "click", whirl: "whirl", drain: "buff", frenzy: "buff", thunder: "click" }[key]);
@@ -5711,7 +5712,7 @@ function update(dt) {
     const swift = passiveLv("swift");
     const chill = p.slowT > 0 ? 1 - p.slowAmt : 1;
     const wet = r.floor.puddles?.some(q => ((p.x - q.x) / q.rx) ** 2 + ((p.y - q.y) / q.ry) ** 2 < 1) ? 0.7 : 1;
-    const speed = P_SPEED * (1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + r.arm.move / 100 + (r.dragon?.spd || 0) + r.tree.move / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0)) * chill * wet * (r.stage?.rule?.key === "slow" ? 0.5 : 1);
+    const speed = P_SPEED * (r.stage?.def.maze ? 1 : 1 + (swift ? SK.swift.bonus(swift) / 100 : 0) + r.arm.run / 100 + r.arm.move / 100 + (r.dragon?.spd || 0) + r.tree.move / 100 + (isChar("rogue") ? (20 + 2 * (cl("rogue") - 1)) / 100 : 0))   // 미로: 이동 속도 증가 효과 전부 무시 * chill * wet * (r.stage?.rule?.key === "slow" ? 0.5 : 1);
     p.x = clamp(p.x + dx * speed * dt, P_R, W - P_R);
     p.y = clamp(p.y + dy * speed * dt, P_R, H - P_R);
     moved = Math.hypot(dx, dy) > 0.1;
