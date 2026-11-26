@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v129";
+const GAME_VERSION = "v130";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -9411,12 +9411,12 @@ W3_STAGES[2] = [
   { type: "escape", name: "무너지는 회랑", pool: ["sHawk", "sMage"], pre: 4, par: 40, desc: "표식 5개를 켜고 출구로. 무너지는 발판에 빠지면 추락해요." },
   { type: "waves", name: "바람의 탑", waves: [["sHawk", "sHawk", "sArcher", "sLancer"], ["sMage", "sMage", "sLancer", "sArcher", "sHawk"], ["sPriest", "sLancer", "sLancer", "sMage", "sArcher", "sHawk"]], par: 70, desc: "세 번 몰려와요. 사제가 있으면 먼저 잡으세요." },
   { type: "defend", name: "깃발 지키기", dur: 50, alive: 6, pool: ["sHawk", "sLancer", "sMage"], par: 50, desc: "천공성의 깃발(수정)을 50초 동안 지키세요." },
-  { type: "boss", name: "천공 수호병", boss: "skyGolem", par: 70, desc: "돌로 된 거대한 수호병. 발판을 무너뜨리고 바람을 일으켜요." },
+  { type: "boss", name: "천공 수호병", boss: "skyGolem", par: 70, desc: "떨어지면 즉사! 돌로 된 거대한 수호병. 발판을 무너뜨리고 바람을 일으켜요." },
   { type: "hunt", name: "구름 요정 쫓기", limit: 40, pool: ["sHawk", "sArcher"], alive: 3, par: 25, desc: "보물을 든 요정이 무너지는 발판 위로 도망쳐요." },
   { type: "elite", name: "근위대", elites: ["sLancer", "sLancer"], pool: ["sPriest", "sArcher"], alive: 3, par: 60, desc: "정예 창기병 둘과 그들을 치유하는 사제." },
   { type: "survive", name: "폭풍의 옥상", dur: 55, alive: 8, pool: ["sHawk", "sMage", "sArcher", "sLancer"], par: 55, desc: "폭풍 속에서 55초 버티세요." },
   { type: "kill", name: "하늘 사제단", need: 24, alive: 6, pool: ["sPriest", "sLancer", "sMage", "sArcher", "sHawk"], pre: 6, par: 80, desc: "치유하는 사제단과 호위대. 24마리 처치." },
-  { type: "boss", name: "천공의 기사단장", boss: "skyCaptain", par: 95, desc: "창 돌격으로 멀리 날려 버리고, 폭풍과 발판 붕괴로 몰아붙여요. 가장자리로 날아가면 추락해요." },
+  { type: "boss", name: "천공의 기사단장", boss: "skyCaptain", par: 95, desc: "떨어지면 즉사! 창 돌격으로 멀리 날려 버리고, 폭풍과 발판 붕괴로 몰아붙여요. 가장자리로 날아가면 추락해요." },
 ];
 W3_STAGES[3] = [
   { type: "kill", name: "장미 울타리", need: 18, alive: 5, pool: ["rButterfly", "rMaid", "rVine"], pre: 4, par: 55, desc: "매혹 나비에 닿으면 잠깐 끌려가요. 덩굴은 잡으면 둘로 갈라져요." },
@@ -9511,6 +9511,9 @@ function fallPlayer() {
   const p = run.p;
   if (p.invuln > 0 || p.fallCd > 0) return;
   p.fallCd = 1.2;
+  if (run.stage?.def.type === "boss" && run.stage.ch === 2) {   // 2장 보스전: 떨어지면 즉사
+    p.hp = 0; p.knock = null; p.dash = null; fx(p.x, p.y - 36, "추락!", "#ff5f56", 18); sfx("drop"); return;
+  }
   hurtPlayer(Math.round(p.max * 0.12));
   p.knock = null; p.dash = null;
   p.x = W / 2 + (Math.random() - 0.5) * 60; p.y = H / 2 + (Math.random() - 0.5) * 60;
