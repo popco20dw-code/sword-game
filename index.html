@@ -963,7 +963,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v128";
+const GAME_VERSION = "v129";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -8773,7 +8773,7 @@ const W3_MOB = {   // hp: 장 상한 검 공격력의 배수, dmg: 기준 체력
   mShade: { name: "그림자 매복자", color: "#3a3550", hp: 7, dmg: 0.16, speed: 100, r: 13 },
   mTreasure: { name: "보물 거울 요정", color: "#ffe9a8", hp: 85, dmg: 0, speed: 158, r: 11, contact: false },
   mirrorKnight: { name: "거울 기사", color: "#c8d6e6", hp: 240, dmg: 0.14, speed: 70, r: 26, boss: true },
-  mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 560, dmg: 0.17, speed: 60, r: 30, boss: true },
+  mirrorQueen: { name: "거울 여왕", color: "#e6f2ff", hp: 448, dmg: 0.17, speed: 60, r: 30, boss: true },
   mqFake: { name: "거울 여왕", color: "#e6f2ff", hp: 1, dmg: 0.17, speed: 0, r: 30, contact: false },
 };
 const W3_HP_REF = 1800;   // 기준 체력 (상한 +130·특성·방어구 일부)
@@ -8993,7 +8993,8 @@ Object.assign(W2_START, {
     const spots = [[90, 130], [W - 90, 130], [W / 2, 200], [90, H - 200], [W - 90, H - 200]].sort(() => Math.random() - 0.5);
     ring(m.x, m.y, 40, "#ffffff");
     m.x = spots[0][0]; m.y = spots[0][1];
-    for (let k = 1; k <= (E ? 3 : 2); k++) { const f = w3MakeMob("mqFake", spots[k][0], spots[k][1]); f.life = E ? 7 : 6; f.cd = 0.9; f.dmg = m.dmg; }
+    m.lastTp = run.time;
+    for (let k = 1; k <= (E ? 2 : 1); k++) { const f = w3MakeMob("mqFake", spots[k][0], spots[k][1]); f.life = E ? 7 : 6; f.cd = 0.9; f.dmg = m.dmg; }
     m.fakeCd = 0.9; m.fakeT = E ? 7 : 6;
     fx(W / 2, H / 2 - 60, "진짜 여왕을 찾으세요 (그림자가 있어요)", "#e6f2ff", 16); sfx("shield");
   },
@@ -9015,6 +9016,8 @@ Object.assign(W2_START, {
     fx(p.x, p.y - 40, "프리즘!", "#e6f2ff", 14);
   },
   qBlink(m, p, w, toP, E) {   // 나와 거울처럼 마주 보는 자리로 순간이동하며 부채꼴 사격
+    if (run.time - (m.lastTp ?? -99) < 14) return W2_START.qShards(m, p, w, toP, E);   // 순간이동은 14초에 한 번까지
+    m.lastTp = run.time;
     m.mode = "howl"; m.timer = 0.8;
     ring(m.x, m.y, 40, "#cfe8ff");
     m.x = clamp(W - p.x, 50, W - 50); m.y = clamp(H - p.y, 80, H - 60);
