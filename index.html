@@ -1051,7 +1051,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v157";
+const GAME_VERSION = "v158";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5889,6 +5889,14 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
     if (from === run.p && run.chal?.def.noReflect) return chalFail("반사 피해를 받았어요");
     if (from === run.p && run.time - (m.reflAt ?? -9) > 0.35) { m.reflAt = run.time; hitBy(m, m.dmg * 1.1); fx(run.p.x, run.p.y - 30, "반사!", "#cfe8ff", 13); }
   }
+  if (run.chal && m.boss) {   // 극악 도전: 보스는 정해진 횟수로 잡힘 (기본 공격 50번, 스킬 한 번은 절반, 반사·방패 중에는 적게)
+    const dd = m.max / CHAL_BOSS_HITS * (run.basicHit ? 1 : 0.5) * Math.min(1, mult);
+    m.hp -= dd; m.flash = 0.12; m.hitCd = 0;
+    if (m.hp < m.max * 1e-6) m.hp = 0;   // 소수 오차로 한 번 더 때려야 하는 일 없게
+    if (Math.random() < 0.3) fx(m.x + (Math.random() - 0.5) * 20, m.y - m.r - 8, `-${(dd / m.max * 100).toFixed(1)}%`, "#ffd24a", 12);
+    if (m.hp <= 0) { if (twinDown(m)) return; m.dead = true; kill(m); }
+    return;
+  }
   if (m.kind === "obsidian" && !(m.open > 0)) { mult *= 0.3; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "단단함", "#8a8a9a", 11); }
   const critLv = passiveLv("crit"), tr = run.tree;
   const crit = Math.random() * 100 < (critLv ? SK.crit.chance(critLv) : 0) + tr.crit;
@@ -6404,6 +6412,7 @@ function chainLightning(n, mult) {
 // 방어구가 만든 지속 피해(화상·불길): 숫자는 0.4초마다 모아서 보여 준다
 function dotHit(m, dmg) {
   if (m.dead || m.mode === "ascend" || m.mode === "blinkOut" || m.ghost > 0) return;
+  if (run.chal && m.boss) return;   // 극악 도전 보스는 정해진 횟수로만
   m.hp -= dmg;
   m.dotAcc = (m.dotAcc || 0) + dmg;
   if (m.hp <= 0) { if (twinDown(m)) return; m.dead = true; kill(m); }
@@ -11645,6 +11654,7 @@ let dirty = false;
 
 // ══════════ 극악 도전 과제 (v154) ══════════
 // 도전하는 동안은 내 진짜 저장(chalReal)을 옆에 두고, 정해진 장비로 바꾼 사본으로 싸운다. 끝나면 되돌리고, 도전 중에는 저장하지 않는다
+const CHAL_BOSS_HITS = 50;
 const CHAL = [
   { id: "spore", name: "포자 한 톨도", title: "포자를 피한 자", zone: "swamp", win: "boss", noHit: true,
     goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5, guard: 5 }, equip: ["dash", "guard"] } },
