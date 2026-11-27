@@ -1043,7 +1043,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v152";
+const GAME_VERSION = "v153";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5839,7 +5839,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   if (m.dead) return;
   if (m.mode === "ascend" || m.mode === "blinkOut" || m.ghost > 0) return;
   if (m.kind === "mTreasure") {   // 보물 요정: 레벨 고정 — 기본 공격 22번이면 잡힘 (스킬·번개 등은 12%만)
-    const dd = m.max / TREASURE_HITS * (run.basicHit ? 1 : 0.12);
+    const dd = m.max / (TREASURE_HITS * (run.stage?.def.fairyHp || 1)) * (run.basicHit ? 1 : 0.12);
     m.hp -= dd; m.flash = 0.12;
     if (!run.basicHit && Math.random() < 0.2) fx(m.x, m.y - m.r - 6, "튕김", "#ffe9a8", 11);
     if (m.hp <= 0.001) { m.dead = true; kill(m); }
@@ -9068,7 +9068,7 @@ const W3_STAGES = {
       desc: "숲을 지키는 거울 기사. 반사 상태일 때 때리면 피해가 돌아와요." },
     { type: "elite", name: "수정 수문장", elites: ["mGuard", "mGuard"], pool: ["mArcher", "mSprite"], alive: 3, par: 60,
       desc: "정예 방패병 둘. 방패 쪽 공격은 거의 막히니 뒤로 돌아가세요." },
-    { type: "hunt", name: "거울 요정 쫓기", limit: 40, pool: ["mWolf", "mArcher"], alive: 3, par: 25,
+    { type: "hunt", name: "거울 요정 쫓기", limit: 30, fairyHp: 1.5, pool: ["mWolf", "mArcher"], alive: 3, par: 25,
       desc: "보물을 든 거울 요정이 도망쳐요. 40초 안에 잡으세요." },
     { type: "waves", name: "세 겹의 거울", waves: [["mSprite", "mSprite", "mWolf", "mWolf"], ["mArcher", "mArcher", "mGuard", "mSprite", "mSprite"], ["mShade", "mShade", "mWolf", "mGuard", "mArcher", "mArcher"]], par: 70,
       desc: "몹 무리가 세 번 몰려와요." },
