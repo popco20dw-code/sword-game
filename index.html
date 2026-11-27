@@ -1054,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v167";
+const GAME_VERSION = "v168";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -11671,18 +11671,18 @@ const CHAL = [
   { id: "mirror", name: "거울 앞에서", title: "거울을 깨지 않은 자", zone: "w3:1:10", win: "stage", noReflect: true, noFake: true, bossHits: 50,
     goal: "거울 여왕 처치. 반사 피해를 한 번도 받지 않고, 가짜 여왕을 한 번도 때리지 않기",
     load: { sword: 130, armor: [["head", "diamond", 8], ["body", "steel", 8], ["feet", "wind", 8]], char: "archmage", charLv: 6, skills: { dash: 5, drain: 5 }, equip: ["dash", "drain"] } },
-  { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
+  { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60, bossHits: 50, bossDmg: 0.5, zoneMobDmg: 0.45,
     goal: "크라켄 처치. 먹물·밀쳐내기 0번, 크라켄이 나온 뒤 60초 안에",
     load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "wind", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
   { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", limit: 35, mobHp: 0.35, mobDmg: 0.5,
     goal: "1-4 거울 미로를 35초 안에 탈출", load: { sword: 130 } },
-  { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
+  { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true, bossHits: 30,
     goal: "체력 1로 별의 던전 클리어 (회복 안 됨, 한 대도 맞으면 끝)",
     load: { sword: 125, armor: [["head", "dragon", 10], ["body", "dragon", 10], ["feet", "dragon", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
   { id: "still", name: "움직이지 마", title: "흔들리지 않는 자", zone: "w3:2:10", win: "stage", stay: 160, noKnock: true, bossHits: 50,
     goal: "천공의 기사단장 처치. 처음 선 자리에서 160 밖으로 나가거나 밀려나면 실패",
     load: { sword: 135, char: "knight", charLv: 7, skills: { bomb: 5, whirl: 5 }, equip: ["bomb", "whirl"] } },
-  { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1, bossHits: 50,
+  { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1, bossHits: 50, bossDmg: 0.4,
     goal: "별을 삼킨 자 · 진을 3분 안에, 받은 피해 합이 최대 체력 이하로 처치",
     load: { sword: 125, armor: [["head", "star", 10], ["body", "star", 10], ["feet", "star", 10]], char: "hypernova", charLv: 5, skills: { dash: 5, thunder: 5 }, equip: ["dash", "thunder"] } },
   { id: "shadow", name: "요정의 그림자", title: "요정의 그림자", zone: "w3:1:7", win: "stage", onlyFairy: true, limit: 30, fairyHits: 15,
@@ -11737,6 +11737,11 @@ function chalTick(dt) {
   if (run.over || c.won || c.fail) return;
   c.t += dt;
   if (d.hp1 && p.hp > 1) p.hp = 1;
+  if (d.bossDmg || d.zoneMobDmg) for (const m of run.mobs) if (!m.chalScaled) {
+    m.chalScaled = true;
+    if (m.boss && d.bossDmg) m.dmg = Math.round(m.dmg * d.bossDmg);
+    else if (!m.boss && !m.w3 && d.zoneMobDmg) m.dmg = Math.round(m.dmg * d.zoneMobDmg);
+  }
   if (c.lastHp != null && p.hp < c.lastHp - 0.01) {
     if (d.noHit) return chalFail("피해를 받았어요");
     c.dmg += c.lastHp - p.hp;
