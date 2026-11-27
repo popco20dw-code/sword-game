@@ -146,6 +146,14 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .sound-row input[type="range"] { flex: 1; max-width: 220px; accent-color: var(--ember); }
 .sound-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--ember); }
 
+/* 도전 과제 */
+.chal-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 14px; }
+.chal-top select { font: inherit; background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; }
+.zone.chal { --zc: #ff7a6e; }
+.zone.chal.done { --zc: #ffd24a; background: linear-gradient(180deg, #2e2612, var(--panel)); }
+.chal-load { font-size: 12px; color: var(--muted); }
+.chal-rec { font-size: 12px; color: var(--warn); }
+.ptitle { font-style: normal; color: #ffd24a; font-size: 12px; margin-right: 4px; }
 /* 떠돌이 상인 */
 .merch { display: grid; gap: 8px; }
 .mslot { border-left: 0; box-shadow: inset 0 3px 0 var(--mc); }
@@ -1043,7 +1051,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v153";
+const GAME_VERSION = "v154";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1923,7 +1931,7 @@ function playerRow(id, p, isFriend) {
       <div class="pstats">아직 진행 상황을 올리지 않았어요</div>${btn}</div>`;
   }
   return `<div class="prow">
-    <div class="pname"><b>${esc(p.nickname)}</b><small>${esc(tag(id))} · ${ago(p.updatedAt)}</small></div>
+    <div class="pname">${p.title ? `<em class="ptitle">「${esc(p.title)}」</em>` : ""}<b>${esc(p.nickname)}</b><small>${esc(tag(id))} · ${ago(p.updatedAt)}</small></div>
     <div class="pstats">검 <em>+${p.sword | 0}</em> (최고 +${p.best | 0}) · 곡괭이 <em>+${p.pick | 0}</em> · ${won(p.gold || 0)}</div>
     ${p.mlv ? `<div class="pstats">${profileExtra(p)}</div>` : ""}
     ${btn}</div>`;
@@ -2351,6 +2359,9 @@ $("shop").addEventListener("click", e => {
   else if (e.target.closest("[data-cpull]")) pullChar();
   else if (e.target.closest("[data-char-up]")) upChar(e.target.closest("[data-char-up]").dataset.charUp);
   else if (cuse) useChar(cuse.dataset.charUse);
+});
+$("zones").addEventListener("change", e => {
+  if (e.target.matches("[data-title]")) { state.title = e.target.value; commit(); }
 });
 $("stone").addEventListener("change", e => {
   state.useHalf = e.target.checked;
@@ -5049,9 +5060,10 @@ function renderZones() {
 
   // 성장 탭: 캐릭터 · 스킬 · 스킬 트리 / 사냥 탭: 월드 목록(보스 연습은 월드 1 아래)
   const grow = huntMode === "grow";
-  const head = grow ? `<h2 class="tab-h">성장</h2>` + seg("gview", growView, [["chars", "캐릭터"], ["skills", "스킬"], ["tree", "스킬 트리"]])
+  const head = grow ? `<h2 class="tab-h">성장</h2>` + seg("gview", growView, [["chars", "캐릭터"], ["skills", "스킬"], ["tree", "스킬 트리"], ["chal", "도전"]])
     : huntView === "bosses" ? `<button class="back-btn" data-hview="zones">‹ 사냥터로</button>` : `<h2 class="tab-h">사냥</h2>`;
   if (grow) huntView = growView === "chars" ? "chars" : growView;
+  if (huntView === "chal") { $("zones").innerHTML = head + chalView(); return; }
   if (huntView === "chars") {
     $("zones").innerHTML = head + `<div class="hunt-stats">검 <b>+${lv}</b> · 공격력 <b>${myAtk().toLocaleString("ko-KR")}</b> · 체력 <b>${myHp()}</b></div>` + charPicker();
     return;
@@ -5124,7 +5136,7 @@ function toggleEquip(key) {
 }
 
 function enterZone(key) {
-  const zone = key === DUNGEON.key ? DUNGEON : key === DUNGEON2.key ? DUNGEON2 : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : key.startsWith("w3:") ? stageZone(key) : zoneByKey(key);
+  const zone = key === DUNGEON.key ? DUNGEON : key === DUNGEON2.key ? DUNGEON2 : key.startsWith("boss2:") ? { ...DUNGEON2, key, practice: +key.slice(6) } : key.startsWith("boss:") ? practiceZone(+key.slice(5)) : key.startsWith("w3:") ? stageZone(key) : zoneByKey(key);
   if (!zone) return;
   syncCap = zone.world === 3 ? zone.cap : null;
   const arm = armorSnapshot();
@@ -5806,6 +5818,7 @@ function dungeonClear() {
   state.runes += P.runes;
   run.loot.runes += P.runes;
   for (const [k, n] of Object.entries(P.mats)) gainMat(k, n);
+  if (run.chal?.def.win === "dungeon") chalWin();
   if (run.zone.w2) state.dungeon2Clears++; else state.dungeonClears++;
   // 뽑기권: 직접 움직여 깬 경우만, 월드 1 던전은 하루 3장까지
   const day = kstDay();
@@ -5854,6 +5867,8 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
     }
   }
   if (m.final && awakeOpen() && !run.awakeHit) return;   // 아르케 마지막 한 줄: 검 각성으로만
+  if (run.chal?.def.noFake && m.kind === "mqFake") return chalFail("가짜 여왕을 때렸어요");
+  if (run.chal?.def.onlyFairy && m.kind !== "mTreasure") return chalFail("다른 몹을 때렸어요");
   if (m.kind === "mqFake") {   // 거울 여왕의 가짜: 때리면 깨지며 나를 향해 파편
     m.dead = true; ring(m.x, m.y, 36, "#ffffff"); fx(m.x, m.y - 34, "가짜! 쨍그랑", "#e6f2ff", 14); sfx("shield");
     const a = Math.atan2(run.p.y - m.y, run.p.x - m.x);
@@ -5871,6 +5886,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   }
   if (m.mode === "reflect") {   // 거울 반사: 피해가 크게 줄고, 직접 때리면 피해가 돌아옴
     mult *= 0.25;
+    if (from === run.p && run.chal?.def.noReflect) return chalFail("반사 피해를 받았어요");
     if (from === run.p && run.time - (m.reflAt ?? -9) > 0.35) { m.reflAt = run.time; hitBy(m, m.dmg * 1.1); fx(run.p.x, run.p.y - 30, "반사!", "#cfe8ff", 13); }
   }
   if (m.kind === "obsidian" && !(m.open > 0)) { mult *= 0.3; if (Math.random() < 0.15) fx(m.x, m.y - m.r - 6, "단단함", "#8a8a9a", 11); }
@@ -5913,6 +5929,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
 
 function kill(m) {
   const z = run.zone;
+  if (run.chal?.def.win === "boss" && m.boss) chalWin();
   sfx(m.boss && !(m.kind === "slimeKing" && !m.mini) ? "bossDown" : "kill");
   sparksAt(m.x, m.y, m.color, m.boss ? 34 : 10, m.boss ? 230 : 140);
   if (isChar("hypernova") && !m.boss && run.novas && run.novas.length < 30) run.novas.push({ x: m.x, y: m.y, t: 0.12 });
@@ -5970,6 +5987,7 @@ function kill(m) {
 function update(dt) {
   const r = run, p = r.p;
   r.time += dt;
+  if (r.chal) chalTick(dt);
 
   // 스킬 재사용 대기와 지속 효과
   r.cds = r.cds.map(c => Math.max(0, c - dt));
@@ -9494,6 +9512,7 @@ function stageClear() {
   const r = run, S = r.stage, d = S.def, p = r.p, ch = S.ch, id = w3Id(ch, S.n);
   if (S.done) return;
   S.done = true;
+  if (run.chal?.def.win === "stage") chalWin();
   for (const m of r.mobs) if (!m.dead) { m.dead = true; sparksAt(m.x, m.y, m.color, 6, 120); }
   const timeOk = d.type === "survive" || d.type === "defend" || S.t <= d.par + 0.5;   // 버티기·방어는 시간이 정해져 있어 항상 만족
   const stars = 1 + (p.hp >= p.max * 0.5 - 0.5 ? 1 : 0) + (timeOk ? 1 : 0);
@@ -11389,7 +11408,7 @@ function draw() {
   ctx.fillText(r.stage?.rule?.key === "hidehp" ? "???" : `${Math.ceil(Math.max(0, p.hp)).toLocaleString("ko-KR")}/${p.max.toLocaleString("ko-KR")}`, 167, 19);
   ctx.textAlign = "right";
   const boss = r.mobs.find(m => m.boss);
-  const hudRight = r.stage ? stageHud(r) : r.dungeon
+  const hudRight = r.chal ? chalStatus() : r.stage ? stageHud(r) : r.dungeon
     ? r.dungeon.only ? "보스 연습"
       : boss ? `던전 ${r.dungeon.stage}/${r.zone.bosses.length}` : r.dungeon.cleared ? "클리어!" : "다음 보스 준비…"
     : boss ? "보스 등장!" : `보스까지 ${bossEvery() - r.kills}마리`;
@@ -11441,6 +11460,12 @@ function endRun(dead) {
   if (!run || run.over) return;
   run.over = true;
   syncCap = null;
+  if (run.chal && chalReal) {   // 도전 끝: 진짜 저장으로 되돌리고 기록
+    state = chalReal; chalReal = null;
+    const c = run.chal, rec = chalRec(c.def.id);
+    if (c.won && !rec.done) { rec.done = true; if (!state.title) state.title = c.def.title; state.log.unshift({ text: `도전 달성: ${c.def.name}`, delta: `칭호 「${c.def.title}」` }); }
+    persist();
+  }
   run.rest = false; $("rest").hidden = true;
   if (dead === true) sfx("lose");
   updateMusic();
@@ -11452,7 +11477,7 @@ function endRun(dead) {
   if (l.runes) mats.push(`룬석 +${l.runes}`);
   $("result-title").textContent = dead === "clear" ? "던전 클리어!" : dead === "practice" ? "연습 완료" : dead ? "쓰러졌습니다" : "사냥을 마쳤습니다";
   $("result-loot").innerHTML =
-    (run.dungeon?.only ? `${DUNGEON.bosses[run.zone.practice].name} ${l.bosses ? "처치" : "도전 실패"} · 연습이라 보상은 없어요`
+    (run.dungeon?.only ? `${run.zone.bosses[run.zone.practice].name} ${l.bosses ? "처치" : "도전 실패"} · 연습이라 보상은 없어요`
       : run.dungeon ? `보스 ${l.bosses}/${run.zone.bosses.length} 처치` : `몹 ${l.kills}마리 · 보스 ${l.bosses}마리`) +
     (run.dungeon?.only ? "" :
       `<br>골드 +${won(l.gold)}` +
@@ -11464,6 +11489,11 @@ function endRun(dead) {
     $("result-loot").innerHTML = R
       ? `<span class="w3-stars">${"★".repeat(R.stars)}${"☆".repeat(3 - R.stars)}</span><br>${run.zone.name} · ${Math.round(S.t)}초<br>${R.got.join(" · ")}<br><small>${S.ch}장 별 ${R.chNow}/30</small>`
       : `${run.zone.name}${S.fail ? `<br>${S.fail}` : ""}<br><small>다시 도전하거나 다른 스테이지를 골라 보세요.</small>`;
+  }
+  if (run.chal) {
+    const c = run.chal;
+    $("result-title").textContent = c.won ? "🏆 도전 달성!" : "도전 실패";
+    $("result-loot").innerHTML = c.won ? `${c.def.name}<br>칭호 「${c.def.title}」을 얻었어요` : `${c.def.name}<br>${c.fail || (dead === true ? "쓰러졌어요" : "도전을 그만뒀어요")}<br><small>${c.def.goal}</small>`;
   }
   $("result").hidden = false;
 }
@@ -11573,13 +11603,14 @@ $("zones").addEventListener("click", e => {
   const gv = e.target.closest("[data-gview]");
   if (gv) { growView = gv.dataset.gview; renderZones(); }
   if (e.target.closest("[data-goto]")) { growView = "chars"; showTab("grow"); }
+  if (e.target.closest("[data-chal]")) startChallenge(e.target.closest("[data-chal]").dataset.chal);
   else if (pick) useChar(pick.dataset.pickChar);
   else if (zone) enterZone(zone.dataset.zone);
   else if (learn) learnSkill(learn.dataset.learn);
   else if (equip) toggleEquip(equip.dataset.equip);
 });
 $("hunt-exit").addEventListener("click", () => endRun(false));
-$("retry").addEventListener("click", () => enterZone(run.zone.key));
+$("retry").addEventListener("click", () => run?.chal ? startChallenge(run.chal.def.id) : enterZone(run.zone.key));
 $("to-zones").addEventListener("click", () => {
   run = null;
   $("arena").hidden = true;
@@ -11597,6 +11628,122 @@ let saveTimer = null;
 let saving = false;
 let dirty = false;
 
+
+
+// ══════════ 극악 도전 과제 (v154) ══════════
+// 도전하는 동안은 내 진짜 저장(chalReal)을 옆에 두고, 정해진 장비로 바꾼 사본으로 싸운다. 끝나면 되돌리고, 도전 중에는 저장하지 않는다
+const CHAL = [
+  { id: "spore", name: "포자 한 톨도", title: "포자를 피한 자", zone: "swamp", win: "boss", noHit: true,
+    goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5 }, equip: ["dash"] } },
+  { id: "bare", name: "맨손의 대장장이", title: "맨손의 대장장이", zone: "dungeon", win: "dungeon",
+    goal: "월드 1 보스 던전 9마리를 스킬 없이 연속 처치", load: { sword: 80 } },
+  { id: "mirror", name: "거울 앞에서", title: "거울을 깨지 않은 자", zone: "w3:1:10", win: "stage", noReflect: true, noFake: true,
+    goal: "거울 여왕 처치. 반사 피해를 한 번도 받지 않고, 가짜 여왕을 한 번도 때리지 않기",
+    load: { sword: 130, armor: [["head", "diamond", 8], ["body", "steel", 8], ["feet", "wind", 8]], char: "archmage", charLv: 6, skills: { dash: 5, drain: 5 }, equip: ["dash", "drain"] } },
+  { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
+    goal: "크라켄 처치. 먹물·밀쳐내기 0번, 크라켄이 나온 뒤 60초 안에",
+    load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "ice", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
+  { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", noHit: true, limit: 30,
+    goal: "1-4 거울 미로를 피해 0으로, 30초 안에 탈출", load: { sword: 130 } },
+  { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
+    goal: "체력 1로 별의 던전 클리어 (회복 안 됨, 한 대도 맞으면 끝)",
+    load: { sword: 125, armor: [["head", "dragon", 10], ["body", "dragon", 10], ["feet", "dragon", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
+  { id: "still", name: "움직이지 마", title: "흔들리지 않는 자", zone: "w3:2:10", win: "stage", stay: 80, noKnock: true,
+    goal: "천공의 기사단장 처치. 처음 선 자리에서 80 밖으로 나가거나 밀려나면 실패",
+    load: { sword: 135, char: "knight", charLv: 7, skills: { bomb: 5, whirl: 5 }, equip: ["bomb", "whirl"] } },
+  { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1,
+    goal: "별을 삼킨 자 · 진을 3분 안에, 받은 피해 합이 최대 체력 이하로 처치",
+    load: { sword: 125, armor: [["head", "star", 10], ["body", "star", 10], ["feet", "star", 10]], char: "hypernova", charLv: 5, skills: { dash: 5, thunder: 5 }, equip: ["dash", "thunder"] } },
+  { id: "shadow", name: "요정의 그림자", title: "요정의 그림자", zone: "w3:1:7", win: "stage", onlyFairy: true, limit: 15,
+    goal: "1-7 거울 요정을 15초 안에 잡기. 다른 몹을 한 번이라도 때리면 실패", load: { sword: 130 } },
+];
+let chalReal = null;
+const chalRec = id => (state.chal ||= {})[id] ||= { tries: 0, done: false };
+function chalState(def) {
+  const s = structuredClone(state), L = def.load;
+  s.sword = typeof L.sword === "function" ? L.sword() : L.sword;
+  s.traits = Object.fromEntries(Object.keys(s.traits || {}).map(k => [k, 0]));
+  s.tree = {}; s.w3 = { ...s.w3, mark: {} };
+  s.armor = { ...s.armor, owned: { ...s.armor.owned }, equip: { head: null, body: null, feet: null } };
+  for (const [slot, type, lv] of L.armor || []) { const id = armorId(slot, type); s.armor.owned[id] = lv; s.armor.equip[slot] = id; }
+  s.bossKills = { ...s.bossKills, grave: Math.max(1, s.bossKills.grave || 0) };   // 정해진 방어구는 잠금과 상관없이 적용
+  s.char = L.char || "adventurer"; s.chars = { ...s.chars, [s.char]: true }; s.charLv = { ...s.charLv, [s.char]: L.charLv || 1 };
+  s.skills = { ...(L.skills || {}) }; s.equip = [...(L.equip || [])]; while (s.equip.length < 5) s.equip.push(null);
+  s.useHalf = false;
+  return s;
+}
+function startChallenge(id) {
+  const def = CHAL.find(c => c.id === id);
+  if (!def) return;
+  if (chalReal) { state = chalReal; chalReal = null; }
+  chalRec(id).tries++;
+  persist();
+  showTab("hunt");
+  chalReal = state; state = chalState(def);
+  enterZone(def.zone);
+  if (!run || run.zone.key !== def.zone) { state = chalReal; chalReal = null; return; }
+  run.chal = { def, t: 0, dmg: 0, bossT: 0, lastHp: null, sx: null };
+  run.noRevive = true;
+  if (def.hp1) run.p.hp = 1;
+  fx(W / 2, H / 2 - 90, `도전: ${def.name}`, "#ff7a6e", 20, 20, 2.4);
+  fx(W / 2, H / 2 - 62, def.goal, "#efe6d8", 12, 20, 3);
+}
+function chalFail(why) {
+  const c = run?.chal;
+  if (!c || run.over || c.won || c.fail) return;
+  c.fail = why; sfx("fail");
+  fx(run.p.x, run.p.y - 40, "도전 실패", "#ff5f56", 20);
+  setTimeout(() => endRun(true), 600);
+}
+function chalWin() {
+  const c = run?.chal;
+  if (!c || run.over || c.fail || c.won) return;
+  c.won = true; sfx("fanfare");
+  setTimeout(() => endRun("chal"), 900);
+}
+function chalTick(dt) {
+  const c = run.chal, d = c.def, p = run.p;
+  if (run.over || c.won || c.fail) return;
+  c.t += dt;
+  if (d.hp1 && p.hp > 1) p.hp = 1;
+  if (c.lastHp != null && p.hp < c.lastHp - 0.01) {
+    if (d.noHit) return chalFail("피해를 받았어요");
+    c.dmg += c.lastHp - p.hp;
+    if (d.dmgCap && c.dmg > p.max * d.dmgCap) return chalFail("받은 피해가 최대 체력을 넘었어요");
+  }
+  c.lastHp = p.hp;
+  if (c.sx == null && c.t > 0.3) { c.sx = p.x; c.sy = p.y; }
+  if (d.stay && c.sx != null && Math.hypot(p.x - c.sx, p.y - c.sy) > d.stay) return chalFail("처음 자리에서 벗어났어요");
+  if (d.noKnock && p.knock) return chalFail("밀려났어요");
+  if (d.noInk && run.w2?.ink > 0) return chalFail("먹물에 맞았어요");
+  if (d.bossLimit) { if (run.mobs.some(m => m.boss && !m.dead)) c.bossT += dt; if (c.bossT > d.bossLimit) return chalFail(`보스가 나온 뒤 ${d.bossLimit}초가 지났어요`); }
+  if (d.limit && c.t > d.limit) return chalFail(`${d.limit}초가 지났어요`);
+}
+function chalStatus() {
+  const c = run?.chal; if (!c) return "";
+  const d = c.def, parts = [];
+  if (d.noHit) parts.push("피해 0 유지 중");
+  if (d.hp1) parts.push("체력 1");
+  if (d.dmgCap) parts.push(`받은 피해 ${Math.round(c.dmg / run.p.max * 100)}%`);
+  if (d.limit) parts.push(`${Math.max(0, Math.ceil(d.limit - c.t))}초`);
+  if (d.bossLimit && c.bossT > 0) parts.push(`보스 ${Math.max(0, Math.ceil(d.bossLimit - c.bossT))}초`);
+  return "도전 · " + (parts.join(" · ") || d.name);
+}
+function chalView() {
+  const done = CHAL.filter(c => chalRec(c.id).done).length;
+  const opts = CHAL.filter(c => chalRec(c.id).done).map(c => `<option value="${c.id}" ${state.title === c.title ? "selected" : ""}>${c.title}</option>`).join("");
+  return `<p class="hint">극악 도전 과제: 검·방어구·캐릭터·스킬이 <b>미리 정해진 채</b>로 싸워요. 스킬 트리·각인·특성·부활은 꺼져요. 도전 중에는 저장되지 않고, 끝나면 원래대로 돌아와요. 달성하면 칭호를 얻어요.</p>
+    <div class="chal-top"><b>달성 ${done}/${CHAL.length}</b>${done ? `<label>칭호 <select data-title><option value="">없음</option>${opts}</select></label>` : ""}</div>
+    ${CHAL.map(c => { const r = chalRec(c.id), L = c.load, sw = typeof L.sword === "function" ? L.sword() : L.sword;
+      const arm = (L.armor || []).map(([sl, t, lv]) => `${ARMOR_TYPES.find(x => x.key === t).pre}${ARMOR_SLOTS.find(x => x.key === sl).name} +${lv}`).join(", ") || "방어구 없음";
+      const sk = (L.equip || []).map(k => `${SK[k].name} Lv${L.skills[k]}`).join(", ") || "스킬 없음";
+      return `<div class="zone chal ${r.done ? "done" : ""}">
+        <h3>${r.done ? "🏆 " : ""}${c.name}</h3>
+        <p><b>${c.goal}</b></p>
+        <p class="chal-load">검 +${sw} · ${arm} · ${CH[L.char || "adventurer"].name} Lv ${L.charLv || 1} · ${sk}</p>
+        <p class="chal-rec">${r.done ? `달성! 칭호 「${c.title}」` : `칭호 「${c.title}」`} · 도전 ${r.tries}번</p>
+        <button data-chal="${c.id}">${r.done ? "다시 도전" : "도전"}</button></div>`; }).join("")}`;
+}
 
 // ══════════ 월드 3 · 보스 고유 패턴 (v136): 중간 보스 셋은 자기 기술로, 최종 보스는 기술 추가 ══════════
 const W3_FAIRY = { 2: ["보물 구름 요정", "#e8f4ff"], 3: ["장미 도둑 요정", "#ff9fc0"], 4: ["꿈꾸는 요정", "#c8b8ff"], 5: ["붓을 든 요정", "#f0d890"] };
@@ -11735,6 +11882,8 @@ function normalize(s) {
     lastTick: s.lastTick ?? 0,
     dungeonBest: s.dungeonBest ?? 0,
     dungeonClears: s.dungeonClears ?? 0,
+    chal: s.chal && typeof s.chal === "object" ? Object.fromEntries(Object.entries(s.chal).map(([k, v]) => [k, { tries: v?.tries | 0, done: !!v?.done }])) : {},
+    title: typeof s.title === "string" ? s.title.slice(0, 20) : "",
     dgTix: s.dgTix && typeof s.dgTix === "object" ? { day: String(s.dgTix.day || ""), n: s.dgTix.n | 0 } : null,
     dungeon2Best: s.dungeon2Best ?? 0,
     dungeon2Clears: s.dungeon2Clears ?? 0,
@@ -11829,6 +11978,7 @@ function commit() {
 }
 
 function persist() {
+  if (chalReal) return;   // 도전 중에는 정해진 장비 사본이라 저장하지 않음
   state.log = state.log.slice(0, 6);
   state.savedAt = Date.now();
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch {}
@@ -11842,6 +11992,7 @@ function persist() {
 }
 
 async function flush() {
+  if (chalReal) return;
   clearTimeout(saveTimer);
   saveTimer = null;
   if (!cloud || !dirty || saving) return;
@@ -11884,7 +12035,7 @@ function profileData() {
   ZONES2.forEach((z, i) => { if ((state.bossKills[z.key] || 0) > 0) w2Boss = i + 1; });
   const sword = state.sword | 0;
   return JSON.parse(JSON.stringify({
-    nickname: state.nickname, sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
+    nickname: state.nickname, title: state.title || "", sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
     gold: Math.max(0, Math.floor(state.gold)), mlv: state.mlv | 0, quest: state.quest | 0, ended: !!state.ended,
     maxBoss, w2Boss, dungeonBest: Math.min(DUNGEON.bosses.length, state.dungeonBest | 0), dungeonClears: state.dungeonClears | 0,
     char: state.char, build: { equip: state.equip, skills: state.skills, traits: state.traits, charLv: cl(state.char),
@@ -11936,7 +12087,7 @@ const saveSig = () => [state.sword, state.best, state.pick, state.mlv, state.que
   Object.values(state.charLv || {}).join(), state.inv?.half, state.inv?.noDrop, state.merchant?.day, (state.merchant?.slots || []).filter(x => x.sold).length].join("|");
 let cloudSaveAt = 0;
 function scheduleCloudSave(now = false, leaving = false) {
-  if (!fbLinked()) return;
+  if (!fbLinked() || chalReal) return;
   // 중요한 변화: 2초 안에 저장 (강화를 연타해도 2초에 한 번), 앱을 떠날 때: 지금 바로
   const wait = leaving ? 0 : now ? Math.max(0, lastCloudSave + 2000 - Date.now()) : Math.max(1500, lastCloudSave + FB_SAVE_GAP - Date.now());
   const go = () => {
