@@ -1051,7 +1051,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v154";
+const GAME_VERSION = "v155";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -11634,7 +11634,7 @@ let dirty = false;
 // 도전하는 동안은 내 진짜 저장(chalReal)을 옆에 두고, 정해진 장비로 바꾼 사본으로 싸운다. 끝나면 되돌리고, 도전 중에는 저장하지 않는다
 const CHAL = [
   { id: "spore", name: "포자 한 톨도", title: "포자를 피한 자", zone: "swamp", win: "boss", noHit: true,
-    goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5 }, equip: ["dash"] } },
+    goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5, guard: 5 }, equip: ["dash", "guard"] } },
   { id: "bare", name: "맨손의 대장장이", title: "맨손의 대장장이", zone: "dungeon", win: "dungeon",
     goal: "월드 1 보스 던전 9마리를 스킬 없이 연속 처치", load: { sword: 80 } },
   { id: "mirror", name: "거울 앞에서", title: "거울을 깨지 않은 자", zone: "w3:1:10", win: "stage", noReflect: true, noFake: true,
@@ -11643,8 +11643,8 @@ const CHAL = [
   { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
     goal: "크라켄 처치. 먹물·밀쳐내기 0번, 크라켄이 나온 뒤 60초 안에",
     load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "ice", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
-  { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", noHit: true, limit: 30,
-    goal: "1-4 거울 미로를 피해 0으로, 30초 안에 탈출", load: { sword: 130 } },
+  { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", limit: 30,
+    goal: "1-4 거울 미로를 30초 안에 탈출", load: { sword: 130 } },
   { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
     goal: "체력 1로 별의 던전 클리어 (회복 안 됨, 한 대도 맞으면 끝)",
     load: { sword: 125, armor: [["head", "dragon", 10], ["body", "dragon", 10], ["feet", "dragon", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
