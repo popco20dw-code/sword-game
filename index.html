@@ -1054,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v166";
+const GAME_VERSION = "v167";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -9142,8 +9142,9 @@ function stageZone(key) {
 function w3MakeMob(kind, x, y, opts = {}) {
   const b = W3_MOB[kind], cap = run.zone.cap, A = atkOf(cap.sword);
   const normal = run.stage.def.type !== "boss" && !b.boss, ref = W3_HP_REF * hpOf(cap.sword) / hpOf(130);
-  const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1) * (normal ? W3_NORMAL_HP : 1));
-  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(ref * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1) * (normal ? W3_NORMAL_DMG : 1) * (run.stage.def.maze ? 1.5 : 1)),
+  const cm = run.chal?.def;   // 극악 도전: 장비가 고정이라 일반 몹 세기를 따로 맞춤
+  const hp = Math.round(A * b.hp * (opts.elite ? 4 : 1) * (normal ? W3_NORMAL_HP : 1) * (normal && cm?.mobHp || 1));
+  const m = { kind, name: (opts.elite ? "정예 " : "") + b.name, color: b.color, x, y, hp, max: hp, dmg: Math.round(ref * b.dmg * (opts.elite ? 1.3 : 1) * (W3_CH[run.stage.ch - 1].dmgMul ?? 1) * (normal ? W3_NORMAL_DMG : 1) * (run.stage.def.maze ? 1.5 : 1) * (normal && cm?.mobDmg || 1)),
               speed: b.speed, baseSpeed: b.speed, r: b.r * (opts.elite ? 1.35 : 1), gold: 0, face: Math.atan2(run.p.y - y, run.p.x - x), hitCd: 0, flash: 0,
               phase: Math.random() * 6, contact: b.contact, w3: true, state: opts.idle ? "idle" : "fight", elite: !!opts.elite, cd: 1 + Math.random() };
   if (b.boss) Object.assign(m, { boss: true, mode: "chase", cd: 1.5, timer: 0, dir: Math.PI / 2, combo: 1 });
@@ -11673,7 +11674,7 @@ const CHAL = [
   { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
     goal: "크라켄 처치. 먹물·밀쳐내기 0번, 크라켄이 나온 뒤 60초 안에",
     load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "wind", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
-  { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", limit: 35,
+  { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", limit: 35, mobHp: 0.35, mobDmg: 0.5,
     goal: "1-4 거울 미로를 35초 안에 탈출", load: { sword: 130 } },
   { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
     goal: "체력 1로 별의 던전 클리어 (회복 안 됨, 한 대도 맞으면 끝)",
