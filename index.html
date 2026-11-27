@@ -1043,7 +1043,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v150";
+const GAME_VERSION = "v151";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1131,7 +1131,7 @@ const ITEMS = {
   sword: {
     label: "검",
     art: "#g-sword", viewBox: "0 0 60 200",
-    max: TEST ? 150 : 125,   // 월드 3 완성 전까지 +125가 끝 (데이터는 +150까지 있음)
+    max: TEST ? 150 : 130,   // 월드 3 완성 전까지 +130(1장 거울의 숲 재료)이 끝 (데이터는 +150까지 있음)
     names: ["나무 검", "철 검", "미스릴 검", "마검", "전설의 검", "다이아몬드 검", "별빛 검", "신화의 검",
             "천공의 검", "용살검", "창세의 검", "기사왕의 검", "빙룡검",
             "명계의 검", "뇌신검", "업화검", "용왕검",
