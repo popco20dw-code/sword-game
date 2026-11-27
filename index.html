@@ -154,6 +154,9 @@ button:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
 .chal-load { font-size: 12px; color: var(--muted); }
 .chal-rec { font-size: 12px; color: var(--warn); }
 .ptitle { font-style: normal; color: #ffd24a; font-size: 12px; margin-right: 4px; }
+.pchal { font-size: 12px; color: #ffd24a; margin-left: 4px; }
+.chal-who { font-size: 12px; color: #c9b8a6; }
+.chal-who b { color: #ffd24a; }
 /* 떠돌이 상인 */
 .merch { display: grid; gap: 8px; }
 .mslot { border-left: 0; box-shadow: inset 0 3px 0 var(--mc); }
@@ -1051,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v161";
+const GAME_VERSION = "v162";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1931,7 +1934,7 @@ function playerRow(id, p, isFriend) {
       <div class="pstats">아직 진행 상황을 올리지 않았어요</div>${btn}</div>`;
   }
   return `<div class="prow">
-    <div class="pname">${p.title ? `<em class="ptitle">「${esc(p.title)}」</em>` : ""}<b>${esc(p.nickname)}</b><small>${esc(tag(id))} · ${ago(p.updatedAt)}</small></div>
+    <div class="pname">${p.title ? `<em class="ptitle">「${esc(p.title)}」</em>` : ""}<b>${esc(p.nickname)}</b>${Object.keys(p.chal || {}).length ? `<span class="pchal" title="극악 도전 달성">🏆${Object.keys(p.chal).length}</span>` : ""}<small>${esc(tag(id))} · ${ago(p.updatedAt)}</small></div>
     <div class="pstats">검 <em>+${p.sword | 0}</em> (최고 +${p.best | 0}) · 곡괭이 <em>+${p.pick | 0}</em> · ${won(p.gold || 0)}</div>
     ${p.mlv ? `<div class="pstats">${profileExtra(p)}</div>` : ""}
     ${btn}</div>`;
@@ -11485,7 +11488,7 @@ function endRun(dead) {
   if (run.chal && chalReal) {   // 도전 끝: 진짜 저장으로 되돌리고 기록
     state = chalReal; chalReal = null;
     const c = run.chal, rec = chalRec(c.def.id);
-    if (c.won && !rec.done) { rec.done = true; if (!state.title) state.title = c.def.title; state.log.unshift({ text: `도전 달성: ${c.def.name}`, delta: `칭호 「${c.def.title}」` }); }
+    if (c.won && !rec.done) { rec.done = true; rec.at = Date.now(); if (!state.title) state.title = c.def.title; state.log.unshift({ text: `도전 달성: ${c.def.name}`, delta: `칭호 「${c.def.title}」` }); }
     persist();
   }
   run.rest = false; $("rest").hidden = true;
@@ -11755,12 +11758,22 @@ function chalStatus() {
   if (d.bossLimit && c.bossT > 0) parts.push(`보스 ${Math.max(0, Math.ceil(d.bossLimit - c.bossT))}초`);
   return "도전 · " + (parts.join(" · ") || d.name);
 }
+// 공개 기록(players)에서 도전별 달성자 모으기. 내 기록이 아직 안 올라갔으면 나도 더함
+function chalBoard() {
+  const by = {};
+  const add = (id, name, at) => (by[id] ||= []).push({ name, at });
+  const seen = new Set();
+  for (const p of players) { seen.add(p.id); for (const [id, at] of Object.entries(p.chal || {})) add(id, p.nickname, +at || 0); }
+  if (!seen.has(me.id)) for (const [id, v] of Object.entries(state.chal || {})) if (v.done) add(id, state.nickname || "나", v.at || 0);
+  for (const id in by) by[id].sort((a, b) => (a.at || 9e15) - (b.at || 9e15));
+  return by;
+}
 function chalView() {
   const done = CHAL.filter(c => chalRec(c.id).done).length;
   const opts = CHAL.filter(c => chalRec(c.id).done).map(c => `<option value="${c.id}" ${state.title === c.title ? "selected" : ""}>${c.title}</option>`).join("");
   return `<p class="hint">극악 도전 과제: 검·방어구·캐릭터·스킬이 <b>미리 정해진 채</b>로 싸워요. 스킬 트리·각인·특성·부활은 꺼져요. 도전 중에는 저장되지 않고, 끝나면 원래대로 돌아와요. 달성하면 칭호를 얻어요.</p>
     <div class="chal-top"><b>달성 ${done}/${CHAL.length}</b>${done ? `<label>칭호 <select data-title><option value="">없음</option>${opts}</select></label>` : ""}</div>
-    ${CHAL.map(c => { const r = chalRec(c.id), L = c.load, sw = typeof L.sword === "function" ? L.sword() : L.sword;
+    ${(() => { const B = chalBoard(); return CHAL.map(c => { const r = chalRec(c.id), L = c.load, who = B[c.id] || [], sw = typeof L.sword === "function" ? L.sword() : L.sword;
       const arm = (L.armor || []).map(([sl, t, lv]) => `${ARMOR_TYPES.find(x => x.key === t).pre}${ARMOR_SLOTS.find(x => x.key === sl).name} +${lv}`).join(", ") || "방어구 없음";
       const sk = (L.equip || []).map(k => `${SK[k].name} Lv${L.skills[k]}`).join(", ") || "스킬 없음";
       return `<div class="zone chal ${r.done ? "done" : ""}">
@@ -11768,7 +11781,9 @@ function chalView() {
         <p><b>${c.goal}</b></p>
         <p class="chal-load">검 +${sw} · ${arm} · ${CH[L.char || "adventurer"].name} Lv ${L.charLv || 1} · ${sk}</p>
         <p class="chal-rec">${r.done ? `달성! 칭호 「${c.title}」` : `칭호 「${c.title}」`} · 도전 ${r.tries}번</p>
-        <button data-chal="${c.id}">${r.done ? "다시 도전" : "도전"}</button></div>`; }).join("")}`;
+        <p class="chal-who">${who.length ? `🏆 <b>${who.length}명</b> 달성 · 처음 깬 사람 <b>${esc(who[0].name)}</b>${who.length > 1 ? ` · ${who.slice(1, 4).map(w => esc(w.name)).join(", ")}${who.length > 4 ? " 외" : ""}` : ""}` : "아직 아무도 깨지 못했어요"}</p>
+        <button data-chal="${c.id}">${r.done ? "다시 도전" : "도전"}</button></div>`; }).join(""); })()}
+    <p class="hint">달성자는 닉네임을 정한 플레이어의 공개 기록으로 세요 (게임을 열면 올라가요).</p>`;
 }
 
 // ══════════ 월드 3 · 보스 고유 패턴 (v136): 중간 보스 셋은 자기 기술로, 최종 보스는 기술 추가 ══════════
@@ -11908,7 +11923,7 @@ function normalize(s) {
     lastTick: s.lastTick ?? 0,
     dungeonBest: s.dungeonBest ?? 0,
     dungeonClears: s.dungeonClears ?? 0,
-    chal: s.chal && typeof s.chal === "object" ? Object.fromEntries(Object.entries(s.chal).map(([k, v]) => [k, { tries: v?.tries | 0, done: !!v?.done }])) : {},
+    chal: s.chal && typeof s.chal === "object" ? Object.fromEntries(Object.entries(s.chal).map(([k, v]) => [k, { tries: v?.tries | 0, done: !!v?.done, at: +v?.at || 0 }])) : {},
     title: typeof s.title === "string" ? s.title.slice(0, 20) : "",
     dgTix: s.dgTix && typeof s.dgTix === "object" ? { day: String(s.dgTix.day || ""), n: s.dgTix.n | 0 } : null,
     dungeon2Best: s.dungeon2Best ?? 0,
@@ -12061,7 +12076,8 @@ function profileData() {
   ZONES2.forEach((z, i) => { if ((state.bossKills[z.key] || 0) > 0) w2Boss = i + 1; });
   const sword = state.sword | 0;
   return JSON.parse(JSON.stringify({
-    nickname: state.nickname, title: state.title || "", sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
+    nickname: state.nickname, title: state.title || "",
+    chal: Object.fromEntries(Object.entries(state.chal || {}).filter(([k, v]) => v.done && CHAL.some(c => c.id === k)).map(([k, v]) => [k, v.at || 1])), sword, best: Math.max(state.best | 0, sword), pick: state.pick | 0,
     gold: Math.max(0, Math.floor(state.gold)), mlv: state.mlv | 0, quest: state.quest | 0, ended: !!state.ended,
     maxBoss, w2Boss, dungeonBest: Math.min(DUNGEON.bosses.length, state.dungeonBest | 0), dungeonClears: state.dungeonClears | 0,
     char: state.char, build: { equip: state.equip, skills: state.skills, traits: state.traits, charLv: cl(state.char),
@@ -12248,6 +12264,7 @@ async function connectFirebase() {
           return { id: d.id, ...x, updatedAt: x.updatedAt?.toMillis?.() ?? Date.now() };
         }).filter(p => typeof p.nickname === "string" && p.nickname);
         renderFriends();
+        if (huntMode === "grow" && growView === "chal" && !$("hunt").hidden && !run) renderZones();
       },
       () => {});
     fbState = "on";
