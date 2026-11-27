@@ -1054,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v162";
+const GAME_VERSION = "v163";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5549,6 +5549,7 @@ function useSkill(slot) {
     p.dash = { t: 0.2, dx: p.dir.x, dy: p.dir.y, mult: s.mult(lv), hit: new Set(), red: s.guard(lv) / 100 };
   } else if (key === "guard") {
     p.invuln = Math.max(p.invuln, s.dur(lv));
+    p.poisonT = 0; p.burnT = 0;   // 장막을 치면 걸려 있던 중독·화상도 씻겨 나감
   } else if (key === "bomb") {
     run.bombs.push({ x: p.x, y: p.y, t: 2, r: s.radius(lv), mult: s.mult(lv) });
   } else if (key === "whirl") {
@@ -6456,6 +6457,7 @@ const inIcePatch = m => run.arm.feet === "ice" && run.trails.some(tr => Math.hyp
 // 독: 화상과 달리 회복을 절반으로 줄인다
 function poisonPlayer(sec, dps) {
   const p = run.p;
+  if (p.invuln > 0) return;   // 수호의 장막 등 무적 중에는 중독되지 않음
   if (!(p.poisonT > 0)) fx(p.x, p.y - 36, "중독!", "#9be05a", 14);
   p.poisonT = Math.max(p.poisonT || 0, sec);
   p.poisonDps = Math.max(p.poisonT > 0 ? p.poisonDps || 0 : 0, dps);
