@@ -1043,7 +1043,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v147";
+const GAME_VERSION = "v148";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -1346,11 +1346,9 @@ function armorEffect(id, lv) {
     bolt: `이동 속도 +${f.run(lv)}%` }[type.key] ?? "";
 }
 // 강화: 파괴 없음. 높은 단계에서만 하락
-function armorOdds(lv) {
-  if (lv < 5) return [80, 20, 0];
-  if (lv < 10) return [60, 35, 5];
-  if (lv < 15) return [45, 40, 15];
-  return [30, 45, 25];
+function armorOdds(lv) {   // v148: 하락 없음 (실패하면 유지)
+  const sc = lv < 5 ? 80 : lv < 10 ? 60 : lv < 15 ? 45 : 30;
+  return [sc, 100 - sc, 0];
 }
 // 강화석: 단계가 높을수록, 등급이 높을수록 더 든다
 const armorStones = (id, lv) => Math.ceil((3 + 2 * lv) * (1 + 0.25 * (armorParts(id).type.stars - 1)));
@@ -1411,7 +1409,7 @@ const minerCost = n => 20000 * Math.pow(2, n);
 const MINE_HAND = 1.6;
 const perRock = () => Math.round(rockGold() * MINE_HAND) * (state.oil > 0 ? 2 : 1);
 
-let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 1, merchant: null,
+let state = { gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 2, merchant: null,
               mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
               best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } };
@@ -1644,7 +1642,7 @@ function gainXp(n) {
 const bossGoal = (zone, mat) => () => [(state.bossKills[zone] || 0) > 0 || state.mats[mat] > 0 ? 1 : 0, 1];
 const QUESTS = [
   { text: "검을 +5까지 강화하기", prog: () => [state.best, 5], reward: { gold: 3000 } },
-  { text: "광산에서 돌 50번 캐기", prog: () => [state.mined, 50], reward: { gold: 2000, inv: ["noDrop", 1] } },
+  { text: "광산에서 돌 50번 캐기", prog: () => [state.mined, 50], reward: { gold: 3200 } },
   { text: "곡괭이를 +5까지 강화하기", prog: () => [state.pick, 5], reward: { gold: 5000 } },
   { text: "초원에서 슬라임 킹 처치하기", prog: bossGoal("field", "crown"), reward: { runes: 5, tickets: 1 } },
   { text: "스킬 하나 배우기", prog: () => [Object.keys(state.skills).length, 1], reward: { runes: 5 } },
@@ -4510,10 +4508,9 @@ function renderArmor() {
         <div class="a-grade">${gradeStars(type)} ${type.grade}</div>
         <div class="a-eff">체력 <b>+${armorHp(id, lv)}</b>${eff ? `<br>${eff}` : ""}${type.key === "star" ? "<br>별 세트 3부위를 모두 끼면 사냥에서 1회 부활" : ""}</div>
         <div class="a-msg ${armorMsg?.[1] ?? ""}" role="status">${armorMsg?.[0] ?? ""}</div>
-        ${max ? "" : `<dl class="odds" style="grid-template-columns:repeat(3,1fr)">
-          <div class="good"><dt>성공</dt><dd>${+(+sc).toFixed(2)}%</dd></div><div class="${kc ? "" : "none"}"><dt>유지</dt><dd>${+(+kc).toFixed(2)}%</dd></div>
-          <div class="warn ${dc ? "" : "none"}"><dt>하락</dt><dd>${+(+dc).toFixed(2)}%</dd></div></dl>`}
-        <div class="a-cost">${costTxt}${dc && !max ? ` · 하락방지권 ${state.inv.noDrop}장` : ""}<br><small>강화석은 방어구 뽑기에서 얻어요 (한 번에 ${PULL_STONES}개 + 중복은 강화석으로)</small></div>
+        ${max ? "" : `<dl class="odds" style="grid-template-columns:repeat(2,1fr)">
+          <div class="good"><dt>성공</dt><dd>${+(+sc).toFixed(2)}%</dd></div><div class="${kc ? "" : "none"}"><dt>실패 (단계 유지)</dt><dd>${+(+kc).toFixed(2)}%</dd></div></dl>`}
+        <div class="a-cost">${costTxt}<br><small>강화석은 방어구 뽑기에서 얻어요 (한 번에 ${PULL_STONES}개 + 중복은 강화석으로)</small></div>
         <div class="a-acts"><button class="primary" data-aup ${ok ? "" : "disabled"}>${max ? "최대 단계" : "강화"}</button>
           <button data-aoff>해제</button></div>
       </div>`;
@@ -4549,7 +4546,7 @@ function enhanceArmor() {
     sfx(lv + 1 === ARMOR_MAX ? "fanfare" : "success");
     armorMsg = [lv + 1 === ARMOR_MAX ? "최대 단계 달성!" : `강화 성공! +${lv + 1}`, "good"];
     delta = `+${lv + 1}`;
-  } else if (roll < sc + kc) {
+  } else if (true) {   // 하락 없음 (v148)
     sfx("fail");
     armorMsg = ["강화 실패… 단계는 그대로예요.", "warn"];
     delta = "실패";
@@ -11690,7 +11687,7 @@ w3BossMode = function (m, dt, done) {
   }
   return _w3BossMode4(m, dt, done);
 };
-const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 1, merchant: null,
+const fresh = () => ({ gold: START_GOLD, sword: 0, pick: 0, mined: 0, log: [], inv: emptyInv(), oil: 0, useHalf: false, shopV: 2, merchant: null,
                        mats: emptyMats(), runes: 0, skills: {}, equip: [null, null, null, null, null], chars: { adventurer: true }, char: "adventurer", miners: 0, lastTick: 0, dungeonBest: 0, dungeonClears: 0, dungeon2Best: 0, dungeon2Clears: 0,
   xp: 0, mlv: 1, traits: { str: 0, vit: 0, dex: 0, luck: 0 }, quest: 0, bossKills: {}, ended: false,
                        best: 0, nickname: "", friends: [], savedAt: 0, armor: emptyArmor(), coupons: [], questV: QUEST_VER, charLv: {}, shards: {}, souls: 0, ctickets: 0, ctPity: 0, ctPts: 1, cpulls: 0, charV: CHAR_V, astones: 0, armorV: ARMOR_V, tree: {}, pity: { sword: 0, pick: 0 }, w3: { best: {}, chests: {}, mark: {} } });
@@ -11783,6 +11780,12 @@ function normalize(s) {
     const back = (o.inv.stone | 0) * 800 + (o.inv.noBreak | 0) * 3000;
     if (back > 0) { o.gold += back; o.log.unshift({ text: `숫돌 ${o.inv.stone | 0}개 · 파괴방지권 ${o.inv.noBreak | 0}장 환불`, delta: "+" + won(back) }); }
     o.inv.stone = 0; o.inv.noBreak = 0; o.shopV = 1;
+  }
+  // v148: 방어구 하락도 없어져 하락방지권 삭제 → 장당 1,200G 환불
+  if (o.shopV < 2) {
+    const back = (o.inv.noDrop | 0) * 1200;
+    if (back > 0) { o.gold += back; o.log.unshift({ text: `하락방지권 ${o.inv.noDrop | 0}장 환불`, delta: "+" + won(back) }); }
+    o.inv.noDrop = 0; o.shopV = 2;
   }
   return o;
 }
