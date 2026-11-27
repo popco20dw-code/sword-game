@@ -1054,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v165";
+const GAME_VERSION = "v166";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -11672,7 +11672,7 @@ const CHAL = [
     load: { sword: 130, armor: [["head", "diamond", 8], ["body", "steel", 8], ["feet", "wind", 8]], char: "archmage", charLv: 6, skills: { dash: 5, drain: 5 }, equip: ["dash", "drain"] } },
   { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
     goal: "크라켄 처치. 먹물·밀쳐내기 0번, 크라켄이 나온 뒤 60초 안에",
-    load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "ice", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
+    load: { sword: () => zoneByKey("temple").rec + 10, armor: [["feet", "wind", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
   { id: "path", name: "완벽한 길", title: "길을 아는 자", zone: "w3:1:4", win: "stage", limit: 35,
     goal: "1-4 거울 미로를 35초 안에 탈출", load: { sword: 130 } },
   { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
