@@ -1051,7 +1051,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v158";
+const GAME_VERSION = "v159";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5889,8 +5889,8 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
     if (from === run.p && run.chal?.def.noReflect) return chalFail("반사 피해를 받았어요");
     if (from === run.p && run.time - (m.reflAt ?? -9) > 0.35) { m.reflAt = run.time; hitBy(m, m.dmg * 1.1); fx(run.p.x, run.p.y - 30, "반사!", "#cfe8ff", 13); }
   }
-  if (run.chal && m.boss) {   // 극악 도전: 보스는 정해진 횟수로 잡힘 (기본 공격 50번, 스킬 한 번은 절반, 반사·방패 중에는 적게)
-    const dd = m.max / CHAL_BOSS_HITS * (run.basicHit ? 1 : 0.5) * Math.min(1, mult);
+  if (run.chal?.def.bossHits && m.boss) {   // 극악 도전(버섯왕·기사단장): 보스는 정해진 횟수로 잡힘 (기본 공격 50번, 스킬 한 번은 절반, 반사·방패 중에는 적게)
+    const dd = m.max / run.chal.def.bossHits * (run.basicHit ? 1 : 0.5) * Math.min(1, mult);
     m.hp -= dd; m.flash = 0.12; m.hitCd = 0;
     if (m.hp < m.max * 1e-6) m.hp = 0;   // 소수 오차로 한 번 더 때려야 하는 일 없게
     if (Math.random() < 0.3) fx(m.x + (Math.random() - 0.5) * 20, m.y - m.r - 8, `-${(dd / m.max * 100).toFixed(1)}%`, "#ffd24a", 12);
@@ -6412,7 +6412,7 @@ function chainLightning(n, mult) {
 // 방어구가 만든 지속 피해(화상·불길): 숫자는 0.4초마다 모아서 보여 준다
 function dotHit(m, dmg) {
   if (m.dead || m.mode === "ascend" || m.mode === "blinkOut" || m.ghost > 0) return;
-  if (run.chal && m.boss) return;   // 극악 도전 보스는 정해진 횟수로만
+  if (run.chal?.def.bossHits && m.boss) return;   // 정해진 횟수로 잡는 도전 보스
   m.hp -= dmg;
   m.dotAcc = (m.dotAcc || 0) + dmg;
   if (m.hp <= 0) { if (twinDown(m)) return; m.dead = true; kill(m); }
@@ -11654,9 +11654,8 @@ let dirty = false;
 
 // ══════════ 극악 도전 과제 (v154) ══════════
 // 도전하는 동안은 내 진짜 저장(chalReal)을 옆에 두고, 정해진 장비로 바꾼 사본으로 싸운다. 끝나면 되돌리고, 도전 중에는 저장하지 않는다
-const CHAL_BOSS_HITS = 50;
 const CHAL = [
-  { id: "spore", name: "포자 한 톨도", title: "포자를 피한 자", zone: "swamp", win: "boss", noHit: true,
+  { id: "spore", name: "포자 한 톨도", title: "포자를 피한 자", zone: "swamp", win: "boss", noHit: true, bossHits: 50,
     goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5, guard: 5 }, equip: ["dash", "guard"] } },
   { id: "bare", name: "맨손의 대장장이", title: "맨손의 대장장이", zone: "dungeon", win: "dungeon",
     goal: "월드 1 보스 던전 9마리를 스킬 없이 연속 처치", load: { sword: 80 } },
@@ -11671,7 +11670,7 @@ const CHAL = [
   { id: "thread", name: "한 줄기 피", title: "한 줄기 피", zone: "dungeon2", win: "dungeon", hp1: true,
     goal: "체력 1로 별의 던전 클리어 (회복 안 됨, 한 대도 맞으면 끝)",
     load: { sword: 125, armor: [["head", "dragon", 10], ["body", "dragon", 10], ["feet", "dragon", 10]], skills: { dash: 5, frenzy: 5 }, equip: ["dash", "frenzy"] } },
-  { id: "still", name: "움직이지 마", title: "흔들리지 않는 자", zone: "w3:2:10", win: "stage", stay: 160, noKnock: true,
+  { id: "still", name: "움직이지 마", title: "흔들리지 않는 자", zone: "w3:2:10", win: "stage", stay: 160, noKnock: true, bossHits: 50,
     goal: "천공의 기사단장 처치. 처음 선 자리에서 160 밖으로 나가거나 밀려나면 실패",
     load: { sword: 135, char: "knight", charLv: 7, skills: { bomb: 5, whirl: 5 }, equip: ["bomb", "whirl"] } },
   { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1,
