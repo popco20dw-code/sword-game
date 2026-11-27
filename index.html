@@ -1051,7 +1051,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v159";
+const GAME_VERSION = "v160";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5889,7 +5889,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
     if (from === run.p && run.chal?.def.noReflect) return chalFail("반사 피해를 받았어요");
     if (from === run.p && run.time - (m.reflAt ?? -9) > 0.35) { m.reflAt = run.time; hitBy(m, m.dmg * 1.1); fx(run.p.x, run.p.y - 30, "반사!", "#cfe8ff", 13); }
   }
-  if (run.chal?.def.bossHits && m.boss) {   // 극악 도전(버섯왕·기사단장): 보스는 정해진 횟수로 잡힘 (기본 공격 50번, 스킬 한 번은 절반, 반사·방패 중에는 적게)
+  if (run.chal?.def.bossHits && m.boss) {   // 극악 도전(버섯왕·기사단장·거울 여왕·별을 삼킨 자 진): 보스는 정해진 횟수로 잡힘 (기본 공격 50번, 스킬 한 번은 절반, 반사·방패 중에는 적게)
     const dd = m.max / run.chal.def.bossHits * (run.basicHit ? 1 : 0.5) * Math.min(1, mult);
     m.hp -= dd; m.flash = 0.12; m.hitCd = 0;
     if (m.hp < m.max * 1e-6) m.hp = 0;   // 소수 오차로 한 번 더 때려야 하는 일 없게
@@ -11659,7 +11659,7 @@ const CHAL = [
     goal: "버섯왕을 잡을 때까지 피해 0", load: { sword: () => zoneByKey("swamp").rec + 5, skills: { dash: 5, guard: 5 }, equip: ["dash", "guard"] } },
   { id: "bare", name: "맨손의 대장장이", title: "맨손의 대장장이", zone: "dungeon", win: "dungeon",
     goal: "월드 1 보스 던전 9마리를 스킬 없이 연속 처치", load: { sword: 80 } },
-  { id: "mirror", name: "거울 앞에서", title: "거울을 깨지 않은 자", zone: "w3:1:10", win: "stage", noReflect: true, noFake: true,
+  { id: "mirror", name: "거울 앞에서", title: "거울을 깨지 않은 자", zone: "w3:1:10", win: "stage", noReflect: true, noFake: true, bossHits: 50,
     goal: "거울 여왕 처치. 반사 피해를 한 번도 받지 않고, 가짜 여왕을 한 번도 때리지 않기",
     load: { sword: 130, armor: [["head", "diamond", 8], ["body", "steel", 8], ["feet", "wind", 8]], char: "archmage", charLv: 6, skills: { dash: 5, drain: 5 }, equip: ["dash", "drain"] } },
   { id: "ink", name: "먹물 없이", title: "심해를 건넌 자", zone: "temple", win: "boss", noInk: true, noKnock: true, bossLimit: 60,
@@ -11673,7 +11673,7 @@ const CHAL = [
   { id: "still", name: "움직이지 마", title: "흔들리지 않는 자", zone: "w3:2:10", win: "stage", stay: 160, noKnock: true, bossHits: 50,
     goal: "천공의 기사단장 처치. 처음 선 자리에서 160 밖으로 나가거나 밀려나면 실패",
     load: { sword: 135, char: "knight", charLv: 7, skills: { bomb: 5, whirl: 5 }, equip: ["bomb", "whirl"] } },
-  { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1,
+  { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1, bossHits: 50,
     goal: "별을 삼킨 자 · 진을 3분 안에, 받은 피해 합이 최대 체력 이하로 처치",
     load: { sword: 125, armor: [["head", "star", 10], ["body", "star", 10], ["feet", "star", 10]], char: "hypernova", charLv: 5, skills: { dash: 5, thunder: 5 }, equip: ["dash", "thunder"] } },
   { id: "shadow", name: "요정의 그림자", title: "요정의 그림자", zone: "w3:1:7", win: "stage", onlyFairy: true, limit: 15,
