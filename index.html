@@ -1054,7 +1054,7 @@ html.test-mode body { box-shadow: inset 0 4px 0 #3fbf7f; }
 
 <script>
 // 게임 버전 (패치노트 번호). 올릴 때마다 함께 올린다
-const GAME_VERSION = "v163";
+const GAME_VERSION = "v164";
 const PATCH_NOTES_URL = "https://popco20dw-code.github.io/sword-game/patch-notes.html";
 let swReg = null;
 // 테스트 모드: 주소에 ?test 를 붙이면 따로 저장되고, 친구 기록·계정 저장 없이 재화·능력치를 바꿔 볼 수 있다
@@ -5856,7 +5856,7 @@ function hit(m, mult, from = run.p) {   // from이 null이면 위에서 떨어�
   if (m.dead) return;
   if (m.mode === "ascend" || m.mode === "blinkOut" || m.ghost > 0) return;
   if (m.kind === "mTreasure") {   // 보물 요정: 레벨 고정 — 기본 공격 22번이면 잡힘 (스킬·번개 등은 12%만)
-    const dd = m.max / (TREASURE_HITS * (run.stage?.def.fairyHp || 1)) * (run.basicHit ? 1 : 0.12);
+    const dd = m.max / (run.chal?.def.fairyHits || TREASURE_HITS * (run.stage?.def.fairyHp || 1)) * (run.basicHit ? 1 : 0.12);
     m.hp -= dd; m.flash = 0.12;
     if (!run.basicHit && Math.random() < 0.2) fx(m.x, m.y - m.r - 6, "튕김", "#ffe9a8", 11);
     if (m.hp <= 0.001) { m.dead = true; kill(m); }
@@ -11684,8 +11684,8 @@ const CHAL = [
   { id: "devour", name: "삼킨 자를 삼키다", title: "별을 삼킨 자를 삼킨 자", zone: "boss2:9", win: "boss", limit: 180, dmgCap: 1, bossHits: 50,
     goal: "별을 삼킨 자 · 진을 3분 안에, 받은 피해 합이 최대 체력 이하로 처치",
     load: { sword: 125, armor: [["head", "star", 10], ["body", "star", 10], ["feet", "star", 10]], char: "hypernova", charLv: 5, skills: { dash: 5, thunder: 5 }, equip: ["dash", "thunder"] } },
-  { id: "shadow", name: "요정의 그림자", title: "요정의 그림자", zone: "w3:1:7", win: "stage", onlyFairy: true, limit: 15,
-    goal: "1-7 거울 요정을 15초 안에 잡기. 다른 몹을 한 번이라도 때리면 실패", load: { sword: 130 } },
+  { id: "shadow", name: "요정의 그림자", title: "요정의 그림자", zone: "w3:1:7", win: "stage", onlyFairy: true, limit: 30, fairyHits: 15,
+    goal: "1-7 거울 요정을 30초 안에 잡기 (기본 공격 15번). 다른 몹을 한 번이라도 때리면 실패", load: { sword: 130 } },
 ];
 let chalReal = null;
 const chalRec = id => (state.chal ||= {})[id] ||= { tries: 0, done: false };
